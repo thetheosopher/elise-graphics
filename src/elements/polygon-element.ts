@@ -10,570 +10,554 @@ import { ElementBase } from './element-base';
 import { InvalidIndexException } from './invalid-index-exception';
 
 export class PolygonElement extends ElementBase implements IPointContainer {
+  /**
+   * Polygon element factory function
+   * @returns New polygon
+   */
+  public static create(): PolygonElement {
+    const e = new PolygonElement();
+    return e;
+  }
 
-    /**
-     * Polygon element factory function
-     * @returns New polygon
-     */
-    public static create(): PolygonElement {
-        const e = new PolygonElement();
-        return e;
+  /**
+   * Computed bounding region
+   */
+  public bounds?: Region;
+
+  /**
+   * True when in point editing mode
+   */
+  public editPoints: boolean = false;
+
+  /**
+   * Fill winding mode
+   */
+  private _winding?: WindingMode;
+
+  /**
+   * Point array
+   */
+  private _points?: Point[];
+
+  /**
+   * Constructs a polygon element
+   * @classdesc Renders connected, stroked and/or filled line segments between three or more points
+   * @extends Elise.Drawing.ElementBase
+   */
+  constructor() {
+    super();
+    this.type = 'polygon';
+    this.setPoints = this.setPoints.bind(this);
+    this.setWinding = this.setWinding.bind(this);
+  }
+
+  /**
+   * Winding mode get accessor
+   * @returns Fill winding mode
+   */
+  get winding(): WindingMode | undefined {
+    return this._winding;
+  }
+
+  /**
+   * Winding mode set accessor
+   * @param newValue - New fill winding mode
+   */
+  set winding(newValue: WindingMode | undefined) {
+    this._winding = newValue;
+  }
+
+  /**
+   * Sets fill winding mode
+   * @param winding - Fill winding mode
+   * @returns This polygon
+   */
+  public setWinding(winding: WindingMode): PolygonElement {
+    this._winding = winding;
+    return this;
+  }
+
+  /**
+   * Points get accessor as string. Serializes point array into string.
+   * @returns Serialized point array
+   */
+  get points(): string | undefined {
+    if (!this._points) {
+      return undefined;
+    } else {
+      let result = '';
+      const pl = this._points.length;
+      for (let i = 0; i < pl; i++) {
+        const p = this._points[i];
+        if (i > 0) {
+          result += ' ';
+        }
+        result += p.toString();
+      }
+      return result;
     }
+  }
 
-    /**
-     * Computed bounding region
-     */
-    public bounds?: Region;
-
-    /**
-     * True when in point editing mode
-     */
-    public editPoints: boolean = false;
-
-    /**
-     * Fill winding mode
-     */
-    private _winding?: WindingMode;
-
-    /**
-     * Point array
-     */
-    private _points?: Point[];
-
-    /**
-     * Constructs a polygon element
-     * @classdesc Renders connected, stroked and/or filled line segments between three or more points
-     * @extends Elise.Drawing.ElementBase
-     */
-    constructor() {
-        super();
-        this.type = 'polygon';
-        this.setPoints = this.setPoints.bind(this);
-        this.setWinding = this.setWinding.bind(this);
+  /**
+   * Points set accessor as string.  Parses serialized string of points.
+   * @param newValue - Serialized point array
+   */
+  set points(newValue: string | undefined) {
+    if (!newValue) {
+      this._points = undefined;
+    } else {
+      this._points = [];
+      const parts = newValue.split(' ');
+      const pl = parts.length;
+      for (let i = 0; i < pl; i++) {
+        this._points.push(Point.parse(parts[i]));
+      }
     }
+    this.bounds = undefined;
+  }
 
-    /**
-     * Winding mode get accessor
-     * @returns Fill winding mode
-     */
-    get winding(): WindingMode | undefined {
-        return this._winding;
+  /**
+   * Sets point array as either serialized points string or Point array.
+   * @param pointsSource - Point source as either string of Point array
+   * @return This polygon element
+   */
+  public setPoints(pointsSource: string | Point[]) {
+    if (typeof pointsSource === 'string') {
+      this.points = pointsSource;
+    } else {
+      this._points = pointsSource.slice(0);
     }
+    this.bounds = undefined;
+    return this;
+  }
 
-    /**
-     * Winding mode set accessor
-     * @param newValue - New fill winding mode
-     */
-    set winding(newValue: WindingMode | undefined) {
-        this._winding = newValue;
+  /**
+   * Copies properties of another object to this instance
+   * @param o - Source object
+   */
+  public parse(o: any): void {
+    super.parse(o);
+    if (o.points) {
+      this.points = o.points;
     }
-
-    /**
-     * Sets fill winding mode
-     * @param winding - Fill winding mode
-     * @returns This polygon
-     */
-    public setWinding(winding: WindingMode): PolygonElement {
-        this._winding = winding;
-        return this;
+    if (o.winding) {
+      this.winding = o.winding;
     }
+  }
 
-    /**
-     * Points get accessor as string. Serializes point array into string.
-     * @returns Serialized point array
-     */
-    get points(): string | undefined {
-        if (!this._points) {
-            return undefined;
-        }
-        else {
-            let result = '';
-            const pl = this._points.length;
-            for (let i = 0; i < pl; i++) {
-                const p = this._points[i];
-                if (i > 0) {
-                    result += ' ';
-                }
-                result += p.toString();
-            }
-            return result;
-        }
+  /**
+   * Serializes persistent properties to new object instance
+   * @returns Serialized element
+   */
+  public serialize(): any {
+    const o = super.serialize();
+    o.size = undefined;
+    o.location = undefined;
+    if (this.points) {
+      o.points = this.points;
     }
-
-    /**
-     * Points set accessor as string.  Parses serialized string of points.
-     * @param newValue - Serialized point array
-     */
-    set points(newValue: string | undefined) {
-        if (!newValue) {
-            this._points = undefined;
-        }
-        else {
-            this._points = [];
-            const parts = newValue.split(' ');
-            const pl = parts.length;
-            for (let i = 0; i < pl; i++) {
-                this._points.push(Point.parse(parts[i]));
-            }
-        }
-        this.bounds = undefined;
+    if (this.winding && this.winding === WindingMode.EvenOdd) {
+      o.winding = this.winding;
     }
+    return o;
+  }
 
-    /**
-     * Sets point array as either serialized points string or Point array.
-     * @param pointsSource - Point source as either string of Point array
-     * @return This polygon element
-     */
-    public setPoints(pointsSource: string | Point[]) {
-        if (typeof pointsSource === 'string') {
-            this.points = pointsSource;
-        }
-        else {
-            this._points = pointsSource.slice(0);
-        }
-        this.bounds = undefined;
-        return this;
+  /**
+   * Clones this polygon element to a new instance
+   * @returns Cloned polygon instance
+   */
+  public clone(): PolygonElement {
+    const e: PolygonElement = PolygonElement.create();
+    super.cloneTo(e);
+    e.points = this.points;
+    e.winding = this.winding;
+    return e;
+  }
+
+  /**
+   * Render polygon to canvas context
+   * @param c - Rendering context
+   */
+  public draw(c: CanvasRenderingContext2D): void {
+    const model = this.model;
+    if (!model) {
+      return;
     }
-
-    /**
-     * Copies properties of another object to this instance
-     * @param o - Source object
-     */
-    public parse(o: any): void {
-        super.parse(o);
-        if (o.points) {
-            this.points = o.points;
-        }
-        if (o.winding) {
-            this.winding = o.winding;
-        }
+    if (!this._points) {
+      return;
     }
-
-    /**
-     * Serializes persistent properties to new object instance
-     * @returns Serialized element
-     */
-    public serialize(): any {
-        const o = super.serialize();
-        o.size = undefined;
-        o.location = undefined;
-        if (this.points) {
-            o.points = this.points;
-        }
-        if (this.winding && this.winding === WindingMode.EvenOdd) {
-            o.winding = this.winding;
-        }
-        return o;
+    const bounds = this.getBounds();
+    if (!bounds) {
+      return;
     }
-
-    /**
-     * Clones this polygon element to a new instance
-     * @returns Cloned polygon instance
-     */
-    public clone(): PolygonElement {
-        const e: PolygonElement = PolygonElement.create();
-        super.cloneTo(e);
-        e.points = this.points;
-        e.winding = this.winding;
-        return e;
+    c.save();
+    if (this.transform) {
+      model.setRenderTransform(c, this.transform, bounds.location);
     }
-
-    /**
-     * Render polygon to canvas context
-     * @param c - Rendering context
-     */
-    public draw(c: CanvasRenderingContext2D): void {
-        const model = this.model;
-        if(!model) {
-            return;
-        }
-        if(!this._points) {
-            return;
-        }
-        const bounds = this.getBounds();
-        if(!bounds) {
-            return;
-        }
-        c.save();
-        if (this.transform) {
-            model.setRenderTransform(c, this.transform, bounds.location);
-        }
-        c.beginPath();
-        c.moveTo(this._points[0].x, this._points[0].y);
-        const pl = this._points.length;
-        for (let i = 1; i < pl; i++) {
-            const p: Point = this._points[i];
-            c.lineTo(p.x, p.y);
-        }
-        c.closePath();
-        if (FillFactory.setElementFill(c, this)) {
-            const loc = bounds.location;
-            if (this.fillOffsetX || this.fillOffsetY) {
-                const fillOffsetX = this.fillOffsetX || 0;
-                const fillOffsetY = this.fillOffsetY || 0;
-                c.translate(loc.x + fillOffsetX, loc.y + fillOffsetY);
-                if (this._winding && this._winding === WindingMode.EvenOdd) {
-                    c.fill('evenodd');
-                }
-                else {
-                    c.fill('nonzero');
-                }
-                c.translate(-(loc.x + fillOffsetX), -(loc.y + fillOffsetY));
-            }
-            else {
-                c.translate(loc.x, loc.y);
-                if (this._winding && this._winding === WindingMode.EvenOdd) {
-                    c.fill('evenodd');
-                }
-                else {
-                    c.fill('nonzero');
-                }
-                c.translate(-loc.x, -loc.y);
-            }
-        }
-        if (model.setElementStroke(c, this)) {
-            c.stroke();
-        }
-        c.restore();
+    c.beginPath();
+    c.moveTo(this._points[0].x, this._points[0].y);
+    const pl = this._points.length;
+    for (let i = 1; i < pl; i++) {
+      const p: Point = this._points[i];
+      c.lineTo(p.x, p.y);
     }
-
-    /**
-     * Hit test polygon.  Return true if point is within polygon interior
-     * @param c - Rendering context
-     * @param tx - X coordinate of point
-     * @param ty - Y coordinate of point
-     * @returns True if point is within polygon
-     */
-    public hitTest(c: CanvasRenderingContext2D, tx: number, ty: number): boolean {
-        const model = this.model;
-        if(!model) {
-            return false;
-        }
-        if(!this._points) {
-            return false;
-        }
-        const bounds = this.getBounds();
-        if(!bounds) {
-            return false;
-        }
-        c.save();
-        if (this.transform) {
-            model.setRenderTransform(c, this.transform, bounds.location);
-        }
-        c.beginPath();
-        c.moveTo(this._points[0].x, this._points[0].y);
-        const pl = this._points.length;
-        for (let i = 1; i < pl; i++) {
-            c.lineTo(this._points[i].x, this._points[i].y);
-        }
-        c.closePath();
-        let hit: boolean;
+    c.closePath();
+    if (FillFactory.setElementFill(c, this)) {
+      const loc = bounds.location;
+      if (this.fillOffsetX || this.fillOffsetY) {
+        const fillOffsetX = this.fillOffsetX || 0;
+        const fillOffsetY = this.fillOffsetY || 0;
+        c.translate(loc.x + fillOffsetX, loc.y + fillOffsetY);
         if (this._winding && this._winding === WindingMode.EvenOdd) {
-            hit = c.isPointInPath(tx, ty, 'evenodd');
+          c.fill('evenodd');
+        } else {
+          c.fill('nonzero');
         }
-        else {
-            hit = c.isPointInPath(tx, ty, 'nonzero');
+        c.translate(-(loc.x + fillOffsetX), -(loc.y + fillOffsetY));
+      } else {
+        c.translate(loc.x, loc.y);
+        if (this._winding && this._winding === WindingMode.EvenOdd) {
+          c.fill('evenodd');
+        } else {
+          c.fill('nonzero');
         }
-        c.restore();
-        return hit;
+        c.translate(-loc.x, -loc.y);
+      }
+    }
+    if (model.setElementStroke(c, this)) {
+      c.stroke();
+    }
+    c.restore();
+  }
+
+  /**
+   * Hit test polygon.  Return true if point is within polygon interior
+   * @param c - Rendering context
+   * @param tx - X coordinate of point
+   * @param ty - Y coordinate of point
+   * @returns True if point is within polygon
+   */
+  public hitTest(c: CanvasRenderingContext2D, tx: number, ty: number): boolean {
+    const model = this.model;
+    if (!model) {
+      return false;
+    }
+    if (!this._points) {
+      return false;
+    }
+    const bounds = this.getBounds();
+    if (!bounds) {
+      return false;
+    }
+    c.save();
+    if (this.transform) {
+      model.setRenderTransform(c, this.transform, bounds.location);
+    }
+    c.beginPath();
+    c.moveTo(this._points[0].x, this._points[0].y);
+    const pl = this._points.length;
+    for (let i = 1; i < pl; i++) {
+      c.lineTo(this._points[i].x, this._points[i].y);
+    }
+    c.closePath();
+    let hit: boolean;
+    if (this._winding && this._winding === WindingMode.EvenOdd) {
+      hit = c.isPointInPath(tx, ty, 'evenodd');
+    } else {
+      hit = c.isPointInPath(tx, ty, 'nonzero');
+    }
+    c.restore();
+    return hit;
+  }
+
+  /**
+   * Returns string description of polygon
+   * @returns Description
+   */
+  public toString(): string {
+    if (this._points) {
+      return this.type + ' -  ' + this._points.length + ' Points';
+    } else {
+      return this.type + ' -  0 Points';
+    }
+  }
+
+  /**
+   * Can element be stroked
+   * @returns Can stroke
+   */
+  public canStroke(): boolean {
+    return true;
+  }
+
+  /**
+   * Can element be filled
+   * @returns Can fill
+   */
+  public canFill(): boolean {
+    return true;
+  }
+
+  /**
+   * Polygons can be moved using mouse
+   * @returns True
+   */
+  public canMove(): boolean {
+    return true;
+  }
+
+  /**
+   * Polygons can be sized unless in point editing mode
+   * @returns True unless in point editing mode
+   */
+  public canResize(): boolean {
+    if (this.editPoints) {
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Polygons can be nudged with the keyboard
+   * @returns True
+   */
+  public canNudge(): boolean {
+    return true;
+  }
+
+  /**
+   * Polygons support individual point movement when in point editing mode
+   * @returns True if in point editing mode
+   */
+  public canMovePoint(): boolean {
+    if (this.editPoints) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Polygons support point editing mode
+   * @returns True
+   */
+  public canEditPoints(): boolean {
+    return true;
+  }
+
+  /**
+   * Nudges size of polygon by a given width and height offset
+   * @param offsetX - X offset
+   * @param offsetY - Y offset
+   * @returns This polygon
+   */
+  public nudgeSize(offsetX: number, offsetY: number) {
+    const bounds = this.getBounds();
+    if (!bounds) {
+      return;
+    }
+    let newWidth = bounds.width + offsetX;
+    if (newWidth < 1) {
+      newWidth = 1;
+    }
+    let newHeight = bounds.height + offsetY;
+    if (newHeight < 1) {
+      newHeight = 1;
     }
 
-    /**
-     * Returns string description of polygon
-     * @returns Description
-     */
-    public toString(): string {
-        if(this._points) {
-            return this.type + ' -  ' + this._points.length + ' Points';
-        }
-        else {
-            return this.type + ' -  0 Points';
-        }
+    if (this.aspectLocked) {
+      if (offsetX === 0) {
+        this.scale(newHeight / bounds.height, newHeight / bounds.height);
+      } else {
+        this.scale(newWidth / bounds.width, newWidth / bounds.width);
+      }
+    } else {
+      this.scale(newWidth / bounds.width, newHeight / bounds.height);
     }
+    this.bounds = undefined;
+    return this;
+  }
 
-    /**
-     * Can element be stroked
-     * @returns Can stroke
-     */
-    public canStroke(): boolean {
-        return true;
+  /**
+   * Scales polygon points by given horizontal and vertical scaling factors
+   * @param scaleX - Horizontal scaling factor
+   * @param scaleY - Vertical scaling factor
+   * @returns This polygon element
+   */
+  public scale(scaleX: number, scaleY: number) {
+    if (!this._points) {
+      return this;
     }
-
-    /**
-     * Can element be filled
-     * @returns Can fill
-     */
-    public canFill(): boolean {
-        return true;
+    const newPoints: Point[] = [];
+    const pl = this._points.length;
+    const location = this.getLocation();
+    if (!location) {
+      return;
     }
-
-    /**
-     * Polygons can be moved using mouse
-     * @returns True
-     */
-    public canMove(): boolean {
-        return true;
+    for (let i = 0; i < pl; i++) {
+      newPoints.push(Point.scale(this._points[i], scaleX, scaleY, location.x, location.y));
     }
+    this._points = newPoints;
+    this.bounds = undefined;
+    return this;
+  }
 
-    /**
-     * Polygons can be sized unless in point editing mode
-     * @returns True unless in point editing mode
-     */
-    public canResize(): boolean {
-        if (this.editPoints) {
-            return false;
-        }
-        return true;
+  /**
+   * Moves this polygon element by the given X and Y offsets
+   * @param offsetX - X size offset
+   * @param offsetY - Y size offset
+   * @returns This polygon
+   */
+  public translate(offsetX: number, offsetY: number) {
+    if (!this._points) {
+      return this;
     }
-
-    /**
-     * Polygons can be nudged with the keyboard
-     * @returns True
-     */
-    public canNudge(): boolean {
-        return true;
+    const newPoints: Point[] = [];
+    const pl = this._points.length;
+    for (let i = 0; i < pl; i++) {
+      newPoints.push(Point.translate(this._points[i], offsetX, offsetY));
     }
+    this._points = newPoints;
+    this.bounds = undefined;
+    return this;
+  }
 
-    /**
-     * Polygons support individual point movement when in point editing mode
-     * @returns True if in point editing mode
-     */
-    public canMovePoint(): boolean {
-        if (this.editPoints) {
-            return true;
-        }
-        return false;
+  /**
+   * Computes (if undefined) and returns rectangular bounding region
+   * @returns Polygon bounding region
+   */
+  public getBounds(): Region | undefined {
+    if (this.bounds) {
+      return this.bounds;
     }
-
-    /**
-     * Polygons support point editing mode
-     * @returns True
-     */
-    public canEditPoints(): boolean {
-        return true;
+    if (!this._points) {
+      return undefined;
     }
-
-    /**
-     * Nudges size of polygon by a given width and height offset
-     * @param offsetX - X offset
-     * @param offsetY - Y offset
-     * @returns This polygon
-     */
-    public nudgeSize(offsetX: number, offsetY: number) {
-        const bounds = this.getBounds();
-        if(!bounds) {
-            return;
-        }
-        let newWidth = bounds.width + offsetX;
-        if (newWidth < 1) {
-            newWidth = 1;
-        }
-        let newHeight = bounds.height + offsetY;
-        if (newHeight < 1) {
-            newHeight = 1;
-        }
-
-        if (this.aspectLocked) {
-            if (offsetX === 0) {
-                this.scale(newHeight / bounds.height, newHeight / bounds.height);
-            }
-            else {
-                this.scale(newWidth / bounds.width, newWidth / bounds.width);
-            }
-        }
-        else {
-            this.scale(newWidth / bounds.width, newHeight / bounds.height);
-        }
-        this.bounds = undefined;
-        return this;
+    let minX: number | undefined;
+    let minY: number | undefined;
+    let maxX: number | undefined;
+    let maxY: number | undefined;
+    const pl = this._points.length;
+    for (let i = 0; i < pl; i++) {
+      const p: Point = this._points[i];
+      if (!minX) {
+        minX = p.x;
+      } else if (p.x < minX) {
+        minX = p.x;
+      }
+      if (!minY) {
+        minY = p.y;
+      } else if (p.y < minY) {
+        minY = p.y;
+      }
+      if (!maxX) {
+        maxX = p.x;
+      } else if (p.x > maxX) {
+        maxX = p.x;
+      }
+      if (!maxY) {
+        maxY = p.y;
+      } else if (p.y > maxY) {
+        maxY = p.y;
+      }
     }
-
-    /**
-     * Scales polygon points by given horizontal and vertical scaling factors
-     * @param scaleX - Horizontal scaling factor
-     * @param scaleY - Vertical scaling factor
-     * @returns This polygon element
-     */
-    public scale(scaleX: number, scaleY: number) {
-        if(!this._points) {
-            return this;
-        }
-        const newPoints: Point[] = [];
-        const pl = this._points.length;
-        const location = this.getLocation();
-        if(!location) {
-            return;
-        }
-        for (let i = 0; i < pl; i++) {
-            newPoints.push(Point.scale(this._points[i], scaleX, scaleY, location.x, location.y));
-        }
-        this._points = newPoints;
-        this.bounds = undefined;
-        return this;
+    if (minX !== undefined && minY !== undefined && maxX !== undefined && maxY !== undefined) {
+      this.bounds = new Region(minX, minY, maxX - minX, maxY - minY);
+      this._location = new Point(minX, minY);
+      this._size = new Size(this.bounds.width, this.bounds.height);
+      return this.bounds;
     }
+    return undefined;
+  }
 
-    /**
-     * Moves this polygon element by the given X and Y offsets
-     * @param offsetX - X size offset
-     * @param offsetY - Y size offset
-     * @returns This polygon
-     */
-    public translate(offsetX: number, offsetY: number) {
-        if(!this._points) {
-            return this;
-        }
-        const newPoints: Point[] = [];
-        const pl = this._points.length;
-        for (let i = 0; i < pl; i++) {
-            newPoints.push(Point.translate(this._points[i], offsetX, offsetY));
-        }
-        this._points = newPoints;
-        this.bounds = undefined;
-        return this;
+  /**
+   * Moves polygon
+   * @param pointSource - New location
+   * @returns This polygon
+   */
+  public setLocation(pointSource: string | Point): PolygonElement {
+    const bounds = this.getBounds();
+    if (!bounds) {
+      return this;
     }
+    let pt: Point;
+    if (typeof pointSource === 'string') {
+      pt = Point.parse(pointSource);
+    } else {
+      pt = new Point(pointSource.x, pointSource.y);
+    }
+    const deltaX = pt.x - bounds.x;
+    const deltaY = pt.y - bounds.y;
+    this.translate(deltaX, deltaY);
+    return this;
+  }
 
-    /**
-     * Computes (if undefined) and returns rectangular bounding region
-     * @returns Polygon bounding region
-     */
-    public getBounds(): Region | undefined {
-        if (this.bounds) {
-            return this.bounds;
-        }
-        if(!this._points) {
-            return undefined;
-        }
-        let minX: number | undefined;
-        let minY: number | undefined;
-        let maxX: number | undefined;
-        let maxY: number | undefined;
-        const pl = this._points.length;
-        for (let i = 0; i < pl; i++) {
-            const p: Point = this._points[i];
-            if (!minX) {
-                minX = p.x;
-            }
-            else if (p.x < minX) {
-                minX = p.x;
-            }
-            if (!minY) {
-                minY = p.y;
-            }
-            else if (p.y < minY) {
-                minY = p.y;
-            }
-            if (!maxX) {
-                maxX = p.x;
-            }
-            else if (p.x > maxX) {
-                maxX = p.x;
-            }
-            if (!maxY) {
-                maxY = p.y;
-            }
-            else if (p.y > maxY) {
-                maxY = p.y;
-            }
-        }
-        if(minX !== undefined && minY !== undefined && maxX !== undefined && maxY !== undefined) {
-            this.bounds = new Region(minX, minY, maxX - minX, maxY - minY);
-            this._location = new Point(minX, minY);
-            this._size = new Size(this.bounds.width, this.bounds.height);
-            return this.bounds;
-        }
-        return undefined;
+  /**
+   * Resizes polygon
+   * @param size - New size
+   * @returns This polygon
+   */
+  public setSize(size: Size): PolygonElement {
+    const bounds = this.getBounds();
+    if (!bounds) {
+      return this;
     }
+    const scaleX = size.width / bounds.width;
+    const scaleY = size.height / bounds.height;
+    this.scale(scaleX, scaleY);
+    return this;
+  }
 
-    /**
-     * Moves polygon
-     * @param pointSource - New location
-     * @returns This polygon
-     */
-    public setLocation(pointSource: string | Point): PolygonElement {
-        const bounds = this.getBounds();
-        if(!bounds) {
-            return this;
-        }
-        let pt: Point;
-        if (typeof pointSource === 'string') {
-            pt = Point.parse(pointSource);
-        }
-        else {
-            pt = new Point(pointSource.x, pointSource.y);
-        }
-        const deltaX = pt.x - bounds.x;
-        const deltaY = pt.y - bounds.y;
-        this.translate(deltaX, deltaY);
-        return this;
+  /**
+   * Returns number of points in polygon
+   * @returns Number of points
+   */
+  public pointCount(): number {
+    if (this._points) {
+      return this._points.length;
     }
+    return 0;
+  }
 
-    /**
-     * Resizes polygon
-     * @param size - New size
-     * @returns This polygon
-     */
-    public setSize(size: Size): PolygonElement {
-        const bounds = this.getBounds();
-        if(!bounds) {
-            return this;
-        }
-        const scaleX = size.width / bounds.width;
-        const scaleY = size.height / bounds.height;
-        this.scale(scaleX, scaleY);
-        return this;
+  /**
+   * Returns point at a given index (0 to # points - 1)
+   * @param index - Point index (0 to # points - 1)
+   * @param depth - Not applicable
+   * @returns Requested point
+   */
+  public getPointAt(index: number, depth?: PointDepth): Point {
+    if (this._points && index < this._points.length) {
+      return this._points[index];
     }
+    throw new InvalidIndexException(index);
+  }
 
-    /**
-     * Returns number of points in polygon
-     * @returns Number of points
-     */
-    public pointCount(): number {
-        if (this._points) {
-            return this._points.length;
-        }
-        return 0;
+  /**
+   * Sets point at a given index (0 to # points - 1)
+   * @param index - Point index (0 to # points - 1)
+   * @param value - New point value
+   * @param depth - Not applicable to this element
+   * @returns This polygon
+   */
+  public setPointAt(index: number, value: Point, depth: PointDepth) {
+    if (this._points && index < this._points.length) {
+      this._points[index] = value;
+      this.bounds = undefined;
+      return this;
     }
+    throw new InvalidIndexException(index);
+  }
 
-    /**
-     * Returns point at a given index (0 to # points - 1)
-     * @param index - Point index (0 to # points - 1)
-     * @param depth - Not applicable
-     * @returns Requested point
-     */
-    public getPointAt(index: number, depth?: PointDepth): Point {
-        if (this._points && index < this._points.length) {
-            return this._points[index];
-        }
-        throw new InvalidIndexException(index);
+  /**
+   * Adds a new point to this polygon
+   * @param point - New point
+   * @returns This polygon
+   */
+  public addPoint(point: Point): PolygonElement {
+    if (!this._points) {
+      this._points = [];
     }
-
-    /**
-     * Sets point at a given index (0 to # points - 1)
-     * @param index - Point index (0 to # points - 1)
-     * @param value - New point value
-     * @param depth - Not applicable to this element
-     * @returns This polygon
-     */
-    public setPointAt(index: number, value: Point, depth: PointDepth) {
-        if (this._points && index < this._points.length) {
-            this._points[index] = value;
-            this.bounds = undefined;
-            return this;
-        }
-        throw new InvalidIndexException(index);
-    }
-
-    /**
-     * Adds a new point to this polygon
-     * @param point - New point
-     * @returns This polygon
-     */
-    public addPoint(point: Point): PolygonElement {
-        if (!this._points) {
-            this._points = [];
-        }
-        this._points.push(point);
-        this.bounds = undefined;
-        return this;
-    }
+    this._points.push(point);
+    this.bounds = undefined;
+    return this;
+  }
 }

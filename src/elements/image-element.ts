@@ -5,186 +5,183 @@ import { ResourceManager } from '../resource/resource-manager';
 import { ElementBase } from './element-base';
 
 export class ImageElement extends ElementBase {
-
-    /**
-     * Image element factory function
-     * @param source - Bitmap resource key or bitmap resource
-     * @param x - X coordinate
-     * @param y - Y coordinate
-     * @param width - Width
-     * @param height - Height
-     * @returns New image element
-     */
-    public static create(
-        source?: string | BitmapResource,
-        x?: number,
-        y?: number,
-        width?: number,
-        height?: number
-    ): ImageElement {
-        const e = new ImageElement();
-        if(source) {
-            if (typeof source === 'string') {
-                e.source = source;
-            }
-            else {
-                e.source = source.key;
-            }
-            if(x && y) {
-                e._location = new Point(x, y);
-            }
-            if(width && height) {
-                e._size = new Size(width, height);
-            }
-        }
-        return e;
+  /**
+   * Image element factory function
+   * @param source - Bitmap resource key or bitmap resource
+   * @param x - X coordinate
+   * @param y - Y coordinate
+   * @param width - Width
+   * @param height - Height
+   * @returns New image element
+   */
+  public static create(
+    source?: string | BitmapResource,
+    x?: number,
+    y?: number,
+    width?: number,
+    height?: number,
+  ): ImageElement {
+    const e = new ImageElement();
+    if (source) {
+      if (typeof source === 'string') {
+        e.source = source;
+      } else {
+        e.source = source.key;
+      }
+      if (x && y) {
+        e._location = new Point(x, y);
+      }
+      if (width && height) {
+        e._size = new Size(width, height);
+      }
     }
+    return e;
+  }
 
-    /**
-     * Image resource key
-     */
-    public source?: string;
+  /**
+   * Image resource key
+   */
+  public source?: string;
 
-    /**
-     *  Image opacity 0 (transparent) to 1 (opaque)
-     */
-    public opacity: number;
+  /**
+   *  Image opacity 0 (transparent) to 1 (opaque)
+   */
+  public opacity: number;
 
-    /**
-     * Constructs a new image element
-     * @classdesc Renders bitmap image source
-     * @extends Elise.Drawing.ElementBase
-     */
-    constructor() {
-        super();
-        this.type = 'image';
-        this.opacity = 1.0;
-        this.setOpacity = this.setOpacity.bind(this);
+  /**
+   * Constructs a new image element
+   * @classdesc Renders bitmap image source
+   * @extends Elise.Drawing.ElementBase
+   */
+  constructor() {
+    super();
+    this.type = 'image';
+    this.opacity = 1.0;
+    this.setOpacity = this.setOpacity.bind(this);
+  }
+
+  /**
+   * Copies properties of another object to this instance
+   * @param o - Source element
+   */
+  public parse(o: any): void {
+    super.parse(o);
+    if (o.source) {
+      this.source = o.source;
     }
-
-    /**
-     * Copies properties of another object to this instance
-     * @param o - Source element
-     */
-    public parse(o: any): void {
-        super.parse(o);
-        if (o.source) {
-            this.source = o.source;
-        }
-        if (o.opacity !== undefined) {
-            this.opacity = o.opacity;
-        }
-        if (!this._location) {
-            this._location = new Point(0, 0);
-        }
+    if (o.opacity !== undefined) {
+      this.opacity = o.opacity;
     }
-
-    /**
-     * Serializes persistent properties to new object instance
-     * @returns Serialized element
-     */
-    public serialize(): any {
-        const o = super.serialize();
-        if (this.source) {
-            o.source = this.source;
-        }
-        if (this.opacity !== undefined && this.opacity !== 1) {
-            o.opacity = this.opacity;
-        }
-        if (this._location) {
-            o.location = this._location.toString();
-        }
-        return o;
+    if (!this._location) {
+      this._location = new Point(0, 0);
     }
+  }
 
-    /**
-     * Clones this image element to a new instance
-     * @returns Cloned image instance
-     */
-    public clone(): ImageElement {
-        const e: ImageElement = ImageElement.create();
-        super.cloneTo(e);
-        if (this.source) {
-            e.source = this.source;
-        }
-        if (this.opacity !== undefined) {
-            e.opacity = this.opacity;
-        }
-        return e;
+  /**
+   * Serializes persistent properties to new object instance
+   * @returns Serialized element
+   */
+  public serialize(): any {
+    const o = super.serialize();
+    if (this.source) {
+      o.source = this.source;
     }
+    if (this.opacity !== undefined && this.opacity !== 1) {
+      o.opacity = this.opacity;
+    }
+    if (this._location) {
+      o.location = this._location.toString();
+    }
+    return o;
+  }
 
-    /**
-     * Register image source with resource manager
-     * @param rm - Resource manager
-     */
-    public registerResources(rm: ResourceManager): void {
-        super.registerResources(rm);
-        if (this.source) {
-            rm.register(this.source);
-        }
+  /**
+   * Clones this image element to a new instance
+   * @returns Cloned image instance
+   */
+  public clone(): ImageElement {
+    const e: ImageElement = ImageElement.create();
+    super.cloneTo(e);
+    if (this.source) {
+      e.source = this.source;
     }
+    if (this.opacity !== undefined) {
+      e.opacity = this.opacity;
+    }
+    return e;
+  }
 
-    /**
-     * Returns list of referenced resource keys
-     */
-    public getResourceKeys() {
-        const keys = super.getResourceKeys();
-        if (this.source) {
-            keys.push(this.source);
-        }
-        return keys;
+  /**
+   * Register image source with resource manager
+   * @param rm - Resource manager
+   */
+  public registerResources(rm: ResourceManager): void {
+    super.registerResources(rm);
+    if (this.source) {
+      rm.register(this.source);
     }
+  }
 
-    /**
-     * Render image element to canvas context
-     * @param c - Rendering context
-     */
-    public draw(c: CanvasRenderingContext2D) {
-        const model = this.model;
-        if(!model || !this.source || !this._location || !this._size) {
-            return;
-        }
-        const res = model.resourceManager.get(this.source) as BitmapResource;
-        c.save();
-        if (this.transform) {
-            model.setRenderTransform(c, this.transform, this._location);
-        }
-        if (this.opacity && this.opacity > 0 && this.opacity < 1.0) {
-            const o = c.globalAlpha;
-            c.globalAlpha = this.opacity;
-            if(res.image) {
-                c.drawImage(res.image, this._location.x, this._location.y, this._size.width, this._size.height);
-            }
-            c.globalAlpha = o;
-        }
-        else if (res.image) {
-            try {
-                c.drawImage(res.image, this._location.x, this._location.y, this._size.width, this._size.height);
-            } catch (ignore) {
-                console.log('Error rendering image in ImageElement.draw.');
-            }
-        }
-        if (model.setElementStroke(c, this)) {
-            c.strokeRect(this._location.x, this._location.y, this._size.width, this._size.height);
-        }
-        c.restore();
+  /**
+   * Returns list of referenced resource keys
+   */
+  public getResourceKeys() {
+    const keys = super.getResourceKeys();
+    if (this.source) {
+      keys.push(this.source);
     }
+    return keys;
+  }
 
-    /**
-     * Set image opacity
-     * @param opacity - Image opacity in the range of 0-1
-     * @returns This element
-     */
-    public setOpacity(opacity: number) {
-        this.opacity = opacity;
-        return this;
+  /**
+   * Render image element to canvas context
+   * @param c - Rendering context
+   */
+  public draw(c: CanvasRenderingContext2D) {
+    const model = this.model;
+    if (!model || !this.source || !this._location || !this._size) {
+      return;
     }
+    const res = model.resourceManager.get(this.source) as BitmapResource;
+    c.save();
+    if (this.transform) {
+      model.setRenderTransform(c, this.transform, this._location);
+    }
+    if (this.opacity && this.opacity > 0 && this.opacity < 1.0) {
+      const o = c.globalAlpha;
+      c.globalAlpha = this.opacity;
+      if (res.image) {
+        c.drawImage(res.image, this._location.x, this._location.y, this._size.width, this._size.height);
+      }
+      c.globalAlpha = o;
+    } else if (res.image) {
+      try {
+        c.drawImage(res.image, this._location.x, this._location.y, this._size.width, this._size.height);
+      } catch (ignore) {
+        console.log('Error rendering image in ImageElement.draw.');
+      }
+    }
+    if (model.setElementStroke(c, this)) {
+      c.strokeRect(this._location.x, this._location.y, this._size.width, this._size.height);
+    }
+    c.restore();
+  }
 
-    /**
-     * Can element be stroked
-     * @returns Can stroke
-     */
-    public canStroke(): boolean {
-        return true;
-    }
+  /**
+   * Set image opacity
+   * @param opacity - Image opacity in the range of 0-1
+   * @returns This element
+   */
+  public setOpacity(opacity: number) {
+    this.opacity = opacity;
+    return this;
+  }
+
+  /**
+   * Can element be stroked
+   * @returns Can stroke
+   */
+  public canStroke(): boolean {
+    return true;
+  }
 }

@@ -5,18 +5,17 @@ import { PaneTransition } from './pane-transition';
   NoTransition
 */
 export class NoTransition extends PaneTransition {
-    constructor(pane: Pane, target: Surface, callback: (pane: Pane) => void) {
-        super(pane, target, callback);
-    }
+  constructor(pane: Pane, target: Surface, callback: (pane: Pane) => void) {
+    super(pane, target, callback);
+  }
 
-    public start() {
-        const self = this;
-        const source = self.pane.childSurface;
-        self.onStart();
-        self.bind((surface) => {
-            source.unbind();
-            self.onComplete();
-        }, false);
-    }
+  public start() {
+    const self = this;
+    const source = self.pane.childSurface;
+    self.onStart();
+    self.bind(surface => {
+      source.unbind();
+      self.onComplete();
+    }, false);
+  }
 }
-

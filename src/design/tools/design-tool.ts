@@ -5,39 +5,37 @@ import { RadialGradientFill } from '../../fill/radial-gradient-fill';
 import { DesignController } from '../design-controller';
 
 export abstract class DesignTool {
+  public model?: Model;
+  public controller?: DesignController;
+  public opacity: number;
+  public stroke?: string;
+  public fill?: string | LinearGradientFill | RadialGradientFill;
+  public fillScale: number;
+  public fillOffsetX: number;
+  public fillOffsetY: number;
+  public isCreating: boolean = false;
 
-    public model?: Model;
-    public controller?: DesignController;
-    public opacity: number;
-    public stroke?: string;
-    public fill?: string | LinearGradientFill | RadialGradientFill;
-    public fillScale: number;
-    public fillOffsetX: number;
-    public fillOffsetY: number;
-    public isCreating: boolean = false;
+  constructor() {
+    this.opacity = 255;
+    this.fillScale = 1;
+    this.fillOffsetX = 0;
+    this.fillOffsetY = 0;
+    this.cancel = this.cancel.bind(this);
+    this.mouseDown = this.mouseDown.bind(this);
+    this.mouseMove = this.mouseMove.bind(this);
+    this.mouseUp = this.mouseUp.bind(this);
+  }
 
-    constructor() {
-        this.opacity = 255;
-        this.fillScale = 1;
-        this.fillOffsetX = 0;
-        this.fillOffsetY = 0;
-        this.cancel = this.cancel.bind(this);
-        this.mouseDown = this.mouseDown.bind(this);
-        this.mouseMove = this.mouseMove.bind(this);
-        this.mouseUp = this.mouseUp.bind(this);
+  public abstract mouseDown(args: MouseLocationArgs): void;
+  public abstract mouseMove(args: MouseLocationArgs): void;
+  public abstract mouseUp(args: MouseLocationArgs): void;
+  public abstract cancel(): void;
+
+  public setFill(fill: string | LinearGradientFill | RadialGradientFill | undefined) {
+    if (typeof fill === 'string') {
+      this.fill = fill;
+    } else if (fill !== undefined) {
+      this.fill = fill.clone();
     }
-
-    public abstract mouseDown(args: MouseLocationArgs): void
-    public abstract mouseMove(args: MouseLocationArgs): void
-    public abstract mouseUp(args: MouseLocationArgs): void
-    public abstract cancel(): void
-
-    public setFill(fill: string | LinearGradientFill | RadialGradientFill | undefined) {
-        if (typeof fill === 'string') {
-            this.fill = fill;
-        }
-        else if(fill !== undefined) {
-            this.fill = fill.clone();
-        }
-    }
+  }
 }

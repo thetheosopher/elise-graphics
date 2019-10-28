@@ -5,189 +5,182 @@ import { Resource } from './resource';
 import { ResourceFactory } from './resource-factory';
 
 export class ModelResource extends Resource {
-
-    /**
-     * Creates model resource from string model URI (referenced) or exising model object (embedded)
-     * @param key - Resource key
-     * @param uriOrModel - Model URI or existing model object
-     * @param locale - Optional resource locale ID (e.g. en-US)
-     * @returns New model resource
-     */
-    public static create(key: string, uriOrModel: string | Model, locale?: string): ModelResource {
-        const r = new ModelResource();
-        if (arguments.length >= 2) {
-            r.key = key;
-            if (typeof uriOrModel === 'string') {
-                r.uri = uriOrModel;
-            }
-            else {
-                r.model = uriOrModel.clone();
-            }
-        }
-        if (locale) {
-            r.locale = locale;
-        }
-        return r;
+  /**
+   * Creates model resource from string model URI (referenced) or exising model object (embedded)
+   * @param key - Resource key
+   * @param uriOrModel - Model URI or existing model object
+   * @param locale - Optional resource locale ID (e.g. en-US)
+   * @returns New model resource
+   */
+  public static create(key: string, uriOrModel: string | Model, locale?: string): ModelResource {
+    const r = new ModelResource();
+    if (arguments.length >= 2) {
+      r.key = key;
+      if (typeof uriOrModel === 'string') {
+        r.uri = uriOrModel;
+      } else {
+        r.model = uriOrModel.clone();
+      }
     }
-
-    /**
-     * Model dimensions
-     */
-    public size?: Size;
-
-    /**
-     * Resource model
-     */
-    public model?: Model;
-
-    /**
-     * Constructs a model resource
-     * @classdesc Embedded or externally referenced model resource
-     */
-    constructor() {
-        super('model');
+    if (locale) {
+      r.locale = locale;
     }
+    return r;
+  }
 
-    /**
-     * Clones this resource to a new instance
-     * @returns Cloned model resource
-     */
-    public clone(): ModelResource {
-        let o: ModelResource | undefined;
-        if(!this.key) {
-            throw new Error('Key is undefined.');
-        }
-        if (this.model) {
-            o = ModelResource.create(this.key, this.model, this.locale);
-        }
-        else if(this.uri) {
-            o = ModelResource.create(this.key, this.uri, this.locale);
-        }
-        if(!o) {
-            throw new Error('Resource is invalid.');
-        }
-        super.cloneTo(o);
-        if (this.size) {
-            o.size = this.size;
-        }
-        return o;
+  /**
+   * Model dimensions
+   */
+  public size?: Size;
+
+  /**
+   * Resource model
+   */
+  public model?: Model;
+
+  /**
+   * Constructs a model resource
+   * @classdesc Embedded or externally referenced model resource
+   */
+  constructor() {
+    super('model');
+  }
+
+  /**
+   * Clones this resource to a new instance
+   * @returns Cloned model resource
+   */
+  public clone(): ModelResource {
+    let o: ModelResource | undefined;
+    if (!this.key) {
+      throw new Error('Key is undefined.');
     }
-
-    /**
-     * Copies properties of another model resource
-     * @param o - Source model resource
-     */
-    public parse(o: any): void {
-        super.parse(o);
-        if (o.model) {
-            this.model = Model.parse(JSON.stringify(o.model));
-        }
-        if (o.size) {
-            this.size = Size.parse(o.size);
-        }
+    if (this.model) {
+      o = ModelResource.create(this.key, this.model, this.locale);
+    } else if (this.uri) {
+      o = ModelResource.create(this.key, this.uri, this.locale);
     }
-
-    /**
-     * Serializes resource to a new instance
-     * @returns Serialized resource instance
-     */
-    public serialize(): any {
-        const o = super.serialize();
-        if (this.model && !this.uri) {
-            o.model = JSON.parse(JSON.stringify(this.model.serialize()));
-        }
-        if (this.size) {
-            o.size = this.size.toString();
-        }
-        return o;
+    if (!o) {
+      throw new Error('Resource is invalid.');
     }
+    super.cloneTo(o);
+    if (this.size) {
+      o.size = this.size;
+    }
+    return o;
+  }
 
-    /**
-     * Retrieves model resource from an http(s) source
-     * @param url - Model source URL
-     * @param callback - Retrieval callback (result: boolean)
-     */
-    public load(url: string, callback: (result: boolean) => void): void {
-        const res = this;
-        if(!res.resourceManager) {
-            throw new Error('Resource manager is undefined.');
-        }
-        if(!res.resourceManager.model) {
-            throw new Error('Model is undefined.');
-        }
-        if(!res.resourceManager.model.basePath) {
-            throw new Error('Model base path is undefined.');
-        }
-        const basePath = res.resourceManager.model.basePath;
-        const relUrl = url.substring(basePath.length, url.length);
-        Model.load(basePath, relUrl, (model) => {
-            if (model && res.resourceManager) {
-                res.model = model;
-                res.model.prepareResources(res.resourceManager.currentLocaleId, () => {
-                    callback(true);
-                });
-            }
-            else {
-                callback(false);
-            }
+  /**
+   * Copies properties of another model resource
+   * @param o - Source model resource
+   */
+  public parse(o: any): void {
+    super.parse(o);
+    if (o.model) {
+      this.model = Model.parse(JSON.stringify(o.model));
+    }
+    if (o.size) {
+      this.size = Size.parse(o.size);
+    }
+  }
+
+  /**
+   * Serializes resource to a new instance
+   * @returns Serialized resource instance
+   */
+  public serialize(): any {
+    const o = super.serialize();
+    if (this.model && !this.uri) {
+      o.model = JSON.parse(JSON.stringify(this.model.serialize()));
+    }
+    if (this.size) {
+      o.size = this.size.toString();
+    }
+    return o;
+  }
+
+  /**
+   * Retrieves model resource from an http(s) source
+   * @param url - Model source URL
+   * @param callback - Retrieval callback (result: boolean)
+   */
+  public load(url: string, callback: (result: boolean) => void): void {
+    const res = this;
+    if (!res.resourceManager) {
+      throw new Error('Resource manager is undefined.');
+    }
+    if (!res.resourceManager.model) {
+      throw new Error('Model is undefined.');
+    }
+    if (!res.resourceManager.model.basePath) {
+      throw new Error('Model base path is undefined.');
+    }
+    const basePath = res.resourceManager.model.basePath;
+    const relUrl = url.substring(basePath.length, url.length);
+    Model.load(basePath, relUrl, model => {
+      if (model && res.resourceManager) {
+        res.model = model;
+        res.model.prepareResources(res.resourceManager.currentLocaleId, () => {
+          callback(true);
         });
+      } else {
+        callback(false);
+      }
+    });
+  }
+
+  public initialize() {
+    const self = this;
+
+    if (!self.resourceManager) {
+      throw new Error('Resource manager is undefined.');
     }
 
-    public initialize() {
-        const self = this;
-
-        if(!self.resourceManager) {
-            throw new Error('Resource manager is undefined.');
+    // If embedded model, no need to retrieve, but init resources
+    if (this.model && self.resourceManager.model) {
+      this.model.basePath = self.resourceManager.model.basePath;
+      this.model.prepareResources(self.resourceManager.currentLocaleId, success => {
+        if (self.resourceManager) {
+          self.resourceManager.unregister(self, success);
         }
+      });
+    } else {
+      // Get model source URI
+      const modelPath = this.uri;
 
-        // If embedded model, no need to retrieve, but init resources
-        if (this.model && self.resourceManager.model) {
-            this.model.basePath = self.resourceManager.model.basePath;
-            this.model.prepareResources(self.resourceManager.currentLocaleId, (success) => {
-                if(self.resourceManager) {
-                    self.resourceManager.unregister(self, success);
-                }
-            });
+      if (!modelPath) {
+        throw new Error('Model path is undefined.');
+      }
+
+      // Local (Server) Model
+      if (modelPath.charAt(0) === ':') {
+        const url = modelPath.substring(1, modelPath.length);
+        this.load(url, success => {
+          if (self.resourceManager) {
+            self.resourceManager.unregister(self, success);
+          }
+        });
+      } else if (modelPath.charAt(0) === '/') {
+        // Shared model resource relative to model base path
+        if (self.resourceManager && self.resourceManager.model && self.resourceManager.model.basePath) {
+          this.load(Utility.joinPaths(self.resourceManager.model.basePath, modelPath), success => {
+            if (self.resourceManager) {
+              self.resourceManager.unregister(self, success);
+            }
+          });
         }
-        else {
-            // Get model source URI
-            const modelPath = this.uri;
-
-            if(!modelPath) {
-                throw new Error('Model path is undefined.');
+      } else {
+        // Embedded model resource
+        if (self.resourceManager && self.resourceManager.localResourcePath) {
+          self.load(Utility.joinPaths(self.resourceManager.localResourcePath, modelPath), success => {
+            if (self.resourceManager) {
+              self.resourceManager.unregister(self, success);
             }
-
-            // Local (Server) Model
-            if (modelPath.charAt(0) === ':') {
-                const url = modelPath.substring(1, modelPath.length);
-                this.load(url, (success) => {
-                    if(self.resourceManager) {
-                        self.resourceManager.unregister(self, success);
-                    }
-                });
-            }
-            else if (modelPath.charAt(0) === '/') {
-                // Shared model resource relative to model base path
-                if(self.resourceManager && self.resourceManager.model && self.resourceManager.model.basePath) {
-                    this.load(Utility.joinPaths(self.resourceManager.model.basePath, modelPath), (success) => {
-                        if(self.resourceManager) {
-                            self.resourceManager.unregister(self, success);
-                        }
-                    });
-                }
-            }
-            else {
-                // Embedded model resource
-                if(self.resourceManager && self.resourceManager.localResourcePath) {
-                    self.load(Utility.joinPaths(self.resourceManager.localResourcePath, modelPath), (success) => {
-                        if(self.resourceManager) {
-                            self.resourceManager.unregister(self, success);
-                        }
-                    });
-                }
-            }
+          });
         }
+      }
     }
+  }
 }
 
 /* Register type creator */

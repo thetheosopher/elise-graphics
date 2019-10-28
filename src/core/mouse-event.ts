@@ -1,5 +1,5 @@
 export interface IMouseEvent {
-    clientX: number;
-    clientY: number;
-    button?: number;
+  clientX: number;
+  clientY: number;
+  button?: number;
 }
