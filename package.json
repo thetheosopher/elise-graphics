@@ -2,8 +2,8 @@
   "name": "elise-graphics",
   "version": "1.0.0",
   "description": "\"# Elise Graphics Library\"",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
+  "main": "lib/elise.js",
+  "types": "lib/elise.d.ts",
   "scripts": {
     "test": "echo No Tests Configured",
     "build": "tsc",
