@@ -1,364 +1,365 @@
+import { ErrorMessages } from './error-messages';
 import { NamedColor } from './named-color';
 
 export class Color {
-  public static Transparent = new Color(0, 255, 255, 255);
-  public static AliceBlue = new Color(255, 240, 248, 255);
-  public static AntiqueWhite = new Color(255, 250, 235, 215);
-  public static Aqua = new Color(255, 0, 255, 255);
-  public static Aquamarine = new Color(255, 127, 255, 212);
-  public static Azure = new Color(255, 240, 255, 255);
-  public static Beige = new Color(255, 245, 245, 220);
-  public static Bisque = new Color(255, 255, 228, 196);
-  public static Black = new Color(255, 0, 0, 0);
-  public static BlanchedAlmond = new Color(255, 255, 235, 205);
-  public static Blue = new Color(255, 0, 0, 255);
-  public static BlueViolet = new Color(255, 138, 43, 226);
-  public static Brown = new Color(255, 165, 42, 42);
-  public static BurlyWood = new Color(255, 222, 184, 135);
-  public static CadetBlue = new Color(255, 95, 158, 160);
-  public static Chartreuse = new Color(255, 127, 255, 0);
-  public static Chocolate = new Color(255, 210, 105, 30);
-  public static Coral = new Color(255, 255, 127, 80);
-  public static CornflowerBlue = new Color(255, 100, 149, 237);
-  public static Cornsilk = new Color(255, 255, 248, 220);
-  public static Crimson = new Color(255, 220, 20, 60);
-  public static Cyan = new Color(255, 0, 255, 255);
-  public static DarkBlue = new Color(255, 0, 0, 139);
-  public static DarkCyan = new Color(255, 0, 139, 139);
-  public static DarkGoldenrod = new Color(255, 184, 134, 11);
-  public static DarkGray = new Color(255, 169, 169, 169);
-  public static DarkGreen = new Color(255, 0, 100, 0);
-  public static DarkKhaki = new Color(255, 189, 183, 107);
-  public static DarkMagenta = new Color(255, 139, 0, 139);
-  public static DarkOliveGreen = new Color(255, 85, 107, 47);
-  public static DarkOrange = new Color(255, 255, 140, 0);
-  public static DarkOrchid = new Color(255, 153, 50, 204);
-  public static DarkRed = new Color(255, 139, 0, 0);
-  public static DarkSalmon = new Color(255, 233, 150, 122);
-  public static DarkSeaGreen = new Color(255, 143, 188, 139);
-  public static DarkSlateBlue = new Color(255, 72, 61, 139);
-  public static DarkSlateGray = new Color(255, 47, 79, 79);
-  public static DarkTurquoise = new Color(255, 0, 206, 209);
-  public static DarkViolet = new Color(255, 148, 0, 211);
-  public static DeepPink = new Color(255, 255, 20, 147);
-  public static DeepSkyBlue = new Color(255, 0, 191, 255);
-  public static DimGray = new Color(255, 105, 105, 105);
-  public static DodgerBlue = new Color(255, 30, 144, 255);
-  public static Firebrick = new Color(255, 178, 34, 34);
-  public static FloralWhite = new Color(255, 255, 250, 240);
-  public static ForestGreen = new Color(255, 34, 139, 34);
-  public static Fuchsia = new Color(255, 255, 0, 255);
-  public static Gainsboro = new Color(255, 220, 220, 220);
-  public static GhostWhite = new Color(255, 248, 248, 255);
-  public static Gold = new Color(255, 255, 215, 0);
-  public static Goldenrod = new Color(255, 218, 165, 32);
-  public static Gray = new Color(255, 128, 128, 128);
-  public static Green = new Color(255, 0, 128, 0);
-  public static GreenYellow = new Color(255, 173, 255, 47);
-  public static Honeydew = new Color(255, 240, 255, 240);
-  public static HotPink = new Color(255, 255, 105, 180);
-  public static IndianRed = new Color(255, 205, 92, 92);
-  public static Indigo = new Color(255, 75, 0, 130);
-  public static Ivory = new Color(255, 255, 255, 240);
-  public static Khaki = new Color(255, 240, 230, 140);
-  public static Lavender = new Color(255, 230, 230, 250);
-  public static LavenderBlush = new Color(255, 255, 240, 245);
-  public static LawnGreen = new Color(255, 124, 252, 0);
-  public static LemonChiffon = new Color(255, 255, 250, 205);
-  public static LightBlue = new Color(255, 173, 216, 230);
-  public static LightCoral = new Color(255, 240, 128, 128);
-  public static LightCyan = new Color(255, 224, 255, 255);
-  public static LightGoldenrodYellow = new Color(255, 250, 250, 210);
-  public static LightGray = new Color(255, 211, 211, 211);
-  public static LightGreen = new Color(255, 144, 238, 144);
-  public static LightPink = new Color(255, 255, 182, 193);
-  public static LightSalmon = new Color(255, 255, 160, 122);
-  public static LightSeaGreen = new Color(255, 32, 178, 170);
-  public static LightSkyBlue = new Color(255, 135, 206, 250);
-  public static LightSlateGray = new Color(255, 119, 136, 153);
-  public static LightSteelBlue = new Color(255, 176, 196, 222);
-  public static LightYellow = new Color(255, 255, 255, 224);
-  public static Lime = new Color(255, 0, 255, 0);
-  public static LimeGreen = new Color(255, 50, 205, 50);
-  public static Linen = new Color(255, 250, 240, 230);
-  public static Magenta = new Color(255, 255, 0, 255);
-  public static Maroon = new Color(255, 128, 0, 0);
-  public static MediumAquamarine = new Color(255, 102, 205, 170);
-  public static MediumBlue = new Color(255, 0, 0, 205);
-  public static MediumOrchid = new Color(255, 186, 85, 211);
-  public static MediumPurple = new Color(255, 147, 112, 219);
-  public static MediumSeaGreen = new Color(255, 60, 179, 113);
-  public static MediumSlateBlue = new Color(255, 123, 104, 238);
-  public static MediumSpringGreen = new Color(255, 0, 250, 154);
-  public static MediumTurquoise = new Color(255, 72, 209, 204);
-  public static MediumVioletRed = new Color(255, 199, 21, 133);
-  public static MidnightBlue = new Color(255, 25, 25, 112);
-  public static MintCream = new Color(255, 245, 255, 250);
-  public static MistyRose = new Color(255, 255, 228, 225);
-  public static Moccasin = new Color(255, 255, 228, 181);
-  public static NavajoWhite = new Color(255, 255, 222, 173);
-  public static Navy = new Color(255, 0, 0, 128);
-  public static OldLace = new Color(255, 253, 245, 230);
-  public static Olive = new Color(255, 128, 128, 0);
-  public static OliveDrab = new Color(255, 107, 142, 35);
-  public static Orange = new Color(255, 255, 165, 0);
-  public static OrangeRed = new Color(255, 255, 69, 0);
-  public static Orchid = new Color(255, 218, 112, 214);
-  public static PaleGoldenrod = new Color(255, 238, 232, 170);
-  public static PaleGreen = new Color(255, 152, 251, 152);
-  public static PaleTurquoise = new Color(255, 175, 238, 238);
-  public static PaleVioletRed = new Color(255, 219, 112, 147);
-  public static PapayaWhip = new Color(255, 255, 239, 213);
-  public static PeachPuff = new Color(255, 255, 218, 185);
-  public static Peru = new Color(255, 205, 133, 63);
-  public static Pink = new Color(255, 255, 192, 203);
-  public static Plum = new Color(255, 221, 160, 221);
-  public static PowderBlue = new Color(255, 176, 224, 230);
-  public static Purple = new Color(255, 128, 0, 128);
-  public static Red = new Color(255, 255, 0, 0);
-  public static RosyBrown = new Color(255, 188, 143, 143);
-  public static RoyalBlue = new Color(255, 65, 105, 225);
-  public static SaddleBrown = new Color(255, 139, 69, 19);
-  public static Salmon = new Color(255, 250, 128, 114);
-  public static SandyBrown = new Color(255, 244, 164, 96);
-  public static SeaGreen = new Color(255, 46, 139, 87);
-  public static SeaShell = new Color(255, 255, 245, 238);
-  public static Sienna = new Color(255, 160, 82, 45);
-  public static Silver = new Color(255, 192, 192, 192);
-  public static SkyBlue = new Color(255, 135, 206, 235);
-  public static SlateBlue = new Color(255, 106, 90, 205);
-  public static SlateGray = new Color(255, 112, 128, 144);
-  public static Snow = new Color(255, 255, 250, 250);
-  public static SpringGreen = new Color(255, 0, 255, 127);
-  public static SteelBlue = new Color(255, 70, 130, 180);
-  public static Tan = new Color(255, 210, 180, 140);
-  public static Teal = new Color(255, 0, 128, 128);
-  public static Thistle = new Color(255, 216, 191, 216);
-  public static Tomato = new Color(255, 255, 99, 71);
-  public static Turquoise = new Color(255, 64, 224, 208);
-  public static Violet = new Color(255, 238, 130, 238);
-  public static Wheat = new Color(255, 245, 222, 179);
-  public static White = new Color(255, 255, 255, 255);
-  public static WhiteSmoke = new Color(255, 245, 245, 245);
-  public static Yellow = new Color(255, 255, 255, 0);
-  public static YellowGreen = new Color(255, 154, 205, 50);
+    public static Transparent = new Color(0, 255, 255, 255);
+    public static AliceBlue = new Color(255, 240, 248, 255);
+    public static AntiqueWhite = new Color(255, 250, 235, 215);
+    public static Aqua = new Color(255, 0, 255, 255);
+    public static Aquamarine = new Color(255, 127, 255, 212);
+    public static Azure = new Color(255, 240, 255, 255);
+    public static Beige = new Color(255, 245, 245, 220);
+    public static Bisque = new Color(255, 255, 228, 196);
+    public static Black = new Color(255, 0, 0, 0);
+    public static BlanchedAlmond = new Color(255, 255, 235, 205);
+    public static Blue = new Color(255, 0, 0, 255);
+    public static BlueViolet = new Color(255, 138, 43, 226);
+    public static Brown = new Color(255, 165, 42, 42);
+    public static BurlyWood = new Color(255, 222, 184, 135);
+    public static CadetBlue = new Color(255, 95, 158, 160);
+    public static Chartreuse = new Color(255, 127, 255, 0);
+    public static Chocolate = new Color(255, 210, 105, 30);
+    public static Coral = new Color(255, 255, 127, 80);
+    public static CornflowerBlue = new Color(255, 100, 149, 237);
+    public static Cornsilk = new Color(255, 255, 248, 220);
+    public static Crimson = new Color(255, 220, 20, 60);
+    public static Cyan = new Color(255, 0, 255, 255);
+    public static DarkBlue = new Color(255, 0, 0, 139);
+    public static DarkCyan = new Color(255, 0, 139, 139);
+    public static DarkGoldenrod = new Color(255, 184, 134, 11);
+    public static DarkGray = new Color(255, 169, 169, 169);
+    public static DarkGreen = new Color(255, 0, 100, 0);
+    public static DarkKhaki = new Color(255, 189, 183, 107);
+    public static DarkMagenta = new Color(255, 139, 0, 139);
+    public static DarkOliveGreen = new Color(255, 85, 107, 47);
+    public static DarkOrange = new Color(255, 255, 140, 0);
+    public static DarkOrchid = new Color(255, 153, 50, 204);
+    public static DarkRed = new Color(255, 139, 0, 0);
+    public static DarkSalmon = new Color(255, 233, 150, 122);
+    public static DarkSeaGreen = new Color(255, 143, 188, 139);
+    public static DarkSlateBlue = new Color(255, 72, 61, 139);
+    public static DarkSlateGray = new Color(255, 47, 79, 79);
+    public static DarkTurquoise = new Color(255, 0, 206, 209);
+    public static DarkViolet = new Color(255, 148, 0, 211);
+    public static DeepPink = new Color(255, 255, 20, 147);
+    public static DeepSkyBlue = new Color(255, 0, 191, 255);
+    public static DimGray = new Color(255, 105, 105, 105);
+    public static DodgerBlue = new Color(255, 30, 144, 255);
+    public static Firebrick = new Color(255, 178, 34, 34);
+    public static FloralWhite = new Color(255, 255, 250, 240);
+    public static ForestGreen = new Color(255, 34, 139, 34);
+    public static Fuchsia = new Color(255, 255, 0, 255);
+    public static Gainsboro = new Color(255, 220, 220, 220);
+    public static GhostWhite = new Color(255, 248, 248, 255);
+    public static Gold = new Color(255, 255, 215, 0);
+    public static Goldenrod = new Color(255, 218, 165, 32);
+    public static Gray = new Color(255, 128, 128, 128);
+    public static Green = new Color(255, 0, 128, 0);
+    public static GreenYellow = new Color(255, 173, 255, 47);
+    public static Honeydew = new Color(255, 240, 255, 240);
+    public static HotPink = new Color(255, 255, 105, 180);
+    public static IndianRed = new Color(255, 205, 92, 92);
+    public static Indigo = new Color(255, 75, 0, 130);
+    public static Ivory = new Color(255, 255, 255, 240);
+    public static Khaki = new Color(255, 240, 230, 140);
+    public static Lavender = new Color(255, 230, 230, 250);
+    public static LavenderBlush = new Color(255, 255, 240, 245);
+    public static LawnGreen = new Color(255, 124, 252, 0);
+    public static LemonChiffon = new Color(255, 255, 250, 205);
+    public static LightBlue = new Color(255, 173, 216, 230);
+    public static LightCoral = new Color(255, 240, 128, 128);
+    public static LightCyan = new Color(255, 224, 255, 255);
+    public static LightGoldenrodYellow = new Color(255, 250, 250, 210);
+    public static LightGray = new Color(255, 211, 211, 211);
+    public static LightGreen = new Color(255, 144, 238, 144);
+    public static LightPink = new Color(255, 255, 182, 193);
+    public static LightSalmon = new Color(255, 255, 160, 122);
+    public static LightSeaGreen = new Color(255, 32, 178, 170);
+    public static LightSkyBlue = new Color(255, 135, 206, 250);
+    public static LightSlateGray = new Color(255, 119, 136, 153);
+    public static LightSteelBlue = new Color(255, 176, 196, 222);
+    public static LightYellow = new Color(255, 255, 255, 224);
+    public static Lime = new Color(255, 0, 255, 0);
+    public static LimeGreen = new Color(255, 50, 205, 50);
+    public static Linen = new Color(255, 250, 240, 230);
+    public static Magenta = new Color(255, 255, 0, 255);
+    public static Maroon = new Color(255, 128, 0, 0);
+    public static MediumAquamarine = new Color(255, 102, 205, 170);
+    public static MediumBlue = new Color(255, 0, 0, 205);
+    public static MediumOrchid = new Color(255, 186, 85, 211);
+    public static MediumPurple = new Color(255, 147, 112, 219);
+    public static MediumSeaGreen = new Color(255, 60, 179, 113);
+    public static MediumSlateBlue = new Color(255, 123, 104, 238);
+    public static MediumSpringGreen = new Color(255, 0, 250, 154);
+    public static MediumTurquoise = new Color(255, 72, 209, 204);
+    public static MediumVioletRed = new Color(255, 199, 21, 133);
+    public static MidnightBlue = new Color(255, 25, 25, 112);
+    public static MintCream = new Color(255, 245, 255, 250);
+    public static MistyRose = new Color(255, 255, 228, 225);
+    public static Moccasin = new Color(255, 255, 228, 181);
+    public static NavajoWhite = new Color(255, 255, 222, 173);
+    public static Navy = new Color(255, 0, 0, 128);
+    public static OldLace = new Color(255, 253, 245, 230);
+    public static Olive = new Color(255, 128, 128, 0);
+    public static OliveDrab = new Color(255, 107, 142, 35);
+    public static Orange = new Color(255, 255, 165, 0);
+    public static OrangeRed = new Color(255, 255, 69, 0);
+    public static Orchid = new Color(255, 218, 112, 214);
+    public static PaleGoldenrod = new Color(255, 238, 232, 170);
+    public static PaleGreen = new Color(255, 152, 251, 152);
+    public static PaleTurquoise = new Color(255, 175, 238, 238);
+    public static PaleVioletRed = new Color(255, 219, 112, 147);
+    public static PapayaWhip = new Color(255, 255, 239, 213);
+    public static PeachPuff = new Color(255, 255, 218, 185);
+    public static Peru = new Color(255, 205, 133, 63);
+    public static Pink = new Color(255, 255, 192, 203);
+    public static Plum = new Color(255, 221, 160, 221);
+    public static PowderBlue = new Color(255, 176, 224, 230);
+    public static Purple = new Color(255, 128, 0, 128);
+    public static Red = new Color(255, 255, 0, 0);
+    public static RosyBrown = new Color(255, 188, 143, 143);
+    public static RoyalBlue = new Color(255, 65, 105, 225);
+    public static SaddleBrown = new Color(255, 139, 69, 19);
+    public static Salmon = new Color(255, 250, 128, 114);
+    public static SandyBrown = new Color(255, 244, 164, 96);
+    public static SeaGreen = new Color(255, 46, 139, 87);
+    public static SeaShell = new Color(255, 255, 245, 238);
+    public static Sienna = new Color(255, 160, 82, 45);
+    public static Silver = new Color(255, 192, 192, 192);
+    public static SkyBlue = new Color(255, 135, 206, 235);
+    public static SlateBlue = new Color(255, 106, 90, 205);
+    public static SlateGray = new Color(255, 112, 128, 144);
+    public static Snow = new Color(255, 255, 250, 250);
+    public static SpringGreen = new Color(255, 0, 255, 127);
+    public static SteelBlue = new Color(255, 70, 130, 180);
+    public static Tan = new Color(255, 210, 180, 140);
+    public static Teal = new Color(255, 0, 128, 128);
+    public static Thistle = new Color(255, 216, 191, 216);
+    public static Tomato = new Color(255, 255, 99, 71);
+    public static Turquoise = new Color(255, 64, 224, 208);
+    public static Violet = new Color(255, 238, 130, 238);
+    public static Wheat = new Color(255, 245, 222, 179);
+    public static White = new Color(255, 255, 255, 255);
+    public static WhiteSmoke = new Color(255, 245, 245, 245);
+    public static Yellow = new Color(255, 255, 255, 0);
+    public static YellowGreen = new Color(255, 154, 205, 50);
 
-  public static NamedColors: NamedColor[] = [];
+    public static NamedColors: NamedColor[] = [];
 
-  /**
-   * Color factory function
-   * @param a - Alpha component (0-255)
-   * @param r - Red component (0-255)
-   * @param g - Green component (0-255)
-   * @param b - Blue component (0-255)
-   * @returns New color
-   */
-  public static create(a: number, r: number, g: number, b: number): Color {
-    return new Color(a, r, g, b);
-  }
-
-  /**
-   * Parses a string representation of a color into a color instance,
-   * handling known color names and hex formatted color strings
-   * @param color - String representation of color
-   * @returns Parsed color instance
-   */
-  public static parse(color: string): Color {
-    let a: number;
-    let r: number;
-    let g: number;
-    let b: number;
-
-    // Parse hex prefixed color
-    if (color.charAt(0) === '#') {
-      switch (color.length) {
-        // Six digits
-        case 7:
-          r = parseInt(color.substring(1, 3), 16);
-          g = parseInt(color.substring(3, 5), 16);
-          b = parseInt(color.substring(5, 7), 16);
-          return new Color(255, r, g, b);
-
-        // Eight digits - with alpha
-        case 9:
-          a = parseInt(color.substring(1, 3), 16);
-          r = parseInt(color.substring(3, 5), 16);
-          g = parseInt(color.substring(5, 7), 16);
-          b = parseInt(color.substring(7, 9), 16);
-          return new Color(a, r, g, b);
-
-        default:
-          console.log('Invalid color string: ' + color);
-          return Color.Transparent;
-      }
+    /**
+     * Color factory function
+     * @param a - Alpha component (0-255)
+     * @param r - Red component (0-255)
+     * @param g - Green component (0-255)
+     * @param b - Blue component (0-255)
+     * @returns New color
+     */
+    public static create(a: number, r: number, g: number, b: number): Color {
+        return new Color(a, r, g, b);
     }
 
-    let evalString = color.toLowerCase();
-    let alpha = 1;
-    if (color.indexOf(';') !== -1) {
-      const colorParts = evalString.split(';');
-      evalString = colorParts[1];
-      alpha = parseFloat(colorParts[0]);
-      if (alpha > 1) {
-        alpha = 1;
-      } else if (alpha < 0) {
-        alpha = 0;
-      }
-    }
+    /**
+     * Parses a string representation of a color into a color instance,
+     * handling known color names and hex formatted color strings
+     * @param color - String representation of color
+     * @returns Parsed color instance
+     */
+    public static parse(color: string): Color {
+        let a: number;
+        let r: number;
+        let g: number;
+        let b: number;
 
-    // Lookup known color
-    const l = Color.NamedColors.length;
-    for (let i = 0; i < l; i++) {
-      const namedColor = Color.NamedColors[i];
-      if (namedColor.name.toLowerCase() === evalString) {
-        if (alpha === 255) {
-          return namedColor.color;
-        } else {
-          return new Color(alpha * 255, namedColor.color.r, namedColor.color.g, namedColor.color.b);
+        // Parse hex prefixed color
+        if (color.charAt(0) === '#') {
+            switch (color.length) {
+                // Six digits
+                case 7:
+                    r = parseInt(color.substring(1, 3), 16);
+                    g = parseInt(color.substring(3, 5), 16);
+                    b = parseInt(color.substring(5, 7), 16);
+                    return new Color(255, r, g, b);
+
+                // Eight digits - with alpha
+                case 9:
+                    a = parseInt(color.substring(1, 3), 16);
+                    r = parseInt(color.substring(3, 5), 16);
+                    g = parseInt(color.substring(5, 7), 16);
+                    b = parseInt(color.substring(7, 9), 16);
+                    return new Color(a, r, g, b);
+
+                default:
+                    throw new Error(ErrorMessages.InvalidColorString + ': ' + color);
+            }
         }
-      }
+
+        let evalString = color.toLowerCase();
+        let alpha = 1;
+        if (color.indexOf(';') !== -1) {
+            const colorParts = evalString.split(';');
+            evalString = colorParts[1];
+            alpha = parseFloat(colorParts[0]);
+            if (alpha > 1) {
+                alpha = 1;
+            }
+            else if (alpha < 0) {
+                alpha = 0;
+            }
+        }
+
+        // Lookup known color
+        for (const namedColor of Color.NamedColors) {
+            if (namedColor.name.toLowerCase() === evalString) {
+                if (alpha === 255) {
+                    return namedColor.color;
+                }
+                else {
+                    return new Color(alpha * 255, namedColor.color.r, namedColor.color.g, namedColor.color.b);
+                }
+            }
+        }
+        return Color.Transparent;
     }
-    return Color.Transparent;
-  }
 
-  /**
-   * Alpha component (0-255)
-   */
-  public a: number;
+    /**
+     * Alpha component (0-255)
+     */
+    public a: number;
 
-  /**
-   * Red component (0-255)
-   */
-  public r: number;
+    /**
+     * Red component (0-255)
+     */
+    public r: number;
 
-  /**
-   * Green component (0-255)
-   */
-  public g: number;
+    /**
+     * Green component (0-255)
+     */
+    public g: number;
 
-  /**
-   * Blue component (0-255)
-   */
-  public b: number;
+    /**
+     * Blue component (0-255)
+     */
+    public b: number;
 
-  /**
-   * Color name
-   */
-  public name?: string;
+    /**
+     * Color name
+     */
+    public name?: string;
 
-  /**
-   * Creates a new color
-   * @classdesc Represents a 32 bit color
-   * @param a - Alpha component
-   * @param r - Red component
-   * @param g - Green component
-   * @param b - Blue component
-   */
-  constructor(a: number, r: number, g: number, b: number) {
-    this.a = a;
-    this.r = r;
-    this.g = g;
-    this.b = b;
-    this.equals = this.equals.bind(this);
-    this.equalsHue = this.equalsHue.bind(this);
-    this.toHexString = this.toHexString.bind(this);
-    this.toStyleString = this.toStyleString.bind(this);
-    this.toString = this.toString.bind(this);
-    this.isNamedColor = this.isNamedColor.bind(this);
-  }
+    /**
+     * Creates a new color
+     * @param a - Alpha component
+     * @param r - Red component
+     * @param g - Green component
+     * @param b - Blue component
+     */
+    constructor(a: number, r: number, g: number, b: number) {
+        this.a = a;
+        this.r = r;
+        this.g = g;
+        this.b = b;
 
-  /**
-   * Returns a string representation of this color, returning known color names for
-   * color values that equate to known color values or hex formatted string otherwise
-   * @returns String representation of color
-   */
-  public toString(): string {
-    // Check for known color
-    const l = Color.NamedColors.length;
-    for (let i = 0; i < l; i++) {
-      const namedColor = Color.NamedColors[i];
-      if (this.equalsHue(namedColor.color)) {
+        this.clone = this.clone.bind(this);
+        this.equals = this.equals.bind(this);
+        this.equalsHue = this.equalsHue.bind(this);
+        this.hexPart = this.hexPart.bind(this);
+        this.toHexString = this.toHexString.bind(this);
+        this.toStyleString = this.toStyleString.bind(this);
+        this.toString = this.toString.bind(this);
+        this.isNamedColor = this.isNamedColor.bind(this);
+    }
+
+    /**
+     * Returns a string representation of this color, returning known color names for
+     * color values that equate to known color values or hex formatted string otherwise
+     * @returns String representation of color
+     */
+    public toString(): string {
+        // Check for known color
+        for (const namedColor of Color.NamedColors) {
+            if (this.equalsHue(namedColor.color)) {
+                if (this.a === 255) {
+                    return namedColor.name;
+                }
+                else {
+                    return this.a / 255 + ';' + namedColor.name;
+                }
+            }
+        }
+
+        // Not known color, return hex string
+        return this.toHexString();
+    }
+
+    /**
+     * Returns a # prefixed hex representation of this color
+     * @returns Six or eight digit (alpha <> 255) hex prefixed color string
+     */
+    public toHexString(): string {
         if (this.a === 255) {
-          return namedColor.name;
-        } else {
-          return this.a / 255 + ';' + namedColor.name;
+            return '#' + this.hexPart(this.r) + this.hexPart(this.g) + this.hexPart(this.b);
         }
-      }
+        return '#' + this.hexPart(this.a) + this.hexPart(this.r) + this.hexPart(this.g) + this.hexPart(this.b);
     }
 
-    // Not known color, return hex string
-    return this.toHexString();
-  }
-
-  /**
-   * Returns a # prefixed hex representation of this color
-   * @returns Six or eight digit (alpha <> 255) hex prefixed color string
-   */
-  public toHexString(): string {
-    if (this.a === 255) {
-      return '#' + this.hexPart(this.r) + this.hexPart(this.g) + this.hexPart(this.b);
+    /**
+     * Returns an rgb(r,g,b) or rgba(r,g,b,a) string representation of color
+     * @returns rgb() or rgba() (alpha <> 255) string representation.
+     */
+    public toStyleString(): string {
+        if (this.a === 255) {
+            return 'rgb(' + this.r + ',' + this.g + ',' + this.b + ')';
+        }
+        return 'rgba(' + this.r + ',' + this.g + ',' + this.b + ',' + this.a / 255 + ')';
     }
-    return '#' + this.hexPart(this.a) + this.hexPart(this.r) + this.hexPart(this.g) + this.hexPart(this.b);
-  }
 
-  /**
-   * Returns an rgb(r,g,b) or rgba(r,g,b,a) string representation of color
-   * @returns rgb() or rgba() (alpha <> 255) string representation.
-   */
-  public toStyleString(): string {
-    if (this.a === 255) {
-      return 'rgb(' + this.r + ',' + this.g + ',' + this.b + ')';
+    /**
+     * Compares this color to another color for equality
+     * @param that - Color of interest
+     * @returns True if color of interest equals this
+     */
+    public equals(that: Color): boolean {
+        return that !== null && this.a === that.a && this.r === that.r && this.g === that.g && this.b === that.b;
     }
-    return 'rgba(' + this.r + ',' + this.g + ',' + this.b + ',' + this.a / 255 + ')';
-  }
 
-  /**
-   * Compares this color to another color for equality
-   * @param that - Color of interest
-   * @returns True if color of interest equals this
-   */
-  public equals(that: Color): boolean {
-    return that !== null && this.a === that.a && this.r === that.r && this.g === that.g && this.b === that.b;
-  }
-
-  /**
-   * Compares this color to another color for hue equality
-   * @param that - Color of interest
-   * @returns True if color of interest equals this without regard to alpha
-   */
-  public equalsHue(that: Color): boolean {
-    return that !== null && this.r === that.r && this.g === that.g && this.b === that.b;
-  }
-
-  /**
-   * Determines if this color is a named color hue
-   * @returns True if this is a named color hue
-   */
-  public isNamedColor(): boolean {
-    const l = Color.NamedColors.length;
-    for (let i = 0; i < l; i++) {
-      if (this.equalsHue(Color.NamedColors[i].color)) {
-        return true;
-      }
+    /**
+     * Compares this color to another color for hue equality
+     * @param that - Color of interest
+     * @returns True if color of interest equals this without regard to alpha
+     */
+    public equalsHue(that: Color): boolean {
+        return this.r === that.r && this.g === that.g && this.b === that.b;
     }
-    return false;
-  }
 
-  public clone() {
-    return new Color(this.a, this.r, this.g, this.b);
-  }
-
-  /**
-   * Returns 0-255 encoded as two character hex string
-   * @param n - 0-255 color component
-   * @returns Two character hex string
-   */
-  private hexPart(n: number): string {
-    if (n < 16) {
-      return '0' + n.toString(16);
+    /**
+     * Determines if this color is a named color hue
+     * @returns True if this is a named color hue
+     */
+    public isNamedColor(): boolean {
+        const l = Color.NamedColors.length;
+        for (const namedColor of Color.NamedColors) {
+            if (this.equalsHue(namedColor.color)) {
+                return true;
+            }
+        }
+        return false;
     }
-    return n.toString(16);
-  }
+
+    public clone() {
+        return new Color(this.a, this.r, this.g, this.b);
+    }
+
+    /**
+     * Returns 0-255 encoded as two character hex string
+     * @param n - 0-255 color component
+     * @returns Two character hex string
+     */
+    private hexPart(n: number): string {
+        if (n < 16) {
+            return '0' + n.toString(16);
+        }
+        return n.toString(16);
+    }
 }
 
 Color.NamedColors.push(new NamedColor('Transparent', Color.Transparent));

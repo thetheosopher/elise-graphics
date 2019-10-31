@@ -13,33 +13,33 @@ import { SpriteElement } from './sprite-element';
 import { TextElement } from './text-element';
 
 export class ElementFactory {
-  /**
-   * Element creators
-   */
-  public static ElementCreators: ElementCreatorRegistration[] = [];
+    /**
+     * Element creators
+     */
+    public static ElementCreators: ElementCreatorRegistration[] = [];
 
-  /**
-   * Register a new element creator
-   * @param name - Name
-   * @param creator - Element creator
-   */
-  public static registerCreator(name: string, creator: IElementCreator) {
-    ElementFactory.ElementCreators.push(new ElementCreatorRegistration(name, creator));
-  }
-
-  /**
-   * Create a new element given its type tag
-   * @param name - Element type tag
-   * @returns New element
-   */
-  public static create(name: string): ElementBase | undefined {
-    for (const creatorRegistration of ElementFactory.ElementCreators) {
-      if (creatorRegistration.name === name) {
-        return creatorRegistration.creator.create();
-      }
+    /**
+     * Register a new element creator
+     * @param name - Name
+     * @param creator - Element creator
+     */
+    public static registerCreator(name: string, creator: IElementCreator) {
+        ElementFactory.ElementCreators.push(new ElementCreatorRegistration(name, creator));
     }
-    return undefined;
-  }
+
+    /**
+     * Create a new element given its type tag
+     * @param name - Element type tag
+     * @returns New element
+     */
+    public static create(name: string): ElementBase | undefined {
+        for (const creatorRegistration of ElementFactory.ElementCreators) {
+            if (creatorRegistration.name === name) {
+                return creatorRegistration.creator.create();
+            }
+        }
+        return undefined;
+    }
 }
 
 /* Register element creators */

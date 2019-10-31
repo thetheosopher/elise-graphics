@@ -5,20 +5,20 @@ import { ElementBase } from '../elements/element-base';
 import { IControllerEvent } from './controller-event';
 
 export interface IController {
-  model?: Model;
-  canvas?: HTMLCanvasElement;
+    model?: Model;
+    canvas?: HTMLCanvasElement;
 
-  modelUpdated: IControllerEvent<Model>;
-  enabledChanged: IControllerEvent<boolean>;
-  commandHandler?: ElementCommandHandler;
+    modelUpdated: IControllerEvent<Model>;
+    enabledChanged: IControllerEvent<boolean>;
+    commandHandler?: ElementCommandHandler;
 
-  mouseEnteredElement: IControllerEvent<ElementBase>;
-  mouseLeftElement: IControllerEvent<ElementBase>;
-  mouseDownElement: IControllerEvent<ElementBase>;
-  mouseUpElement: IControllerEvent<ElementBase>;
-  elementClicked: IControllerEvent<ElementBase>;
-  timer: IControllerEvent<TimerParameters>;
+    mouseEnteredElement: IControllerEvent<ElementBase>;
+    mouseLeftElement: IControllerEvent<ElementBase>;
+    mouseDownElement: IControllerEvent<ElementBase>;
+    mouseUpElement: IControllerEvent<ElementBase>;
+    elementClicked: IControllerEvent<ElementBase>;
+    timer: IControllerEvent<TimerParameters>;
 
-  draw(): void;
-  invalidate(): void;
+    draw(): void;
+    invalidate(): void;
 }
