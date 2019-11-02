@@ -1,8 +1,7 @@
 import { CommonEvent } from '../core/common-event';
-import { EliseException } from '../core/elise-exception';
+import { ErrorMessages } from '../core/error-messages';
 import { LayeredSurfaceElement } from './layered-surface-element';
 import { Surface } from './surface';
-import { ErrorMessages } from '../core/error-messages';
 
 export class ImageLayer extends LayeredSurfaceElement {
     /**

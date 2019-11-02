@@ -1,7 +1,6 @@
 import { ElementCommandHandler } from '../command/element-command-handler';
 import { IController } from '../controller/controller';
 import { CommonEvent } from '../core/common-event';
-import { EliseException } from '../core/elise-exception';
 import { ErrorMessages } from '../core/error-messages';
 import { Model } from '../core/model';
 import { ElementBase } from '../elements/element-base';

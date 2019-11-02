@@ -1,4 +1,4 @@
-import { EliseException } from '../core/elise-exception';
+import { ErrorMessages } from '../core/error-messages';
 import { Point } from '../core/point';
 import { Size } from '../core/size';
 import { BitmapResource } from '../resource/bitmap-resource';
@@ -441,7 +441,7 @@ export class SpriteElement extends ElementBase {
 
         // Bounds check
         if (targetFrame > fl || targetFrame < 0) {
-            throw new EliseException('Frame is out of bounds in SpriteElement getTimeForFrame().');
+            throw new Error(ErrorMessages.InvalidFrameIndex);
         }
 
         // Compute timeline length if not already done

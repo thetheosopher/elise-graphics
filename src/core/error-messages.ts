@@ -11,6 +11,7 @@ export class ErrorMessages {
     public static HostElementUndefined = 'Host element is undefined.';
     public static ImageUndefined = 'Image is undefined';
     public static InvalidColorString = 'Invalid color string.';
+    public static InvalidFrameIndex = 'Invalid frame index.';
     public static InvalidResourceType = 'Invalid resource type.';
     public static LocationUndefined = 'Location is undefined.';
     public static ModelUndefined = 'Model is undefined.';

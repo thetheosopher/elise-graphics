@@ -1,4 +1,3 @@
-import { EliseException } from '../../core/elise-exception';
 import { Model } from '../../core/model';
 import { Component } from './component';
 import { ComponentElement } from './component-element';

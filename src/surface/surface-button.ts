@@ -1,5 +1,4 @@
 import { CommonEvent } from '../core/common-event';
-import { EliseException } from '../core/elise-exception';
 import { ErrorMessages } from '../core/error-messages';
 import { Model } from '../core/model';
 import { SpriteElement } from '../elements/sprite-element';
