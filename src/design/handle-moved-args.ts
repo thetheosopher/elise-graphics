@@ -10,8 +10,7 @@ export class HandleMovedArgs {
     public deltaY: number;
 
     /**
-     * Constructs a HandleMovedArgs
-     * @classdesc Represents movement of element handle
+     * Represents movement of element handle
      * @param deltaX - x movement
      * @param deltaY - Y movement
      */

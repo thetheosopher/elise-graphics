@@ -189,8 +189,7 @@ export class Component {
     public uploadProgress: ComponentEvent<UploadProgressProps> = new ComponentEvent<UploadProgressProps>();
 
     /**
-     * Constructs a component
-     * @classdesc Element component template
+     * Element component template
      * @param name - Component name
      * @param props - Component properties
      */

@@ -120,9 +120,7 @@ export class SpriteElement extends ElementBase {
     ) => void;
 
     /**
-     * Constructs a sprite element
-     * @classdesc Renders one or more image frames from full or partial bitmap image source
-     * @extends Elise.Drawing.ElementBase
+     * Renders one or more image frames from full or partial bitmap image source
      */
     constructor() {
         super('sprite');

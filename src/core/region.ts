@@ -22,8 +22,7 @@ export class Region {
     private _size: Size;
 
     /**
-     * Constructs a new region
-     * @classdesc Represents a region in 2D space
+     * Represents a region in 2D space
      * @param x - X coordinate
      * @param y - Y coordinate
      * @param width - Width

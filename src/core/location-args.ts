@@ -7,8 +7,7 @@ export class LocationArgs {
     public location?: Point;
 
     /**
-     * Constructs a location args
-     * @classdesc Describes a location
+     * Describes a location
      * @param location - Location
      */
     constructor(location?: Point) {

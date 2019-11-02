@@ -40,9 +40,7 @@ export class PolygonElement extends ElementBase implements IPointContainer {
     private _winding?: WindingMode;
 
     /**
-     * Constructs a polygon element
-     * @classdesc Renders connected, stroked and/or filled line segments between three or more points
-     * @extends Elise.Drawing.ElementBase
+     * Renders connected, stroked and/or filled line segments between three or more points
      */
     constructor() {
         super('polygon');

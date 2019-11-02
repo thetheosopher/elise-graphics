@@ -2,8 +2,7 @@ import { IElementCreator } from './element-creator';
 
 export class ElementCreatorRegistration {
     /**
-     * Constructs an element creator registration
-     * @classdesc Element creator registration
+     * Element creator registration
      * @param name - Element type tag
      * @param creator - Element creator
      */

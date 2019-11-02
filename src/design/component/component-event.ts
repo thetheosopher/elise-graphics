@@ -4,8 +4,7 @@ export class ComponentEvent<T> {
     private listeners: Array<(c: Component, data: T) => void> = [];
 
     /**
-     * Constructs a component event
-     * @classdesc Component event
+     * Component event
      */
     constructor() {
         this.add = this.add.bind(this);

@@ -45,9 +45,7 @@ export class EllipseElement extends ElementBase {
     private _center?: Point;
 
     /**
-     * Constructs an ellipse element
-     * @classdesc Renders stroked and/or filled ellipse.
-     * @extends Elise.Drawing.ElementBase
+     * Renders stroked and/or filled ellipse.
      */
     constructor() {
         super('ellipse');

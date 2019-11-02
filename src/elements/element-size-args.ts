@@ -9,8 +9,7 @@ export class ElementSizeArgs extends SizeArgs {
     public element: ElementBase;
 
     /**
-     * Constructs an element size args
-     * @classdesc Describes an element size
+     * Describes an element size
      * @param element - Model element
      * @param size - Size
      */

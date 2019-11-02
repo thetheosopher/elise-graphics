@@ -137,8 +137,7 @@ export class ElementBase implements IPointContainer {
     protected _location?: Point;
 
     /**
-     * ElementBase constructor (abstract)
-     * @classdesc Base class for all model elements
+     * Base class for all model elements
      */
     constructor(type: string) {
         this.type = type;

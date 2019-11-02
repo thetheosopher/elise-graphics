@@ -1,7 +1,9 @@
-export class EliseException extends Error {
     /**
      * Custom exception for catching internal errors
-     * @classdesc Internal exception type
+     */
+    export class EliseException extends Error {
+    /**
+     * Custom exception for catching internal errors
      * @param message - Exception message
      */
     constructor(message: string) {

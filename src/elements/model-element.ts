@@ -57,9 +57,7 @@ export class ModelElement extends ElementBase {
     public sourceModel?: Model;
 
     /**
-     * Constructs a model element
-     * @classdesc Renders embedded or externally referenced model
-     * @extends Elise.Drawing.ElementBase
+     * Renders embedded or externally referenced model
      */
     constructor() {
         super('model');

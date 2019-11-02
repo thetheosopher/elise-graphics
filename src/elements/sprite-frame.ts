@@ -90,8 +90,7 @@ export class SpriteFrame {
     public opacity: number = 1;
 
     /**
-     * Constructs a sprite frame
-     * @classdesc Sprite Frame - Represents single sprite element frame
+     * Sprite Frame - Represents single sprite element frame
      * @param source - Bitmap resource key
      * @param x - Bitmap resource image region X coordinate
      * @param y - Bitmap resource image region Y coordinate

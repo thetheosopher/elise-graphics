@@ -149,8 +149,6 @@ export class Model extends ElementBase {
 
     /**
      * Constructs a new model
-     * @classdesc Element and resource owner and manager
-     * @extends Elise.Drawing.ElementBase
      */
     constructor() {
         super('model');

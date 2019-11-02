@@ -23,9 +23,7 @@ export class RectangleElement extends ElementBase {
     }
 
     /**
-     * Constructs a rectangle element
-     * @classdesc Renders stroked and/or filled rectangle
-     * @extends Elise.Drawing.ElementBase
+     * Renders stroked and/or filled rectangle
      */
     constructor() {
         super('rectangle');

@@ -40,9 +40,7 @@ export class PathElement extends ElementBase implements IPointContainer {
     private _winding?: WindingMode;
 
     /**
-     * Constructs a path element
-     * @classdesc Renders series of stroked and/or filled drawing commands
-     * @extends Elise.Drawing.ElementBase
+     * Renders series of stroked and/or filled drawing commands
      */
     constructor() {
         super('path');

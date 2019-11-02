@@ -7,7 +7,7 @@ export class ModelEvent<T> {
     private listeners: Array<(model: Model, data?: T) => void> = [];
 
     /**
-     * @classdesc Model event type
+     * Model event type
      */
     constructor() {
         this.add = this.add.bind(this);

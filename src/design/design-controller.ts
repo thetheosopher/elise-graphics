@@ -519,8 +519,7 @@ export class DesignController implements IController {
     public commandHandler?: ElementCommandHandler;
 
     /**
-     * Constructs a new design controller
-     * @classdesc Manages rendering and interaction with rendered model content
+     * Manages rendering and interaction with rendered model content
      */
     constructor() {
         this.enabled = true;

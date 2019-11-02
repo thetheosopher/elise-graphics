@@ -45,8 +45,7 @@ export class Size {
     private _height: number;
 
     /**
-     * Constructs a new size object
-     * @classdesc Describes the size of a rectangular object or region
+     * Describes the size of a rectangular object or region
      * @param width - Width
      * @param width - Height
      */

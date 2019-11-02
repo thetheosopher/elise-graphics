@@ -20,8 +20,7 @@ export class SpriteState {
     public frame2: number;
 
     /**
-     * Constructs a sprite state
-     * @classdesc Represents the transition state of a sprite element
+     * Represents the transition state of a sprite element
      * @param transition - Visual transition
      * @param offset - Offset into transition in the range of 0-1
      * @param frame1 - Source frame index

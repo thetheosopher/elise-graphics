@@ -61,8 +61,7 @@ export class Point {
     private _y: number;
 
     /**
-     * Constructs a new Point object
-     * @classdesc Describes a point in 2D space
+     * Describes a point in 2D space
      * @param x - X Coordinate
      * @param y - Y Coordinate
      */

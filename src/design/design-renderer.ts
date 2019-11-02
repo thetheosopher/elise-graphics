@@ -27,8 +27,7 @@ export class DesignRenderer {
     public controller: DesignController;
 
     /**
-     * Constructs a design renderer
-     * @classdesc Renders model elements for design controller
+     * Renders model elements for design controller
      * @param controller - Design controller
      */
     constructor(controller: DesignController) {

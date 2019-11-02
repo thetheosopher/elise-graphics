@@ -38,9 +38,7 @@ export class PolylineElement extends ElementBase implements IPointContainer {
     private _points?: Point[];
 
     /**
-     * Constructs a polyline element
-     * @classdesc Renders connected, stroked line segments between two or more points
-     * @extends Elise.Drawing.ElementBase
+     * Renders connected, stroked line segments between two or more points
      */
     constructor() {
         super('polyline');

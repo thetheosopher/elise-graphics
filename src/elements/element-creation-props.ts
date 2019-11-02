@@ -37,8 +37,7 @@ export class ElementCreationProps {
     public props: any;
 
     /**
-     * Constructs an ElementCreationProps
-     * @classdesc Provides properties for element creation
+     * Provides properties for element creation
      * @param model - Model to which element should be added
      * @param id - Element id
      * @param left - X coordinate

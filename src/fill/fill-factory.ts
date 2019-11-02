@@ -86,13 +86,12 @@ export class FillFactory {
                 const res = model.resourceManager.get(key) as BitmapResource;
                 if (!res) {
                     c.fillStyle = Color.Magenta.toStyleString();
-                    console.log('Image resource [' + key + '] not found');
-                    return false;
+                    throw new Error(ErrorMessages.ImageUndefined + ': ' + key);
                 }
                 const scaling = model.getFillScale(el);
                 let pattern: CanvasPattern | null;
                 if (!res.image) {
-                    throw new Error('Resource image is undefined.');
+                    throw new Error(ErrorMessages.ImageUndefined);
                 }
                 if (scaling.rx === 1 && scaling.ry === 1) {
                     pattern = c.createPattern(res.image, 'repeat');
@@ -113,7 +112,7 @@ export class FillFactory {
                     return true;
                 }
                 else {
-                    return false;
+                    throw new Error(ErrorMessages.ErrorCreatingCanvasPattern);
                 }
             }
             if (fill.toLowerCase().substring(0, 6) === 'model(') {
@@ -127,16 +126,15 @@ export class FillFactory {
                 const res = model.resourceManager.get(key) as ModelResource;
                 if (!res) {
                     c.fillStyle = Color.Magenta.toStyleString();
-                    console.log('Model resource [' + key + '] not found');
-                    return false;
+                    throw new Error(ErrorMessages.ModelResourceUndefined + ': ' + key);
                 }
                 const innerModel = res.model;
                 if (innerModel === undefined) {
-                    return false;
+                    throw new Error(ErrorMessages.ModelUndefined);
                 }
                 const size = innerModel.getSize();
                 if (!size) {
-                    return false;
+                    throw new Error(ErrorMessages.SizeUndefined);
                 }
                 const offscreen = document.createElement('canvas');
                 const scaling = model.getFillScale(el);
@@ -160,7 +158,7 @@ export class FillFactory {
                     return true;
                 }
                 else {
-                    return false;
+                    throw new Error(ErrorMessages.ErrorCreatingCanvasPattern);
                 }
             }
             c.fillStyle = Color.parse(fill).toStyleString();

@@ -35,7 +35,6 @@ export class Matrix2D {
 
     /**
      * Constructs a new matrix
-     * @classdesc Represents a 2D transform matrix
      */
     constructor(
         public m11: number,

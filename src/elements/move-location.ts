@@ -2,8 +2,7 @@ import { Point } from '../core/point';
 import { ElementBase } from './element-base';
 
     /**
-     * Constructs a move location
-     * @classdesc Represents the tentative location of an element during a move operation
+     * Represents the tentative location of an element during a move operation
      */
     export class MoveLocation {
     /**

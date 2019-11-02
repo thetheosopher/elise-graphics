@@ -13,8 +13,7 @@ export class ResizeSize {
     public size: Size;
 
     /**
-     * Constructs a resize size
-     * @classdesc Represents the tentative size of an element during a resizing operation
+     * Represents the tentative size of an element during a resizing operation
      * @param element - Element being sized
      * @param size - Tentative size of element
      */

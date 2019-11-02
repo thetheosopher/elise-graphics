@@ -12,8 +12,7 @@ export class ElementDragArgs {
     public event?: DragEvent;
 
     /**
-     * Constructs an element drag args
-     * @classdesc Describes an element drag event
+     * Describes an element drag event
      * @param element - Model element
      * @param event - Mouse drag event
      */
