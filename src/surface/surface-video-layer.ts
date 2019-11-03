@@ -1,9 +1,9 @@
 import { CommonEvent } from '../core/common-event';
 import { ErrorMessages } from '../core/error-messages';
-import { LayeredSurfaceElement } from './layered-surface-element';
 import { Surface } from './surface';
+import { SurfaceLayer } from './surface-layer';
 
-export class Video extends LayeredSurfaceElement {
+export class SurfaceVideoLayer extends SurfaceLayer {
     /**
      * Renders a video into an HTML video element
      * @param id - Video id
@@ -14,7 +14,7 @@ export class Video extends LayeredSurfaceElement {
      * @param source - Video source URL
      */
     public static create(id: string, left: number, top: number, width: number, height: number, source: string) {
-        const video = new Video(id, left, top, width, height, source);
+        const video = new SurfaceVideoLayer(id, left, top, width, height, source);
         return video;
     }
 
@@ -51,12 +51,12 @@ export class Video extends LayeredSurfaceElement {
     /**
      * Video started event (video: Video)
      */
-    public started: CommonEvent<Video> = new CommonEvent<Video>();
+    public started: CommonEvent<SurfaceVideoLayer> = new CommonEvent<SurfaceVideoLayer>();
 
     /**
      * Video stopped event (video: Video)
      */
-    public stopped: CommonEvent<Video> = new CommonEvent<Video>();
+    public stopped: CommonEvent<SurfaceVideoLayer> = new CommonEvent<SurfaceVideoLayer>();
 
     /**
      * HTML video element

@@ -1,12 +1,12 @@
 import { ViewController } from '../view/view-controller';
-import { RadioStrip } from './radio-strip';
 import { Surface } from './surface';
+import { SurfaceRadioStrip } from './surface-radio-strip';
 
-export class RadioStripViewController extends ViewController {
+export class SurfaceRadioStripViewController extends ViewController {
     /**
      * Associated radio strip
      */
-    public strip?: RadioStrip;
+    public strip?: SurfaceRadioStrip;
 
     /**
      * Radio strip surface

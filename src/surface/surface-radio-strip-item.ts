@@ -1,8 +1,8 @@
 import { Utility } from '../core/utility';
-import { RadioItemSpriteElement } from './radio-item-sprite-element';
-import { RadioItemTextElement } from './radio-item-text-element';
+import { SurfaceRadioItemSpriteElement } from './surface-radio-item-sprite-element';
+import { SurfaceRadioItemTextElement } from './surface-radio-item-text-element';
 
-export class RadioStripItem {
+export class SurfaceRadioStripItem {
     /**
      * Radio strip item ID
      */
@@ -21,12 +21,12 @@ export class RadioStripItem {
     /**
      * Radio strip item button sprite element
      */
-    public spriteElement?: RadioItemSpriteElement;
+    public spriteElement?: SurfaceRadioItemSpriteElement;
 
     /**
      * Radio strip item button text element ID
      */
-    public textElement?: RadioItemTextElement;
+    public textElement?: SurfaceRadioItemTextElement;
 
     /**
      * Represents an item in a radio strip

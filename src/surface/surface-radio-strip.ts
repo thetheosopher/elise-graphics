@@ -8,21 +8,21 @@ import { ElementBase } from '../elements/element-base';
 import { SpriteElement } from '../elements/sprite-element';
 import { SpriteFrame } from '../elements/sprite-frame';
 import { BitmapResource } from '../resource/bitmap-resource';
-import { ElementStates } from './element-states';
-import { LayeredSurfaceElement } from './layered-surface-element';
-import { RadioItemSpriteElement } from './radio-item-sprite-element';
-import { RadioItemTextElement } from './radio-item-text-element';
-import { RadioStripItem } from './radio-strip-item';
-import { RadioStripSelectionArgs } from './radio-strip-selection-args';
-import { RadioStripViewController } from './radio-strip-view-controller';
 import { Surface } from './surface';
+import { SurfaceElementStates } from './surface-element-states';
+import { SurfaceLayer } from './surface-layer';
+import { SurfaceRadioItemSpriteElement } from './surface-radio-item-sprite-element';
+import { SurfaceRadioItemTextElement } from './surface-radio-item-text-element';
+import { SurfaceRadioStripItem } from './surface-radio-strip-item';
+import { SurfaceRadioStripSelectionArgs } from './surface-radio-strip-selection-args';
+import { SurfaceRadioStripViewController } from './surface-radio-strip-view-controller';
 
 export enum RadioStripOrientation {
     Horizontal = 0,
     Vertical = 1
 }
 
-export class RadioStrip extends LayeredSurfaceElement {
+export class SurfaceRadioStrip extends SurfaceLayer {
     public static RADIO_BUTTON_DOWN = 'radioButtonDown';
     public static RADIO_BUTTON_UP = 'radioButtonUp';
     public static RADIO_BUTTON_CLICK = 'radioButtonClick';
@@ -51,9 +51,9 @@ export class RadioStrip extends LayeredSurfaceElement {
         buttonTop: number,
         buttonWidth: number,
         buttonHeight: number,
-        itemSelectedListener: (args: RadioStripSelectionArgs | undefined) => void
+        itemSelectedListener: (args: SurfaceRadioStripSelectionArgs | undefined) => void
     ) {
-        const layer = new RadioStrip(
+        const layer = new SurfaceRadioStrip(
             id,
             areaLeft,
             areaTop,
@@ -96,7 +96,7 @@ export class RadioStrip extends LayeredSurfaceElement {
     /**
      * Strip item selection event (strip: RadioStrip, item: RadioStripItem)
      */
-    public itemSelected: CommonEvent<RadioStripSelectionArgs> = new CommonEvent<RadioStripSelectionArgs>();
+    public itemSelected: CommonEvent<SurfaceRadioStripSelectionArgs> = new CommonEvent<SurfaceRadioStripSelectionArgs>();
 
     /**
      * Strip item normal state sprite index
@@ -171,12 +171,12 @@ export class RadioStrip extends LayeredSurfaceElement {
     /**
      * Array of radio strip items
      */
-    public items: RadioStripItem[] = [];
+    public items: SurfaceRadioStripItem[] = [];
 
     /**
      * Radio strip view controller
      */
-    public controller?: RadioStripViewController;
+    public controller?: SurfaceRadioStripViewController;
 
     /**
      * Radio strip drawing model
@@ -213,7 +213,7 @@ export class RadioStrip extends LayeredSurfaceElement {
         buttonTop: number,
         buttonWidth: number,
         buttonHeight: number,
-        itemSelectedListener: (args: RadioStripSelectionArgs | undefined) => void
+        itemSelectedListener: (args: SurfaceRadioStripSelectionArgs | undefined) => void
     ) {
         super(id, areaLeft, areaTop, areaWidth, areaHeight);
 
@@ -263,7 +263,7 @@ export class RadioStrip extends LayeredSurfaceElement {
      * @param text - Item text
      */
     public addItem(id: string, text: string) {
-        const item = new RadioStripItem(id, text);
+        const item = new SurfaceRadioStripItem(id, text);
         this.items.push(item);
         if (this.controller) {
             this.refreshModel();
@@ -335,7 +335,7 @@ export class RadioStrip extends LayeredSurfaceElement {
         }
         if (arguments.length === 1 || !inhibitEvent) {
             if (self.itemSelected.hasListeners()) {
-                self.itemSelected.trigger(new RadioStripSelectionArgs(self, item));
+                self.itemSelected.trigger(new SurfaceRadioStripSelectionArgs(self, item));
             }
         }
         if (self.controller) {
@@ -505,13 +505,13 @@ export class RadioStrip extends LayeredSurfaceElement {
         // Add defined image resources
         let frameCount = 0;
         if (surface.normalImageSource) {
-            BitmapResource.create(ElementStates.NORMAL, surface.normalImageSource).addTo(model);
+            BitmapResource.create(SurfaceElementStates.NORMAL, surface.normalImageSource).addTo(model);
             frameCount++;
         }
         if (surface.selectedImageSource) {
             this.selectedIndex = frameCount;
             frameCount++;
-            BitmapResource.create(ElementStates.SELECTED, surface.selectedImageSource).addTo(model);
+            BitmapResource.create(SurfaceElementStates.SELECTED, surface.selectedImageSource).addTo(model);
         }
         if (surface.highlightedImageSource) {
             this.highlightedIndex = frameCount;
@@ -519,7 +519,7 @@ export class RadioStrip extends LayeredSurfaceElement {
                 this.selectedIndex = this.highlightedIndex;
             }
             frameCount++;
-            BitmapResource.create(ElementStates.HIGHLIGHTED, surface.highlightedImageSource).addTo(model);
+            BitmapResource.create(SurfaceElementStates.HIGHLIGHTED, surface.highlightedImageSource).addTo(model);
         }
 
         // Add static image from background area
@@ -527,17 +527,17 @@ export class RadioStrip extends LayeredSurfaceElement {
         background.interactive = false;
         background.frames = [];
         background.frames.push(
-            SpriteFrame.create(ElementStates.NORMAL, this.left, this.top, this.width, this.height, 0, 'none', 0)
+            SpriteFrame.create(SurfaceElementStates.NORMAL, this.left, this.top, this.width, this.height, 0, 'none', 0)
         );
         if (surface.selectedImageSource) {
             background.frames.push(
-                SpriteFrame.create(ElementStates.SELECTED, this.left, this.top, this.width, this.height, 0, 'none', 0)
+                SpriteFrame.create(SurfaceElementStates.SELECTED, this.left, this.top, this.width, this.height, 0, 'none', 0)
             );
         }
         if (surface.highlightedImageSource) {
             background.frames.push(
                 SpriteFrame.create(
-                    ElementStates.HIGHLIGHTED,
+                    SurfaceElementStates.HIGHLIGHTED,
                     this.left,
                     this.top,
                     this.width,
@@ -553,9 +553,9 @@ export class RadioStrip extends LayeredSurfaceElement {
         // Add button items
         for (let i = 0; i < this.items.length; i++) {
             const item = this.items[i];
-            let sprite: RadioItemSpriteElement;
+            let sprite: SurfaceRadioItemSpriteElement;
             if (this.orientation === RadioStripOrientation.Horizontal) {
-                sprite = new RadioItemSpriteElement(
+                sprite = new SurfaceRadioItemSpriteElement(
                     this.id,
                     item.id,
                     i * this.buttonWidth,
@@ -565,7 +565,7 @@ export class RadioStrip extends LayeredSurfaceElement {
                 );
             }
             else {
-                sprite = new RadioItemSpriteElement(
+                sprite = new SurfaceRadioItemSpriteElement(
                     this.id,
                     item.id,
                     0,
@@ -579,7 +579,7 @@ export class RadioStrip extends LayeredSurfaceElement {
             item.spriteElement = sprite;
             sprite.frames.push(
                 SpriteFrame.create(
-                    ElementStates.NORMAL,
+                    SurfaceElementStates.NORMAL,
                     this.buttonLeft,
                     this.buttonTop,
                     this.buttonWidth,
@@ -592,7 +592,7 @@ export class RadioStrip extends LayeredSurfaceElement {
             if (surface.selectedImageSource) {
                 sprite.frames.push(
                     SpriteFrame.create(
-                        ElementStates.SELECTED,
+                        SurfaceElementStates.SELECTED,
                         this.buttonLeft,
                         this.buttonTop,
                         this.buttonWidth,
@@ -606,7 +606,7 @@ export class RadioStrip extends LayeredSurfaceElement {
             if (surface.highlightedImageSource) {
                 sprite.frames.push(
                     SpriteFrame.create(
-                        ElementStates.HIGHLIGHTED,
+                        SurfaceElementStates.HIGHLIGHTED,
                         this.buttonLeft,
                         this.buttonTop,
                         this.buttonWidth,
@@ -633,9 +633,9 @@ export class RadioStrip extends LayeredSurfaceElement {
             sprite.interactive = true;
             model.add(sprite);
 
-            let text: RadioItemTextElement;
+            let text: SurfaceRadioItemTextElement;
             if (this.orientation === RadioStripOrientation.Horizontal) {
-                text = new RadioItemTextElement(
+                text = new SurfaceRadioItemTextElement(
                     this.id,
                     item.id,
                     item.text,
@@ -646,7 +646,7 @@ export class RadioStrip extends LayeredSurfaceElement {
                 ).setFill(this.normalColor);
             }
             else {
-                text = new RadioItemTextElement(
+                text = new SurfaceRadioItemTextElement(
                     this.id,
                     item.id,
                     item.text,
@@ -668,7 +668,7 @@ export class RadioStrip extends LayeredSurfaceElement {
             model.add(text);
         }
 
-        const controller = new RadioStripViewController();
+        const controller = new SurfaceRadioStripViewController();
         controller.eventDelay = 150;
         controller.mouseDownView.add(this.stripDown);
         controller.mouseMovedView.add(this.stripMoved);
@@ -716,7 +716,7 @@ export class RadioStrip extends LayeredSurfaceElement {
 
         // Remove elements for items
         for (const el of model.elements) {
-            if (el instanceof RadioItemSpriteElement || el instanceof RadioItemTextElement) {
+            if (el instanceof SurfaceRadioItemSpriteElement || el instanceof SurfaceRadioItemTextElement) {
                 if (el.itemId) {
                     model.remove(el);
                 }
@@ -726,9 +726,9 @@ export class RadioStrip extends LayeredSurfaceElement {
         // Add button items
         for (let i = 0; i < this.items.length; i++) {
             const item = this.items[i];
-            let sprite: RadioItemSpriteElement;
+            let sprite: SurfaceRadioItemSpriteElement;
             if (this.orientation === RadioStripOrientation.Horizontal) {
-                sprite = new RadioItemSpriteElement(
+                sprite = new SurfaceRadioItemSpriteElement(
                     this.id,
                     item.id,
                     i * this.buttonWidth,
@@ -738,7 +738,7 @@ export class RadioStrip extends LayeredSurfaceElement {
                 );
             }
             else {
-                sprite = new RadioItemSpriteElement(
+                sprite = new SurfaceRadioItemSpriteElement(
                     this.id,
                     item.id,
                     0,
@@ -755,7 +755,7 @@ export class RadioStrip extends LayeredSurfaceElement {
             sprite.frames = [];
             sprite.frames.push(
                 SpriteFrame.create(
-                    ElementStates.NORMAL,
+                    SurfaceElementStates.NORMAL,
                     this.buttonLeft,
                     this.buttonTop,
                     this.buttonWidth,
@@ -768,7 +768,7 @@ export class RadioStrip extends LayeredSurfaceElement {
             if (surface.selectedImageSource) {
                 sprite.frames.push(
                     SpriteFrame.create(
-                        ElementStates.SELECTED,
+                        SurfaceElementStates.SELECTED,
                         this.buttonLeft,
                         this.buttonTop,
                         this.buttonWidth,
@@ -782,7 +782,7 @@ export class RadioStrip extends LayeredSurfaceElement {
             if (surface.highlightedImageSource) {
                 sprite.frames.push(
                     SpriteFrame.create(
-                        ElementStates.HIGHLIGHTED,
+                        SurfaceElementStates.HIGHLIGHTED,
                         this.buttonLeft,
                         this.buttonTop,
                         this.buttonWidth,
@@ -808,9 +808,9 @@ export class RadioStrip extends LayeredSurfaceElement {
             sprite.click = 'radioButtonClick';
             sprite.interactive = true;
             model.add(sprite);
-            let text: RadioItemTextElement;
+            let text: SurfaceRadioItemTextElement;
             if (this.orientation === RadioStripOrientation.Horizontal) {
-                text = new RadioItemTextElement(
+                text = new SurfaceRadioItemTextElement(
                     this.id,
                     item.id,
                     item.text,
@@ -821,7 +821,7 @@ export class RadioStrip extends LayeredSurfaceElement {
                 );
             }
             else {
-                text = new RadioItemTextElement(
+                text = new SurfaceRadioItemTextElement(
                     this.id,
                     item.id,
                     item.text,
@@ -872,7 +872,7 @@ export class RadioStrip extends LayeredSurfaceElement {
      * @param args - Strip mouse down point info
      */
     public stripDown(controller: IController, args: PointEventParameters) {
-        const c = controller as RadioStripViewController;
+        const c = controller as SurfaceRadioStripViewController;
         if (!c.strip || !args.point) {
             return;
         }
@@ -892,7 +892,7 @@ export class RadioStrip extends LayeredSurfaceElement {
      * @param args - Strip mouse move point info
      */
     public stripMoved(controller: IController, args: PointEventParameters) {
-        const c = controller as RadioStripViewController;
+        const c = controller as SurfaceRadioStripViewController;
         if (!c.strip || !args.point || !c.strip.downPosition || !c.strip.downOffset || !c.strip.maxOffset) {
             return;
         }
@@ -1023,33 +1023,33 @@ export class RadioStrip extends LayeredSurfaceElement {
         const commandHandler = new ElementCommandHandler();
         commandHandler.attachController(self.controller);
         commandHandler.addHandler(
-            RadioStrip.RADIO_BUTTON_CLICK,
+            SurfaceRadioStrip.RADIO_BUTTON_CLICK,
             (controller: IController, element: ElementBase, command: string, trigger: string, parameters: any) => {
-                const radioStripController = controller as RadioStripViewController;
+                const radioStripController = controller as SurfaceRadioStripViewController;
                 const radioStrip = radioStripController.strip;
-                const radioStripSpriteElement = element as RadioItemSpriteElement;
+                const radioStripSpriteElement = element as SurfaceRadioItemSpriteElement;
                 if (radioStrip) {
                     radioStrip.onRadioButtonClicked(radioStripSpriteElement.itemId);
                 }
             }
         );
         commandHandler.addHandler(
-            RadioStrip.RADIO_BUTTON_DOWN,
+            SurfaceRadioStrip.RADIO_BUTTON_DOWN,
             (controller: IController, element: ElementBase, command: string, trigger: string, parameters: any) => {
-                const radioStripController = controller as RadioStripViewController;
+                const radioStripController = controller as SurfaceRadioStripViewController;
                 const radioStrip = radioStripController.strip;
-                const radioStripSpriteElement = element as RadioItemSpriteElement;
+                const radioStripSpriteElement = element as SurfaceRadioItemSpriteElement;
                 if (radioStrip) {
                     radioStrip.onRadioButtonDown(radioStripSpriteElement.itemId);
                 }
             }
         );
         commandHandler.addHandler(
-            RadioStrip.RADIO_BUTTON_UP,
+            SurfaceRadioStrip.RADIO_BUTTON_UP,
             (controller: IController, element: ElementBase, command: string, trigger: string, parameters: any) => {
-                const radioStripController = controller as RadioStripViewController;
+                const radioStripController = controller as SurfaceRadioStripViewController;
                 const radioStrip = radioStripController.strip;
-                const radioStripSpriteElement = element as RadioItemSpriteElement;
+                const radioStripSpriteElement = element as SurfaceRadioItemSpriteElement;
                 if (radioStrip) {
                     radioStrip.onRadioButtonUp(radioStripSpriteElement.itemId);
                 }
@@ -1249,7 +1249,7 @@ export class RadioStrip extends LayeredSurfaceElement {
             });
         }
         if (self.itemSelected.hasListeners()) {
-            self.itemSelected.trigger(new RadioStripSelectionArgs(self, item));
+            self.itemSelected.trigger(new SurfaceRadioStripSelectionArgs(self, item));
         }
         self.controller.draw();
         self.ensureVisible(itemId);

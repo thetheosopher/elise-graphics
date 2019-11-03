@@ -1,4 +1,4 @@
-export class ElementStates {
+export class SurfaceElementStates {
     public static NORMAL = 'normal';
     public static SELECTED = 'selected';
     public static HIGHLIGHTED = 'highlighted';

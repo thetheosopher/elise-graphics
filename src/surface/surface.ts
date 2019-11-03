@@ -11,13 +11,13 @@ import { BitmapResource } from '../resource/bitmap-resource';
 import { ResourceManager } from '../resource/resource-manager';
 import { ResourceManagerEvent } from '../resource/resource-manager-event';
 import { ResourceState } from '../resource/resource-state';
-import { ElementStates } from './element-states';
-import { LayeredSurfaceElement } from './layered-surface-element';
-import { SurfaceButton } from './surface-button';
+import { SurfaceButtonElement } from './surface-button-element';
 import { SurfaceElement } from './surface-element';
+import { SurfaceElementStates } from './surface-element-states';
+import { SurfaceLayer } from './surface-layer';
+import { SurfaceTextElement } from './surface-text-element';
+import { SurfaceVideoLayer } from './surface-video-layer';
 import { SurfaceViewController } from './surface-view-controller';
-import { Text } from './text';
-import { Video } from './video';
 
 export class Surface {
     /**
@@ -95,7 +95,7 @@ export class Surface {
     /**
      * Base model layer elements
      */
-    public layers: LayeredSurfaceElement[] = [];
+    public layers: SurfaceLayer[] = [];
 
     /**
      * Loaded event called when all resources have been loaded or have failed (success: boolean)
@@ -239,7 +239,7 @@ export class Surface {
 
         // Bind command handler event handlers to element event trigger functions
         ech.addHandler(
-            SurfaceButton.BUTTON_CLICK,
+            SurfaceButtonElement.BUTTON_CLICK,
             (controller: IController, element: ElementBase, command: string, trigger: string, parameters: any) => {
                 const c = controller as SurfaceViewController;
                 if (!c.surface || !element || !element.id) {
@@ -249,13 +249,13 @@ export class Surface {
                 if (!el) {
                     return;
                 }
-                const button = el as SurfaceButton;
+                const button = el as SurfaceButtonElement;
                 button.onClicked();
             }
         );
 
         ech.addHandler(
-            Text.TEXT_CLICK,
+            SurfaceTextElement.TEXT_CLICK,
             (controller: IController, element: ElementBase, command: string, trigger: string, parameters: any) => {
                 const c = controller as SurfaceViewController;
                 if (!c.surface || !element || !element.id) {
@@ -265,7 +265,7 @@ export class Surface {
                 if (!el) {
                     return;
                 }
-                const text = el as Text;
+                const text = el as SurfaceTextElement;
                 text.onClicked();
             }
         );
@@ -470,17 +470,17 @@ export class Surface {
 
         // Add defined image resources
         if (self.normalImageSource) {
-            BitmapResource.create(ElementStates.NORMAL, self.normalImageSource).addTo(model);
-            ImageElement.create(ElementStates.NORMAL, 0, 0, self.width, self.height).addTo(model);
+            BitmapResource.create(SurfaceElementStates.NORMAL, self.normalImageSource).addTo(model);
+            ImageElement.create(SurfaceElementStates.NORMAL, 0, 0, self.width, self.height).addTo(model);
         }
         if (self.selectedImageSource) {
-            BitmapResource.create(ElementStates.SELECTED, self.selectedImageSource).addTo(model);
+            BitmapResource.create(SurfaceElementStates.SELECTED, self.selectedImageSource).addTo(model);
         }
         if (self.highlightedImageSource) {
-            BitmapResource.create(ElementStates.HIGHLIGHTED, self.highlightedImageSource).addTo(model);
+            BitmapResource.create(SurfaceElementStates.HIGHLIGHTED, self.highlightedImageSource).addTo(model);
         }
         if (self.disabledImageSource) {
-            BitmapResource.create(ElementStates.DISABLED, self.disabledImageSource).addTo(model);
+            BitmapResource.create(SurfaceElementStates.DISABLED, self.disabledImageSource).addTo(model);
         }
 
         // Add base layer elements
@@ -544,7 +544,7 @@ export class Surface {
      * Simulates a button click
      */
     public clickButton(buttonId: string) {
-        const button = this.elementWithId(buttonId) as SurfaceButton;
+        const button = this.elementWithId(buttonId) as SurfaceButtonElement;
         if (button) {
             button.onClicked();
         }
@@ -552,7 +552,7 @@ export class Surface {
 
     public startVideos() {
         this.layers.forEach((layer) => {
-            if (layer instanceof Video) {
+            if (layer instanceof SurfaceVideoLayer) {
                 if (layer.autoPlay && layer.element) {
                     layer.element.play();
                 }

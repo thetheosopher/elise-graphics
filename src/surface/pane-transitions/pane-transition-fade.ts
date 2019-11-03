@@ -1,16 +1,16 @@
 import { ErrorMessages } from '../../core/error-messages';
 import { TransitionRenderer } from '../../transitions/transitions';
-import { Pane } from '../pane';
 import { Surface } from '../surface';
+import { SurfacePane } from '../surface-pane';
 import { PaneTransition } from './pane-transition';
 
-export class FadeTransition extends PaneTransition {
+export class PaneTransitionFade extends PaneTransition {
     public duration: number;
     public startTime?: number;
     public source?: Surface;
     public timer?: number;
 
-    constructor(pane: Pane, target: Surface, callback: (pane: Pane) => void, duration: number) {
+    constructor(pane: SurfacePane, target: Surface, callback: (pane: SurfacePane) => void, duration: number) {
         super(pane, target, callback);
         this.tick = this.tick.bind(this);
         this.duration = duration;

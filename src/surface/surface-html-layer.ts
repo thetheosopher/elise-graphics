@@ -1,8 +1,8 @@
 import { ErrorMessages } from '../core/error-messages';
-import { LayeredSurfaceElement } from './layered-surface-element';
 import { Surface } from './surface';
+import { SurfaceLayer } from './surface-layer';
 
-export class HTML extends LayeredSurfaceElement {
+export class SurfaceHtmlLayer extends SurfaceLayer {
     /**
      * Creates an HTML item
      * @param id - Hidden layer id
@@ -14,7 +14,7 @@ export class HTML extends LayeredSurfaceElement {
      * @returns New HTML layer
      */
     public static create(id: string, left: number, top: number, width: number, height: number, source: string) {
-        const layer = new HTML(id, left, top, width, height, source);
+        const layer = new SurfaceHtmlLayer(id, left, top, width, height, source);
         return layer;
     }
 

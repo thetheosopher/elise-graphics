@@ -1,11 +1,11 @@
-import { Animation } from './animation';
+import { SurfaceAnimationLayer } from './surface-animation-layer';
 import { SurfaceViewController } from './surface-view-controller';
 
-export class AnimationViewController extends SurfaceViewController {
+export class SurfaceAnimationViewController extends SurfaceViewController {
     /**
      * Controlled animation
      */
-    public animation?: Animation;
+    public animation?: SurfaceAnimationLayer;
 
     /**
      * Extends SurfaceViewController to add animation property

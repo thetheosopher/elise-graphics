@@ -1,23 +1,23 @@
 import { ErrorMessages } from '../../core/error-messages';
 import { TransitionRenderer } from '../../transitions/transitions';
-import { Pane } from '../pane';
 import { Surface } from '../surface';
+import { SurfacePane } from '../surface-pane';
 import { PaneTransition } from './pane-transition';
-import { TransitionDirection } from './transition-direction';
+import { PaneTransitionDirection } from './pane-transition-direction';
 
-export class WipeTransition extends PaneTransition {
+export class PaneTransitionWipe extends PaneTransition {
     public duration: number;
     public startTime?: number;
     public source?: Surface;
     public timer?: number;
-    public direction: TransitionDirection;
+    public direction: PaneTransitionDirection;
 
     constructor(
-        pane: Pane,
+        pane: SurfacePane,
         target: Surface,
-        callback: (pane: Pane) => void,
+        callback: (pane: SurfacePane) => void,
         duration: number,
-        direction: TransitionDirection
+        direction: PaneTransitionDirection
     ) {
         super(pane, target, callback);
         this.duration = duration;
@@ -34,9 +34,9 @@ export class WipeTransition extends PaneTransition {
         let onBottom = true;
 
         switch (this.direction) {
-            case TransitionDirection.Out:
-            case TransitionDirection.OutX:
-            case TransitionDirection.OutY:
+            case PaneTransitionDirection.Out:
+            case PaneTransitionDirection.OutX:
+            case PaneTransitionDirection.OutY:
                 onBottom = false;
                 break;
         }
@@ -52,7 +52,7 @@ export class WipeTransition extends PaneTransition {
             const scale = self.pane.surface.scale;
 
             switch (self.direction) {
-                case TransitionDirection.Out:
+                case PaneTransitionDirection.Out:
                     {
                         const halfX = self.pane.width * scale / 2;
                         const halfY = self.pane.height * scale / 2;
@@ -61,7 +61,7 @@ export class WipeTransition extends PaneTransition {
                     }
                     break;
 
-                case TransitionDirection.OutX:
+                case PaneTransitionDirection.OutX:
                     {
                         const halfX = self.pane.width * scale / 2;
                         self.target.div.style.clip =
@@ -69,7 +69,7 @@ export class WipeTransition extends PaneTransition {
                     }
                     break;
 
-                case TransitionDirection.OutY:
+                case PaneTransitionDirection.OutY:
                     {
                         const halfY = self.pane.height * scale / 2;
                         self.target.div.style.clip =
@@ -108,9 +108,9 @@ export class WipeTransition extends PaneTransition {
 
         if (offset >= 1 || isNaN(offset)) {
             switch (this.direction) {
-                case TransitionDirection.Out:
-                case TransitionDirection.OutX:
-                case TransitionDirection.OutY:
+                case PaneTransitionDirection.Out:
+                case PaneTransitionDirection.OutX:
+                case PaneTransitionDirection.OutY:
                     this.target.div.style.clip = '';
 
                     break;
@@ -134,7 +134,7 @@ export class WipeTransition extends PaneTransition {
             const scale = this.pane.surface.scale;
 
             switch (this.direction) {
-                case TransitionDirection.Left:
+                case PaneTransitionDirection.Left:
                     {
                         const offsetX = Math.floor(offset * this.pane.width * this.pane.surface.scale);
                         this.source.div.style.clip =
@@ -150,7 +150,7 @@ export class WipeTransition extends PaneTransition {
                     }
                     break;
 
-                case TransitionDirection.LeftUp:
+                case PaneTransitionDirection.LeftUp:
                     {
                         const offsetX = Math.floor(offset * this.pane.width * this.pane.surface.scale);
                         const offsetY = Math.floor(offset * this.pane.height * this.pane.surface.scale);
@@ -167,7 +167,7 @@ export class WipeTransition extends PaneTransition {
                     }
                     break;
 
-                case TransitionDirection.LeftDown:
+                case PaneTransitionDirection.LeftDown:
                     {
                         const offsetX = Math.floor(offset * this.pane.width * this.pane.surface.scale);
                         const offsetY = Math.floor(offset * this.pane.height * this.pane.surface.scale);
@@ -184,7 +184,7 @@ export class WipeTransition extends PaneTransition {
                     }
                     break;
 
-                case TransitionDirection.Right:
+                case PaneTransitionDirection.Right:
                     {
                         const offsetX = Math.floor(offset * this.pane.width * this.pane.surface.scale);
                         this.source.div.style.clip =
@@ -200,7 +200,7 @@ export class WipeTransition extends PaneTransition {
                     }
                     break;
 
-                case TransitionDirection.RightUp:
+                case PaneTransitionDirection.RightUp:
                     {
                         const offsetX = Math.floor(offset * this.pane.width * this.pane.surface.scale);
                         const offsetY = Math.floor(offset * this.pane.height * this.pane.surface.scale);
@@ -217,7 +217,7 @@ export class WipeTransition extends PaneTransition {
                     }
                     break;
 
-                case TransitionDirection.RightDown:
+                case PaneTransitionDirection.RightDown:
                     {
                         const offsetX = Math.floor(offset * this.pane.width * this.pane.surface.scale);
                         const offsetY = Math.floor(offset * this.pane.height * this.pane.surface.scale);
@@ -234,7 +234,7 @@ export class WipeTransition extends PaneTransition {
                     }
                     break;
 
-                case TransitionDirection.Up:
+                case PaneTransitionDirection.Up:
                     {
                         const offsetY = Math.floor(offset * this.pane.height * this.pane.surface.scale);
                         this.source.div.style.clip =
@@ -250,7 +250,7 @@ export class WipeTransition extends PaneTransition {
                     }
                     break;
 
-                case TransitionDirection.Down:
+                case PaneTransitionDirection.Down:
                     {
                         const offsetY = Math.floor(offset * this.pane.height * this.pane.surface.scale);
                         this.source.div.style.clip =
@@ -266,7 +266,7 @@ export class WipeTransition extends PaneTransition {
                     }
                     break;
 
-                case TransitionDirection.Out:
+                case PaneTransitionDirection.Out:
                     {
                         const halfX = this.pane.width * scale / 2;
                         const halfY = this.pane.height * scale / 2;
@@ -285,7 +285,7 @@ export class WipeTransition extends PaneTransition {
                     }
                     break;
 
-                case TransitionDirection.OutX:
+                case PaneTransitionDirection.OutX:
                     {
                         const halfX = this.pane.width * scale / 2;
                         const height = this.pane.height * scale;
@@ -303,7 +303,7 @@ export class WipeTransition extends PaneTransition {
                     }
                     break;
 
-                case TransitionDirection.OutY:
+                case PaneTransitionDirection.OutY:
                     {
                         const width = this.pane.width * scale;
                         const halfY = this.pane.height * scale / 2;
@@ -321,7 +321,7 @@ export class WipeTransition extends PaneTransition {
                     }
                     break;
 
-                case TransitionDirection.In:
+                case PaneTransitionDirection.In:
                     {
                         const width = this.pane.width * scale;
                         const height = this.pane.height * scale;
@@ -340,7 +340,7 @@ export class WipeTransition extends PaneTransition {
                     }
                     break;
 
-                case TransitionDirection.InX:
+                case PaneTransitionDirection.InX:
                     {
                         const width = this.pane.width * scale;
                         const height = this.pane.height * scale;
@@ -350,7 +350,7 @@ export class WipeTransition extends PaneTransition {
                     }
                     break;
 
-                case TransitionDirection.InY:
+                case PaneTransitionDirection.InY:
                     {
                         const width = this.pane.width * scale;
                         const height = this.pane.height * scale;

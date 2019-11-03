@@ -1,6 +1,6 @@
 import { Utility } from '../core/utility';
 
-export class AnimationFrame {
+export class SurfaceAnimationFrame {
     /**
      * Bitmap source
      */

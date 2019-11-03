@@ -5,7 +5,7 @@ import { TextElement } from '../elements/text-element';
 import { Surface } from './surface';
 import { SurfaceElement } from './surface-element';
 
-export class Text extends SurfaceElement {
+export class SurfaceTextElement extends SurfaceElement {
     public static TEXT_CLICK = 'textClick';
 
     /**
@@ -26,9 +26,9 @@ export class Text extends SurfaceElement {
         width: number,
         height: number,
         content: string,
-        clickListener: (text: Text | undefined) => void
+        clickListener: (text: SurfaceTextElement | undefined) => void
     ) {
-        return new Text(id, left, top, width, height, content, clickListener);
+        return new SurfaceTextElement(id, left, top, width, height, content, clickListener);
     }
 
     /**
@@ -79,7 +79,7 @@ export class Text extends SurfaceElement {
     /**
      * Click event
      */
-    public clicked: CommonEvent<Text> = new CommonEvent<Text>();
+    public clicked: CommonEvent<SurfaceTextElement> = new CommonEvent<SurfaceTextElement>();
 
     /**
      * Internal Elise TextElement
@@ -103,7 +103,7 @@ export class Text extends SurfaceElement {
         width: number,
         height: number,
         content: string,
-        clickListener: (text: Text | undefined) => void
+        clickListener: (text: SurfaceTextElement | undefined) => void
     ) {
         super(id, left, top, width, height);
         this.onClicked = this.onClicked.bind(this);
@@ -165,7 +165,7 @@ export class Text extends SurfaceElement {
         text.typestyle = this.typeStyle;
         text.id = this.id;
         this.textElement = text;
-        text.click = Text.TEXT_CLICK;
+        text.click = SurfaceTextElement.TEXT_CLICK;
         text.setInteractive(true);
         model.add(text);
         return text;

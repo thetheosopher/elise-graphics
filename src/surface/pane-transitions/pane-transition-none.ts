@@ -1,11 +1,11 @@
-import { Pane } from '../pane';
 import { Surface } from '../surface';
+import { SurfacePane } from '../surface-pane';
 import { PaneTransition } from './pane-transition';
 /*
   NoTransition
 */
-export class NoTransition extends PaneTransition {
-    constructor(pane: Pane, target: Surface, callback: (pane: Pane) => void) {
+export class PaneTransitionNone extends PaneTransition {
+    constructor(pane: SurfacePane, target: Surface, callback: (pane: SurfacePane) => void) {
         super(pane, target, callback);
     }
 

@@ -1,19 +1,18 @@
 import { CommonEvent } from '../core/common-event';
-import { ErrorMessages } from '../core/error-messages';
-import { LayeredSurfaceElement } from './layered-surface-element';
+import { SurfaceLayer } from './surface-layer';
 import { Surface } from './surface';
 
-export class ImageLayer extends LayeredSurfaceElement {
+export class SurfaceHiddenLayer extends SurfaceLayer {
     /**
-     * Creates an image layer
-     * @param id - Image id
+     * Creates a hidden div layer
+     * @param id - Hidden layer id
      * @param left - Layout area x coordinate
      * @param top - Layout area y coordinate
      * @param width - Layout area width
      * @param height - Layout area height
      * @param source - Image source URL
      * @param clickListener - Click event listener
-     * @returns New image layer
+     * @returns New hidden layer
      */
     public static create(
         id: string,
@@ -21,36 +20,29 @@ export class ImageLayer extends LayeredSurfaceElement {
         top: number,
         width: number,
         height: number,
-        source: string,
-        clickListener: (image: ImageLayer | undefined) => void
+        clickListener: (hiddenLayer: SurfaceHiddenLayer | undefined) => void
     ) {
-        const layer = new ImageLayer(id, left, top, width, height, source, clickListener);
+        const layer = new SurfaceHiddenLayer(id, left, top, width, height, clickListener);
         return layer;
     }
 
     /**
-     * Image source
-     */
-    public source: string;
-
-    /**
      * Clicked event
      */
-    public clicked: CommonEvent<ImageLayer> = new CommonEvent<ImageLayer>();
+    public clicked: CommonEvent<SurfaceHiddenLayer> = new CommonEvent<SurfaceHiddenLayer>();
 
     /**
-     * HTML image element
+     * HTML div element
      */
-    public element?: HTMLImageElement;
+    public element?: HTMLDivElement;
 
     /**
-     * Renders an image into an HTML image element
-     * @param id - Image layer id
+     * Renders a transparent HTML div element for capturing click event
+     * @param id - Layer id
      * @param left - Layout area x coordinate
      * @param top - Layout area y coordinate
      * @param width - Layout area width
      * @param height - Layout area height
-     * @param source - Image source URL
      * @param clickListener - Click event listener
      */
     constructor(
@@ -59,61 +51,44 @@ export class ImageLayer extends LayeredSurfaceElement {
         top: number,
         width: number,
         height: number,
-        source: string,
-        clickListener: (image: ImageLayer | undefined) => void
+        clickListener: (hiddenLayer: SurfaceHiddenLayer | undefined) => void
     ) {
         super(id, left, top, width, height);
-        this.source = source;
         if (clickListener) {
             this.clicked.add(clickListener);
         }
     }
 
     /**
-     * Adds image layer to parent surface
+     * Adds hidden layer to parent surface
      * @param surface - Parent surface
      */
     public addToSurface(surface: Surface) {
         this.surface = surface;
 
-        // If no source
-        if (!this.source) {
-            throw new Error(ErrorMessages.SourceUndefined);
-        }
-
-        // Create Image element
-        const imageLayer = document.createElement('img');
-        imageLayer.setAttribute('id', this.id + '_image');
-        imageLayer.style.position = 'absolute';
-        imageLayer.style.left = this.translateX + this.left * surface.scale + 'px';
-        imageLayer.style.top = this.translateY + this.top * surface.scale + 'px';
-        imageLayer.style.width = this.width * surface.scale + 'px';
-        imageLayer.style.height = this.height * surface.scale + 'px';
-        imageLayer.style.opacity = (this.surface.opacity * this.opacity).toString();
-        this.element = imageLayer;
+        // Create div element
+        const hiddenLayer = document.createElement('div');
+        hiddenLayer.setAttribute('id', this.id + '_div');
+        hiddenLayer.style.position = 'absolute';
+        hiddenLayer.style.left = this.translateX + this.left * surface.scale + 'px';
+        hiddenLayer.style.top = this.translateY + this.top * surface.scale + 'px';
+        hiddenLayer.style.width = this.width * surface.scale + 'px';
+        hiddenLayer.style.height = this.height * surface.scale + 'px';
+        this.element = hiddenLayer;
     }
 
     /**
-     * Sets image source and attaches click event handler
+     * Attaches click event handler
      * @param callback - Completion callback (success: boolean)
      */
     public prepare(callback: (success: boolean) => void) {
         const self = this;
-        if (!self.element) {
-            throw new Error(ErrorMessages.ElementUndefined);
+        if (self.element && self.surface && self.surface.div) {
+            self.surface.div.appendChild(self.element);
+            self.element.onclick = () => {
+                self.clicked.trigger(self);
+            };
         }
-        if (!self.surface) {
-            throw new Error(ErrorMessages.SurfaceIsUndefined);
-        }
-        if (!self.surface.div) {
-            throw new Error(ErrorMessages.SurfaceDivIsUndefined);
-        }
-        const imageLayer = self.element;
-        self.surface.div.appendChild(self.element);
-        self.element.src = self.source;
-        imageLayer.onclick = () => {
-            self.clicked.trigger(self);
-        };
         self.isPrepared = true;
         if (callback) {
             callback(true);
@@ -121,7 +96,7 @@ export class ImageLayer extends LayeredSurfaceElement {
     }
 
     /**
-     * Unloads image layer and destroys visual elements
+     * Unloads div element
      */
     public destroy() {
         if (this.element && this.element.parentElement) {
@@ -138,22 +113,11 @@ export class ImageLayer extends LayeredSurfaceElement {
         if (!this.element || !scale) {
             return this;
         }
-        const layer = this.element as HTMLImageElement;
+        const layer = this.element as HTMLDivElement;
         layer.style.left = this.translateX + this.left * scale + 'px';
         layer.style.top = this.translateY + this.top * scale + 'px';
         layer.style.width = this.width * scale + 'px';
         layer.style.height = this.height * scale + 'px';
-        return this;
-    }
-
-    /**
-     * Sets rendering opacity
-     */
-    public setOpacity(opacity: number) {
-        this.opacity = opacity;
-        if (this.element && this.surface) {
-            this.element.style.opacity = (this.surface.opacity * this.opacity).toString();
-        }
         return this;
     }
 
@@ -184,7 +148,7 @@ export class ImageLayer extends LayeredSurfaceElement {
         return this;
     }
 
-    public onload(): void {}
+    public onload() {}
 
-    public onunload(): void {}
+    public onunload() {}
 }

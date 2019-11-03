@@ -1,13 +1,13 @@
 import { ErrorMessages } from '../../core/error-messages';
-import { Pane } from '../pane';
 import { Surface } from '../surface';
+import { SurfacePane } from '../surface-pane';
 
 export abstract class PaneTransition {
-    public pane: Pane;
+    public pane: SurfacePane;
     public target: Surface;
-    public callback: (pane: Pane) => void;
+    public callback: (pane: SurfacePane) => void;
 
-    constructor(pane: Pane, target: Surface, callback: (pane: Pane) => void) {
+    constructor(pane: SurfacePane, target: Surface, callback: (pane: SurfacePane) => void) {
         this.pane = pane;
         this.target = target;
         this.callback = callback;

@@ -1,7 +1,7 @@
 import { Surface } from './surface';
 import { SurfaceElement } from './surface-element';
 
-export abstract class LayeredSurfaceElement extends SurfaceElement {
+export abstract class SurfaceLayer extends SurfaceElement {
     /**
      * True after item has been initialized
      */

@@ -1,4 +1,4 @@
-export enum TransitionDirection {
+export enum PaneTransitionDirection {
     Left = 0,
     Right = 1,
     Up = 2,

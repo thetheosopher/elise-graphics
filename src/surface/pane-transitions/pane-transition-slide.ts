@@ -1,23 +1,23 @@
 import { ErrorMessages } from '../../core/error-messages';
 import { TransitionRenderer } from '../../transitions/transitions';
-import { Pane } from '../pane';
 import { Surface } from '../surface';
+import { SurfacePane } from '../surface-pane';
 import { PaneTransition } from './pane-transition';
-import { TransitionDirection } from './transition-direction';
+import { PaneTransitionDirection } from './pane-transition-direction';
 
-export class SlideTransition extends PaneTransition {
+export class PaneTransitionSlide extends PaneTransition {
     public duration: number;
     public startTime?: number;
     public source?: Surface;
     public timer?: number;
-    public direction: TransitionDirection;
+    public direction: PaneTransitionDirection;
 
     constructor(
-        pane: Pane,
+        pane: SurfacePane,
         target: Surface,
-        callback: (pane: Pane) => void,
+        callback: (pane: SurfacePane) => void,
         duration: number,
-        direction: TransitionDirection
+        direction: PaneTransitionDirection
     ) {
         super(pane, target, callback);
         this.tick = this.tick.bind(this);
@@ -35,53 +35,53 @@ export class SlideTransition extends PaneTransition {
                 throw new Error(ErrorMessages.SourceUndefined);
             }
             switch (self.direction) {
-                case TransitionDirection.Left:
+                case PaneTransitionDirection.Left:
                     {
                         self.target.setTranslateX(self.pane.width);
                     }
                     break;
 
-                case TransitionDirection.LeftUp:
+                case PaneTransitionDirection.LeftUp:
                     {
                         self.target.setTranslateX(self.pane.width);
                         self.target.setTranslateY(self.pane.height);
                     }
                     break;
 
-                case TransitionDirection.LeftDown:
+                case PaneTransitionDirection.LeftDown:
                     {
                         self.target.setTranslateX(self.pane.width);
                         self.target.setTranslateY(-self.target.height);
                     }
                     break;
 
-                case TransitionDirection.Right:
+                case PaneTransitionDirection.Right:
                     {
                         self.target.setTranslateX(-self.source.width);
                     }
                     break;
 
-                case TransitionDirection.RightUp:
+                case PaneTransitionDirection.RightUp:
                     {
                         self.target.setTranslateX(-self.source.width);
                         self.target.setTranslateY(self.pane.height);
                     }
                     break;
 
-                case TransitionDirection.RightDown:
+                case PaneTransitionDirection.RightDown:
                     {
                         self.target.setTranslateX(-self.source.width);
                         self.target.setTranslateY(-self.source.height);
                     }
                     break;
 
-                case TransitionDirection.Up:
+                case PaneTransitionDirection.Up:
                     {
                         self.target.setTranslateY(self.pane.height);
                     }
                     break;
 
-                case TransitionDirection.Down:
+                case PaneTransitionDirection.Down:
                     {
                         self.target.setTranslateY(-self.source.height);
                     }
@@ -124,14 +124,14 @@ export class SlideTransition extends PaneTransition {
             offset = TransitionRenderer.easeInOutCubic(offset);
 
             switch (this.direction) {
-                case TransitionDirection.Left:
+                case PaneTransitionDirection.Left:
                     {
                         const offsetX = Math.floor(offset * this.pane.width);
                         this.target.setTranslateX(this.pane.width - offsetX);
                     }
                     break;
 
-                case TransitionDirection.LeftUp:
+                case PaneTransitionDirection.LeftUp:
                     {
                         const offsetX = Math.floor(offset * this.pane.width);
                         const offsetY = Math.floor(offset * this.pane.height);
@@ -140,7 +140,7 @@ export class SlideTransition extends PaneTransition {
                     }
                     break;
 
-                case TransitionDirection.LeftDown:
+                case PaneTransitionDirection.LeftDown:
                     {
                         const offsetX = Math.floor(offset * this.pane.width);
                         const offsetY = Math.floor(offset * this.target.height);
@@ -149,14 +149,14 @@ export class SlideTransition extends PaneTransition {
                     }
                     break;
 
-                case TransitionDirection.Right:
+                case PaneTransitionDirection.Right:
                     {
                         const offsetX = Math.floor(offset * this.source.width);
                         this.target.setTranslateX(offsetX - this.source.width);
                     }
                     break;
 
-                case TransitionDirection.RightUp:
+                case PaneTransitionDirection.RightUp:
                     {
                         const offsetX = Math.floor(offset * this.source.width);
                         const offsetY = Math.floor(offset * this.pane.height);
@@ -165,7 +165,7 @@ export class SlideTransition extends PaneTransition {
                     }
                     break;
 
-                case TransitionDirection.RightDown:
+                case PaneTransitionDirection.RightDown:
                     {
                         const offsetX = Math.floor(offset * this.source.width);
                         const offsetY = Math.floor(offset * this.target.height);
@@ -174,14 +174,14 @@ export class SlideTransition extends PaneTransition {
                     }
                     break;
 
-                case TransitionDirection.Up:
+                case PaneTransitionDirection.Up:
                     {
                         const offsetY = Math.floor(offset * this.pane.height);
                         this.target.setTranslateY(this.pane.height - offsetY);
                     }
                     break;
 
-                case TransitionDirection.Down:
+                case PaneTransitionDirection.Down:
                     {
                         const offsetY = Math.floor(offset * this.target.height);
                         this.target.setTranslateY(offsetY - this.target.height);

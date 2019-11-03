@@ -1,23 +1,23 @@
 import { ErrorMessages } from '../../core/error-messages';
 import { TransitionRenderer } from '../../transitions/transitions';
-import { Pane } from '../pane';
 import { Surface } from '../surface';
+import { SurfacePane } from '../surface-pane';
 import { PaneTransition } from './pane-transition';
-import { TransitionDirection } from './transition-direction';
+import { PaneTransitionDirection } from './pane-transition-direction';
 
-export class RevealTransition extends PaneTransition {
+export class PaneTransitionReveal extends PaneTransition {
     public duration: number;
     public startTime?: number;
     public source?: Surface;
     public timer?: number;
-    public direction: TransitionDirection;
+    public direction: PaneTransitionDirection;
 
     constructor(
-        pane: Pane,
+        pane: SurfacePane,
         target: Surface,
-        callback: (pane: Pane) => void,
+        callback: (pane: SurfacePane) => void,
         duration: number,
-        direction: TransitionDirection
+        direction: PaneTransitionDirection
     ) {
         super(pane, target, callback);
         this.duration = duration;
@@ -66,14 +66,14 @@ export class RevealTransition extends PaneTransition {
             offset = TransitionRenderer.easeInOutCubic(offset);
 
             switch (this.direction) {
-                case TransitionDirection.Left:
+                case PaneTransitionDirection.Left:
                     {
                         const offsetX = Math.floor(offset * this.source.width);
                         this.source.setTranslateX(-offsetX);
                     }
                     break;
 
-                case TransitionDirection.LeftUp:
+                case PaneTransitionDirection.LeftUp:
                     {
                         const offsetX = Math.floor(offset * this.source.width);
                         const offsetY = Math.floor(offset * this.source.height);
@@ -82,7 +82,7 @@ export class RevealTransition extends PaneTransition {
                     }
                     break;
 
-                case TransitionDirection.LeftDown:
+                case PaneTransitionDirection.LeftDown:
                     {
                         const offsetX = Math.floor(offset * this.source.width);
                         const offsetY = Math.floor(offset * this.source.height);
@@ -91,14 +91,14 @@ export class RevealTransition extends PaneTransition {
                     }
                     break;
 
-                case TransitionDirection.Right:
+                case PaneTransitionDirection.Right:
                     {
                         const offsetX = Math.floor(offset * this.pane.width);
                         this.source.setTranslateX(offsetX);
                     }
                     break;
 
-                case TransitionDirection.RightUp:
+                case PaneTransitionDirection.RightUp:
                     {
                         const offsetX = Math.floor(offset * this.pane.width);
                         const offsetY = Math.floor(offset * this.source.height);
@@ -107,7 +107,7 @@ export class RevealTransition extends PaneTransition {
                     }
                     break;
 
-                case TransitionDirection.RightDown:
+                case PaneTransitionDirection.RightDown:
                     {
                         const offsetX = Math.floor(offset * this.pane.width);
                         const offsetY = Math.floor(offset * this.source.height);
@@ -116,14 +116,14 @@ export class RevealTransition extends PaneTransition {
                     }
                     break;
 
-                case TransitionDirection.Up:
+                case PaneTransitionDirection.Up:
                     {
                         const offsetY = Math.floor(offset * this.source.height);
                         this.source.setTranslateY(-offsetY);
                     }
                     break;
 
-                case TransitionDirection.Down:
+                case PaneTransitionDirection.Down:
                     {
                         const offsetY = Math.floor(offset * this.source.height);
                         this.source.setTranslateY(offsetY);

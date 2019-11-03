@@ -1,22 +1,22 @@
 import { TransitionRenderer } from '../../transitions/transitions';
-import { Pane } from '../pane';
 import { Surface } from '../surface';
+import { SurfacePane } from '../surface-pane';
 import { PaneTransition } from './pane-transition';
-import { TransitionDirection } from './transition-direction';
+import { PaneTransitionDirection } from './pane-transition-direction';
 
-export class PushTransition extends PaneTransition {
+export class PaneTransitionPush extends PaneTransition {
     public duration: number;
     public startTime?: number;
     public source?: Surface;
     public timer?: number;
-    public direction: TransitionDirection;
+    public direction: PaneTransitionDirection;
 
     constructor(
-        pane: Pane,
+        pane: SurfacePane,
         target: Surface,
-        callback: (pane: Pane) => void,
+        callback: (pane: SurfacePane) => void,
         duration: number,
-        direction: TransitionDirection
+        direction: PaneTransitionDirection
     ) {
         super(pane, target, callback);
         this.duration = duration;
@@ -31,19 +31,19 @@ export class PushTransition extends PaneTransition {
         self.onStart();
 
         switch (self.direction) {
-            case TransitionDirection.Left:
+            case PaneTransitionDirection.Left:
                 self.target.setTranslateX(self.pane.width);
                 break;
 
-            case TransitionDirection.Right:
+            case PaneTransitionDirection.Right:
                 self.target.setTranslateX(-self.target.width);
                 break;
 
-            case TransitionDirection.Up:
+            case PaneTransitionDirection.Up:
                 self.target.setTranslateY(self.pane.height);
                 break;
 
-            case TransitionDirection.Down:
+            case PaneTransitionDirection.Down:
                 self.target.setTranslateY(-self.target.height);
                 break;
         }
@@ -84,7 +84,7 @@ export class PushTransition extends PaneTransition {
             offset = TransitionRenderer.easeInOutCubic(offset);
 
             switch (this.direction) {
-                case TransitionDirection.Left:
+                case PaneTransitionDirection.Left:
                     {
                         const offsetX = offset * this.pane.width;
                         this.target.setTranslateX(this.pane.width - offsetX);
@@ -92,7 +92,7 @@ export class PushTransition extends PaneTransition {
                     }
                     break;
 
-                case TransitionDirection.Right:
+                case PaneTransitionDirection.Right:
                     {
                         const offsetX = offset * this.target.width;
                         this.target.setTranslateX(-this.target.width + offsetX);
@@ -100,7 +100,7 @@ export class PushTransition extends PaneTransition {
                     }
                     break;
 
-                case TransitionDirection.Up:
+                case PaneTransitionDirection.Up:
                     {
                         const offsetY = offset * this.pane.height;
                         this.target.setTranslateY(this.pane.height - offsetY);
@@ -108,7 +108,7 @@ export class PushTransition extends PaneTransition {
                     }
                     break;
 
-                case TransitionDirection.Down:
+                case PaneTransitionDirection.Down:
                     {
                         const offsetY = offset * this.target.height;
                         this.target.setTranslateY(-this.target.height + offsetY);

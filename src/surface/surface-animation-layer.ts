@@ -10,12 +10,12 @@ import { BitmapResource } from '../resource/bitmap-resource';
 import { ResourceManager } from '../resource/resource-manager';
 import { ResourceState } from '../resource/resource-state';
 import { TransitionRenderer } from '../transitions/transitions';
-import { AnimationFrame } from './animation-frame';
-import { AnimationViewController } from './animation-view-controller';
-import { LayeredSurfaceElement } from './layered-surface-element';
+import { SurfaceAnimationFrame } from './surface-animation-frame';
+import { SurfaceAnimationViewController } from './surface-animation-view-controller';
+import { SurfaceLayer } from './surface-layer';
 import { Surface } from './surface';
 
-export class Animation extends LayeredSurfaceElement {
+export class SurfaceAnimationLayer extends SurfaceLayer {
     public static ANIMATION_CLICK = 'animationClick';
     public static ANIMATION_ADVANCE = 'animationAdvance';
 
@@ -38,11 +38,11 @@ export class Animation extends LayeredSurfaceElement {
         width: number,
         height: number,
         loop: boolean,
-        clickListener: (animation: Animation | undefined) => void,
+        clickListener: (animation: SurfaceAnimationLayer | undefined) => void,
         initialIndex: number,
-        frameAdvancedListener: (animation: Animation | undefined) => void
+        frameAdvancedListener: (animation: SurfaceAnimationLayer | undefined) => void
     ) {
-        const animation = new Animation(
+        const animation = new SurfaceAnimationLayer(
             id,
             left,
             top,
@@ -69,17 +69,17 @@ export class Animation extends LayeredSurfaceElement {
     /**
      * Clicked event
      */
-    public clicked: CommonEvent<Animation> = new CommonEvent<Animation>();
+    public clicked: CommonEvent<SurfaceAnimationLayer> = new CommonEvent<SurfaceAnimationLayer>();
 
     /**
      * Frame advance event
      */
-    public frameAdvanced: CommonEvent<Animation> = new CommonEvent<Animation>();
+    public frameAdvanced: CommonEvent<SurfaceAnimationLayer> = new CommonEvent<SurfaceAnimationLayer>();
 
     /**
      * Animation frame array
      */
-    public frames: AnimationFrame[] = [];
+    public frames: SurfaceAnimationFrame[] = [];
 
     /**
      * Current frame index
@@ -109,7 +109,7 @@ export class Animation extends LayeredSurfaceElement {
     /**
      * Animation view controller
      */
-    public controller?: AnimationViewController;
+    public controller?: SurfaceAnimationViewController;
 
     /**
      * Animation host canvas element
@@ -140,9 +140,9 @@ export class Animation extends LayeredSurfaceElement {
         width: number,
         height: number,
         loop: boolean,
-        clickListener: (animation: Animation | undefined) => void,
+        clickListener: (animation: SurfaceAnimationLayer | undefined) => void,
         initialIndex: number,
-        frameAdvancedListener: (animation: Animation | undefined) => void
+        frameAdvancedListener: (animation: SurfaceAnimationLayer | undefined) => void
     ) {
         super(id, left, top, width, height);
         this.frameIndex = 0;
@@ -192,7 +192,7 @@ export class Animation extends LayeredSurfaceElement {
         transitionDuration: number,
         pauseFrame: boolean
     ) {
-        const frame = new AnimationFrame(
+        const frame = new SurfaceAnimationFrame(
             id,
             left,
             top,
@@ -261,8 +261,8 @@ export class Animation extends LayeredSurfaceElement {
         sprite.id = this.id;
         sprite.loop = this.loop;
         sprite.timer = TransitionRenderer.SPRITE_TRANSITION;
-        sprite.click = Animation.ANIMATION_CLICK;
-        sprite.onAdvance = Animation.ANIMATION_ADVANCE;
+        sprite.click = SurfaceAnimationLayer.ANIMATION_CLICK;
+        sprite.onAdvance = SurfaceAnimationLayer.ANIMATION_ADVANCE;
         sprite.setInteractive(true);
 
         // Add frames
@@ -297,7 +297,7 @@ export class Animation extends LayeredSurfaceElement {
         // Add sprite to model
         model.add(sprite);
 
-        const controller = new AnimationViewController();
+        const controller = new SurfaceAnimationViewController();
         this.controller = controller;
         this.controller.surface = this.surface;
         controller.animation = this;
@@ -344,9 +344,9 @@ export class Animation extends LayeredSurfaceElement {
             TransitionRenderer.spriteTransitionHandler
         );
         elementCommandHandler.addHandler(
-            Animation.ANIMATION_CLICK,
+            SurfaceAnimationLayer.ANIMATION_CLICK,
             (controller: IController, element: ElementBase, command: string, trigger: string, parameters: any) => {
-                const animationController = controller as AnimationViewController;
+                const animationController = controller as SurfaceAnimationViewController;
                 const animation = animationController.animation;
                 if (animation) {
                     animation.onAnimationClick();
@@ -354,9 +354,9 @@ export class Animation extends LayeredSurfaceElement {
             }
         );
         elementCommandHandler.addHandler(
-            Animation.ANIMATION_ADVANCE,
+            SurfaceAnimationLayer.ANIMATION_ADVANCE,
             (controller: IController, element: ElementBase, command: string, trigger: string, parameters: any) => {
-                const animationController = controller as AnimationViewController;
+                const animationController = controller as SurfaceAnimationViewController;
                 const animation = animationController.animation;
                 if (animation && animation.sprite) {
                     animation.frameIndex = animation.sprite.frameIndex;

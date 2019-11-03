@@ -3,11 +3,11 @@ import { ErrorMessages } from '../core/error-messages';
 import { Model } from '../core/model';
 import { SpriteElement } from '../elements/sprite-element';
 import { SpriteFrame } from '../elements/sprite-frame';
-import { ElementStates } from './element-states';
 import { Surface } from './surface';
 import { SurfaceElement } from './surface-element';
+import { SurfaceElementStates } from './surface-element-states';
 
-export class SurfaceButton extends SurfaceElement {
+export class SurfaceButtonElement extends SurfaceElement {
     public static BUTTON_CLICK = 'buttonClick';
 
     /**
@@ -25,9 +25,9 @@ export class SurfaceButton extends SurfaceElement {
         top: number,
         width: number,
         height: number,
-        clickListener: (button: SurfaceButton | undefined) => void
+        clickListener: (button: SurfaceButtonElement | undefined) => void
     ) {
-        return new SurfaceButton(id, left, top, width, height, clickListener);
+        return new SurfaceButtonElement(id, left, top, width, height, clickListener);
     }
 
     /**
@@ -45,9 +45,9 @@ export class SurfaceButton extends SurfaceElement {
         top: number,
         width: number,
         height: number,
-        clickListener: (button: SurfaceButton | undefined) => void
+        clickListener: (button: SurfaceButtonElement | undefined) => void
     ) {
-        const button = new SurfaceButton(id, left, top, width, height, clickListener);
+        const button = new SurfaceButtonElement(id, left, top, width, height, clickListener);
         button.isToggle = true;
         return button;
     }
@@ -68,9 +68,9 @@ export class SurfaceButton extends SurfaceElement {
         top: number,
         width: number,
         height: number,
-        clickListener: (button: SurfaceButton | undefined) => void
+        clickListener: (button: SurfaceButtonElement | undefined) => void
     ) {
-        const button = new SurfaceButton(id, left, top, width, height, clickListener);
+        const button = new SurfaceButtonElement(id, left, top, width, height, clickListener);
         button.groupId = groupId;
         button.isToggle = true;
         return button;
@@ -79,7 +79,7 @@ export class SurfaceButton extends SurfaceElement {
     /**
      * Click event (button: SurfaceButton)
      */
-    public clicked: CommonEvent<SurfaceButton> = new CommonEvent<SurfaceButton>();
+    public clicked: CommonEvent<SurfaceButtonElement> = new CommonEvent<SurfaceButtonElement>();
 
     /**
      * Normal state sprite index
@@ -141,7 +141,7 @@ export class SurfaceButton extends SurfaceElement {
         top: number,
         width: number,
         height: number,
-        clickListener: (button: SurfaceButton | undefined) => void
+        clickListener: (button: SurfaceButtonElement | undefined) => void
     ) {
         super(id, left, top, width, height);
         this.normalIndex = 0;
@@ -207,12 +207,12 @@ export class SurfaceButton extends SurfaceElement {
         this.spriteElement = sprite;
         sprite.frames = [];
         sprite.frames.push(
-            SpriteFrame.create(ElementStates.NORMAL, this.left, this.top, this.width, this.height, 0, 'none', 0)
+            SpriteFrame.create(SurfaceElementStates.NORMAL, this.left, this.top, this.width, this.height, 0, 'none', 0)
         );
 
         if (surface.selectedImageSource) {
             sprite.frames.push(
-                SpriteFrame.create(ElementStates.SELECTED, this.left, this.top, this.width, this.height, 0, 'none', 0)
+                SpriteFrame.create(SurfaceElementStates.SELECTED, this.left, this.top, this.width, this.height, 0, 'none', 0)
             );
             this.selectedIndex = sprite.frames.length - 1;
         }
@@ -220,7 +220,7 @@ export class SurfaceButton extends SurfaceElement {
         if (surface.highlightedImageSource) {
             sprite.frames.push(
                 SpriteFrame.create(
-                    ElementStates.HIGHLIGHTED,
+                    SurfaceElementStates.HIGHLIGHTED,
                     this.left,
                     this.top,
                     this.width,
@@ -238,7 +238,7 @@ export class SurfaceButton extends SurfaceElement {
 
         if (surface.disabledImageSource) {
             sprite.frames.push(
-                SpriteFrame.create(ElementStates.DISABLED, this.left, this.top, this.width, this.height, 0, 'none', 0)
+                SpriteFrame.create(SurfaceElementStates.DISABLED, this.left, this.top, this.width, this.height, 0, 'none', 0)
             );
             this.disabledIndex = sprite.frames.length - 1;
         }
@@ -251,7 +251,7 @@ export class SurfaceButton extends SurfaceElement {
             sprite.mouseDown = 'pushFrame(' + this.selectedIndex + ')';
             sprite.mouseUp = 'popFrame()';
         }
-        sprite.click = SurfaceButton.BUTTON_CLICK;
+        sprite.click = SurfaceButtonElement.BUTTON_CLICK;
 
         if (!this.isEnabled) {
             sprite.frameIndex = this.disabledIndex;
@@ -280,7 +280,7 @@ export class SurfaceButton extends SurfaceElement {
             if (self.groupId !== null) {
                 if (!self.isSelected) {
                     self.surface.elements.forEach((sel) => {
-                        if (sel instanceof SurfaceButton && sel.spriteElement) {
+                        if (sel instanceof SurfaceButtonElement && sel.spriteElement) {
                             if (sel.id === self.id) {
                                 sel.isSelected = true;
                                 sel.spriteElement.frameIndex = sel.selectedIndex;
@@ -299,7 +299,7 @@ export class SurfaceButton extends SurfaceElement {
                 }
                 else {
                     self.surface.elements.forEach((sel) => {
-                        if (sel instanceof SurfaceButton && sel.spriteElement) {
+                        if (sel instanceof SurfaceButtonElement && sel.spriteElement) {
                             if (self.groupId === sel.groupId) {
                                 sel.isSelected = false;
                                 sel.spriteElement.frameIndex = sel.normalIndex;

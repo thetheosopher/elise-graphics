@@ -2,7 +2,7 @@ import { Point } from '../core/point';
 import { Size } from '../core/size';
 import { TextElement } from '../elements/text-element';
 
-export class RadioItemTextElement extends TextElement {
+export class SurfaceRadioItemTextElement extends TextElement {
     /**
      * Radio strip group ID
      */
