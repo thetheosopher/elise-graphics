@@ -138,135 +138,154 @@ import { SurfaceViewController } from './surface/surface-view-controller';
 
 import { TransitionRenderer } from './transitions/transitions';
 
+import { ViewController } from './view/view-controller';
+import { ViewRenderer } from './view/view-renderer';
+
+// Exports
+export { CommandEventTrigger } from './command/command-event-trigger';
+export { ElementCommand } from './command/element-command';
+export { ElementCommandHandler } from './command/element-command-handler';
+export { ElementCommandHandlerRegistration } from './command/element-command-handler-registration';
+export { ControllerEvent } from './controller/controller-event';
+export { ControllerEventArgs } from './controller/controller-event-args';
+export { Color } from './core/color';
+export { CommonEvent } from './core/common-event';
+export { ErrorMessages } from './core/error-messages';
+export { LocationArgs } from './core/location-args';
+export { Logging } from './core/logging';
+export { Matrix2D } from './core/matrix-2d';
+export { Model } from './core/model';
+export { ModelEvent } from './core/model-event';
+export { MouseEventArgs } from './core/mouse-event-args';
+export { MouseLocationArgs } from './core/mouse-location-args';
+export { MousePositionInfo } from './core/mouse-position-info';
+export { NamedColor } from './core/named-color';
+export { Point } from './core/point';
+export { PointDepth } from './core/point-depth';
+export { PointEventParameters } from './core/point-event-parameters';
+export { Region } from './core/region';
+export { ScalingInfo } from './core/scaling-info';
+export { Size } from './core/size';
+export { SizeArgs } from './core/size-args';
+export { StrokeInfo } from './core/stroke-info';
+export { TimerParameters } from './core/timer-parameters';
+export { Utility } from './core/utility';
+export { ViewDragArgs } from './core/view-drag-args';
+export { WindingMode } from './core/winding-mode';
+
+export { Component } from './design/component/component';
+export { ComponentElement } from './design/component/component-element';
+export { ComponentEvent } from './design/component/component-event';
+export { ComponentProps } from './design/component/component-props';
+export { ComponentRegistry } from './design/component/component-registry';
+export { GenericComponentProps } from './design/component/generic-component-props';
+export { HtmlComponentProps } from './design/component/html-component-props';
+export { ImageBasedComponentProps } from './design/component/image-based-component-props';
+export { NavigateComponentProps } from './design/component/navigate-component-props';
+export { ProgressRectangle } from './design/component/progress-rectangle';
+export { UploadComponentProps } from './design/component/upload-component-props';
+
+export { DesignTool } from './design/tools/design-tool';
+export { EllipseTool } from './design/tools/ellipse-tool';
+export { ImageElementTool } from './design/tools/image-element-tool';
+export { LineTool } from './design/tools/line-tool';
+export { ModelElementTool } from './design/tools/model-element-tool';
+export { PenTool } from './design/tools/pen-tool';
+export { PolygonTool } from './design/tools/polygon-tool';
+export { PolylineTool } from './design/tools/polyline-tool';
+export { RectangleTool } from './design/tools/rectangle-tool';
+export { TextTool } from './design/tools/text-tool';
+
+export { DesignController } from './design/design-controller';
+export { DesignRenderer } from './design/design-renderer';
+export { GridType } from './design/grid-type';
+export { Handle } from './design/handle';
+export { HandleFactory } from './design/handle-factory';
+export { HandleMovedArgs } from './design/handle-moved-args';
+
+export { ElementBase } from './elements/element-base';
+export { ElementCreationProps } from './elements/element-creation-props';
+export { ElementCreatorRegistration } from './elements/element-creator-registration';
+export { ElementDragArgs } from './elements/element-drag-args';
+export { ElementFactory } from './elements/element-factory';
+export { ElementLocationArgs } from './elements/element-location-args';
+export { ElementMouseEventArgs } from './elements/element-mouse-event-args';
+export { ElementSizeArgs } from './elements/element-size-args';
+export { ElementSizeProps } from './elements/element-size-props';
+export { EllipseElement } from './elements/ellipse-element';
+export { ImageElement } from './elements/image-element';
+export { InvalidIndexException } from './elements/invalid-index-exception';
+export { LineElement } from './elements/line-element';
+export { ModelElement } from './elements/model-element';
+export { MoveLocation } from './elements/move-location';
+export { PathElement } from './elements/path-element';
+export { PolygonElement } from './elements/polygon-element';
+export { PolylineElement } from './elements/polyline-element';
+export { RectangleElement } from './elements/rectangle-element';
+export { ResizeSize } from './elements/resize-size';
+export { SpriteElement } from './elements/sprite-element';
+export { SpriteFrame } from './elements/sprite-frame';
+export { SpriteState } from './elements/sprite-state';
+export { TextElement } from './elements/text-element';
+export { UploadCompletionProps } from './elements/upload-completion-props';
+export { UploadProgressProps } from './elements/upload-progress-props';
+
+export { FillFactory } from './fill/fill-factory';
+export { FillInfo } from './fill/fill-info';
+export { GradientFillStop } from './fill/gradient-fill-stop';
+export { LinearGradientFill } from './fill/linear-gradient-fill';
+export { RadialGradientFill } from './fill/radial-gradient-fill';
+
+export { BitmapResource } from './resource/bitmap-resource';
+export { ModelResource } from './resource/model-resource';
+export { Resource } from './resource/resource';
+export { ResourceCreatorRegistration } from './resource/resource-creator-registration';
+export { ResourceFactory } from './resource/resource-factory';
+export { ResourceLoaderState } from './resource/resource-loader-state';
+export { ResourceManager } from './resource/resource-manager';
+export { ResourceManagerEvent } from './resource/resource-manager-event';
+export { ResourceState } from './resource/resource-state';
+export { TextResource } from './resource/text-resource';
+
+export { Sketcher } from './sketcher/sketcher';
+
+export { PaneTransition } from './surface/pane-transitions/pane-transition';
+export { PaneTransitionDirection } from './surface/pane-transitions/pane-transition-direction';
+export { PaneTransitionFade } from './surface/pane-transitions/pane-transition-fade';
+export { PaneTransitionNone } from './surface/pane-transitions/pane-transition-none';
+export { PaneTransitionPush } from './surface/pane-transitions/pane-transition-push';
+export { PaneTransitionReveal } from './surface/pane-transitions/pane-transition-reveal';
+export { PaneTransitionSlide } from './surface/pane-transitions/pane-transition-slide';
+export { PaneTransitionWipe } from './surface/pane-transitions/pane-transition-wipe';
+
+export { Surface } from './surface/surface';
+export { SurfaceAnimationFrame } from './surface/surface-animation-frame';
+export { SurfaceAnimationLayer } from './surface/surface-animation-layer';
+export { SurfaceAnimationViewController } from './surface/surface-animation-view-controller';
+export { SurfaceButtonElement } from './surface/surface-button-element';
+export { SurfaceElement } from './surface/surface-element';
+export { SurfaceElementStates } from './surface/surface-element-states';
+export { SurfaceHiddenLayer } from './surface/surface-hidden-layer';
+export { SurfaceHtmlLayer } from './surface/surface-html-layer';
+export { SurfaceImageLayer } from './surface/surface-image-layer';
+export { SurfaceLayer } from './surface/surface-layer';
+export { SurfacePane } from './surface/surface-pane';
+export { SurfaceRadioItemSpriteElement } from './surface/surface-radio-item-sprite-element';
+export { SurfaceRadioItemTextElement } from './surface/surface-radio-item-text-element';
+export { SurfaceRadioStrip } from './surface/surface-radio-strip';
+export { SurfaceRadioStripItem } from './surface/surface-radio-strip-item';
+export { SurfaceRadioStripSelectionArgs } from './surface/surface-radio-strip-selection-args';
+export { SurfaceRadioStripViewController } from './surface/surface-radio-strip-view-controller';
+export { SurfaceTextElement } from './surface/surface-text-element';
+export { SurfaceVideoLayer } from './surface/surface-video-layer';
+export { SurfaceViewController } from './surface/surface-view-controller';
+
+export { TransitionRenderer } from './transitions/transitions';
+
+export { ViewController } from './view/view-controller';
+export { ViewRenderer } from './view/view-renderer';
+
 export default {
-    BitmapResource: { BitmapResource },
-    Color: { Color },
-    CommandEventTrigger: { CommandEventTrigger },
-    CommonEvent: { CommonEvent },
-    Component: { Component },
-    ComponentElement: { ComponentElement },
-    ComponentEvent: { ComponentEvent },
-    ComponentProps: { ComponentProps },
-    ComponentRegistry: { ComponentRegistry },
-    ControllerEvent: { ControllerEvent },
-    ControllerEventArgs: { ControllerEventArgs },
-    DesignController: { DesignController },
-    DesignRenderer: { DesignRenderer },
-    DesignTool: { DesignTool },
-    ElementBase: { ElementBase },
-    ElementCommand: { ElementCommand },
-    ElementCommandHandler: { ElementCommandHandler },
-    ElementCommandHandlerRegistration: { ElementCommandHandlerRegistration },
-    ElementCreationProps: { ElementCreationProps },
-    ElementCreatorRegistration: { ElementCreatorRegistration },
-    ElementDragArgs: { ElementDragArgs },
-    ElementFactory: { ElementFactory },
-    ElementLocationArgs: { ElementLocationArgs },
-    ElementMouseEventArgs: { ElementMouseEventArgs },
-    ElementSizeArgs: { ElementSizeArgs },
-    ElementSizeProps: { ElementSizeProps },
-    EllipseElement: { EllipseElement },
-    EllipseTool: { EllipseTool },
-    ErrorMessages: { ErrorMessages },
-    FillFactory: { FillFactory },
-    FillInfo: { FillInfo },
-    GenericComponentProps: { GenericComponentProps },
-    GradientFillStop: { GradientFillStop },
-    GridType: { GridType },
-    Handle: { Handle },
-    HandleFactory: { HandleFactory },
-    HandleMovedArgs: { HandleMovedArgs },
-    HtmlComponentProps: { HtmlComponentProps },
-    ImageBasedComponentProps: { ImageBasedComponentProps },
-    ImageElement: { ImageElement },
-    ImageElementTool: { ImageElementTool },
-    InvalidIndexException: { InvalidIndexException },
-    LineElement: { LineElement },
-    LineTool: { LineTool },
-    LinearGradientFill: { LinearGradientFill },
-    LocationArgs: { LocationArgs },
-    Logging: { Logging },
-    Matrix2D: { Matrix2D },
-    Model: { Model },
-    ModelElement: { ModelElement },
-    ModelElementTool: { ModelElementTool },
-    ModelEvent: { ModelEvent },
-    ModelResource: { ModelResource },
-    MouseEventArgs: { MouseEventArgs},
-    MouseLocationArgs: { MouseLocationArgs },
-    MousePositionInfo: { MousePositionInfo },
-    MoveLocation: { MoveLocation },
-    NamedColor: { NamedColor },
-    NavigateComponentProps: { NavigateComponentProps },
-    PaneTransition: { PaneTransition },
-    PaneTransitionDirection: { PaneTransitionDirection },
-    PaneTransitionFade: { PaneTransitionFade },
-    PaneTransitionNone: { PaneTransitionNone },
-    PaneTransitionPush: { PaneTransitionPush },
-    PaneTransitionReveal: { PaneTransitionReveal },
-    PaneTransitionSlide: { PaneTransitionSlide },
-    PaneTransitionWipe: { PaneTransitionWipe },
-    PathElement: { PathElement },
-    PenTool: { PenTool },
-    Point: { Point },
-    PointDepth: { PointDepth },
-    PointEventParameters: { PointEventParameters },
-    PolygonElement: { PolygonElement },
-    PolygonTool: { PolygonTool },
-    PolylineElement: { PolylineElement },
-    PolylineTool: { PolylineTool },
-    ProgressRectangle: { ProgressRectangle },
-    RadialGradientFill: { RadialGradientFill },
-    RectangleElement: { RectangleElement },
-    RectangleTool: { RectangleTool },
-    Region: { Region },
-    ResizeSize: { ResizeSize },
-    Resource: { Resource },
-    ResourceCreatorRegistration: { ResourceCreatorRegistration },
-    ResourceFactory: { ResourceFactory },
-    ResourceLoaderState: { ResourceLoaderState },
-    ResourceManager: { ResourceManager },
-    ResourceManagerEvent: { ResourceManagerEvent },
-    ResourceState: { ResourceState },
-    ScalingInfo: { ScalingInfo },
-    Size: { Size },
-    SizeArgs: { SizeArgs },
-    Sketcher: { Sketcher },
-    SpriteElement: { SpriteElement },
-    SpriteFrame: { SpriteFrame },
-    SpriteState: { SpriteState },
-    StrokeInfo: { StrokeInfo },
-    Surface: { Surface },
-    SurfaceAnimationFrame: { SurfaceAnimationFrame },
-    SurfaceAnimationLayer: { SurfaceAnimationLayer },
-    SurfaceAnimationViewController: { SurfaceAnimationViewController },
-    SurfaceButtonElement: { SurfaceButtonElement },
-    SurfaceElement: { SurfaceElement },
-    SurfaceElementStates: { SurfaceElementStates },
-    SurfaceHiddenLayer: { SurfaceHiddenLayer },
-    SurfaceHtmlLayer: { SurfaceHtmlLayer },
-    SurfaceImageLayer: { SurfaceImageLayer },
-    SurfaceLayer: { SurfaceLayer },
-    SurfacePane: { SurfacePane },
-    SurfaceRadioItemSpriteElement: { SurfaceRadioItemSpriteElement },
-    SurfaceRadioItemTextElement: { SurfaceRadioItemTextElement },
-    SurfaceRadioStrip: { SurfaceRadioStrip },
-    SurfaceRadioStripItem: { SurfaceRadioStripItem },
-    SurfaceRadioStripSelectionArgs: { SurfaceRadioStripSelectionArgs },
-    SurfaceRadioStripViewController: { SurfaceRadioStripViewController },
-    SurfaceTextElement: { SurfaceTextElement },
-    SurfaceVideoLayer: { SurfaceVideoLayer },
-    SurfaceViewController: { SurfaceViewController },
-    TextElement: { TextElement },
-    TextResource: { TextResource },
-    TextTool: { TextTool },
-    TimerParameters: { TimerParameters },
-    TransitionRenderer: { TransitionRenderer },
-    UploadCompletionProps: { UploadCompletionProps },
-    UploadComponentProps: { UploadComponentProps },
-    UploadProgressProps: { UploadProgressProps },
-    ViewDragArgs: { ViewDragArgs },
-    WindingMode: { WindingMode },
     bitmapResource: BitmapResource.create,
     color: Color.create,
     ellipse: EllipseElement.create,

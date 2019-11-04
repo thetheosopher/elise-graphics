@@ -1,42 +1,49 @@
 {
-  "name": "elise-graphics",
-  "version": "1.0.1",
-  "description": "\"# Elise Graphics Library\"",
-  "main": "lib/elise.js",
-  "types": "lib/elise.d.ts",
-  "scripts": {
-    "test": "echo No Tests Configured",
-    "build": "tsc",
-    "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
-    "lint": "tslint -p tsconfig.json",
-    "prepare": "npm run build",
-    "prepublishOnly": "npm run lint",
-    "preversion": "npm run lint",
-    "version": "npm run format && git add -A src",
-    "postversion": "git push && git push --tags"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/thetheosopher/elise-graphics.git"
-  },
-  "keywords": [
-    "canvas",
-    "graphics",
-    "2d"
-  ],
-  "author": "Michael A. McCloskey",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/thetheosopher/elise-graphics/issues"
-  },
-  "homepage": "https://github.com/thetheosopher/elise-graphics#readme",
-  "devDependencies": {
-    "prettier": "^1.18.2",
-    "tslint": "^5.20.0",
-    "tslint-config-prettier": "^1.18.0",
-    "typescript": "^3.6.4"
-  },
-  "files": [
-    "lib/**/*"
-  ]
+    "name": "elise-graphics",
+    "version": "1.0.1",
+    "description": "\"# Elise Graphics Library\"",
+    "main": "lib/elise.js",
+    "types": "lib/elise.d.ts",
+    "scripts": {
+        "clean": "shx rm -rf _bundles lib lib-esm",
+        "test": "echo No Tests Configured",
+        "build": "npm run clean && tsc && tsc -m es6 --outDir lib-esm && webpack",
+        "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
+        "lint": "tslint -p tsconfig.json",
+        "prepare": "npm run build",
+        "prepublishOnly": "npm run lint",
+        "preversion": "npm run lint",
+        "version": "npm run format && git add -A src",
+        "postversion": "git push && git push --tags"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/thetheosopher/elise-graphics.git"
+    },
+    "keywords": [
+        "canvas",
+        "graphics",
+        "2d"
+    ],
+    "author": "Michael A. McCloskey",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/thetheosopher/elise-graphics/issues"
+    },
+    "homepage": "https://github.com/thetheosopher/elise-graphics#readme",
+    "devDependencies": {
+        "awesome-typescript-loader": "^5.2.1",
+        "prettier": "^1.18.2",
+        "shx": "^0.3.2",
+        "tslint": "^5.20.0",
+        "tslint-config-prettier": "^1.18.0",
+        "typescript": "^3.6.4",
+        "uglifyjs-webpack-plugin": "^2.2.0",
+        "webpack": "^4.41.2",
+        "webpack-cli": "^3.3.10"
+    },
+    "files": [
+        "lib/**/*"
+    ],
+    "dependencies": {}
 }
