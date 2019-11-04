@@ -1,4 +1,4 @@
-import { IElementCreator } from './element-creator';
+import {IElementCreator} from './element-creator';
 
 export class ElementCreatorRegistration {
     /**

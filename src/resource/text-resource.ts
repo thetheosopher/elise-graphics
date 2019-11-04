@@ -1,7 +1,7 @@
-import { ErrorMessages } from '../core/error-messages';
-import { Utility } from '../core/utility';
-import { Resource } from './resource';
-import { ResourceFactory } from './resource-factory';
+import {ErrorMessages} from '../core/error-messages';
+import {Utility} from '../core/utility';
+import {Resource} from './resource';
+import {ResourceFactory} from './resource-factory';
 
 export class TextResource extends Resource {
     /**
@@ -105,7 +105,7 @@ export class TextResource extends Resource {
      */
     public load(url: string, callback: (result: boolean) => void): void {
         const self = this;
-        Utility.getRemoteText(url, (text) => {
+        Utility.getRemoteText(url, text => {
             if (text) {
                 self.text = text;
                 callback(true);
@@ -138,7 +138,7 @@ export class TextResource extends Resource {
             // Local (Server) Image
             if (resourcePath.charAt(0) === ':') {
                 const url = resourcePath.substring(1, resourcePath.length);
-                self.load(url, (success) => {
+                self.load(url, success => {
                     if (self.resourceManager) {
                         self.resourceManager.unregister(self, success);
                     }
@@ -147,7 +147,7 @@ export class TextResource extends Resource {
             else if (resourcePath.charAt(0) === '/') {
                 // Shared Text Resource
                 if (self.resourceManager.model && self.resourceManager.model.basePath) {
-                    self.load(Utility.joinPaths(self.resourceManager.model.basePath, resourcePath), (success) => {
+                    self.load(Utility.joinPaths(self.resourceManager.model.basePath, resourcePath), success => {
                         if (self.resourceManager) {
                             self.resourceManager.unregister(self, success);
                         }
@@ -156,7 +156,7 @@ export class TextResource extends Resource {
             }
             else if (resourcePathLowered.indexOf('http://') === 0 || resourcePathLowered.indexOf('https://') === 0) {
                 // Remote / External Image (http:// or https://)
-                self.load(resourcePath, (success) => {
+                self.load(resourcePath, success => {
                     if (self.resourceManager) {
                         self.resourceManager.unregister(self, success);
                     }
@@ -165,7 +165,7 @@ export class TextResource extends Resource {
             else {
                 // Embedded Text Resource
                 if (self.resourceManager.model && self.resourceManager.localResourcePath) {
-                    self.load(Utility.joinPaths(self.resourceManager.localResourcePath, resourcePath), (success) => {
+                    self.load(Utility.joinPaths(self.resourceManager.localResourcePath, resourcePath), success => {
                         if (self.resourceManager) {
                             self.resourceManager.unregister(self, success);
                         }

@@ -1,9 +1,9 @@
-import { ErrorMessages } from '../../core/error-messages';
-import { TransitionRenderer } from '../../transitions/transitions';
-import { Surface } from '../surface';
-import { SurfacePane } from '../surface-pane';
-import { PaneTransition } from './pane-transition';
-import { PaneTransitionDirection } from './pane-transition-direction';
+import {ErrorMessages} from '../../core/error-messages';
+import {TransitionRenderer} from '../../transitions/transitions';
+import {Surface} from '../surface';
+import {SurfacePane} from '../surface-pane';
+import {PaneTransition} from './pane-transition';
+import {PaneTransitionDirection} from './pane-transition-direction';
 
 export class PaneTransitionReveal extends PaneTransition {
     public duration: number;
@@ -31,7 +31,7 @@ export class PaneTransitionReveal extends PaneTransition {
         self.source = self.pane.childSurface;
         self.onStart();
 
-        self.bind((surface) => {
+        self.bind(surface => {
             // Save start time after preparation
             self.startTime = performance.now();
 
@@ -42,9 +42,9 @@ export class PaneTransitionReveal extends PaneTransition {
 
     public tick() {
         if (!this.startTime) {
-            throw new Error(ErrorMessages.StartTimeIsUndefined)
+            throw new Error(ErrorMessages.StartTimeIsUndefined);
         }
-        if(!this.source) {
+        if (!this.source) {
             throw new Error(ErrorMessages.SourceUndefined);
         }
         // Get elapsed time since start

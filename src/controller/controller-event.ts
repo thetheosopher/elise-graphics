@@ -1,4 +1,4 @@
-import { IController } from './controller';
+import {IController} from './controller';
 
 export interface IControllerEvent<T> {
     add(handler: (c: IController, data: T) => void): void;
@@ -31,6 +31,6 @@ export class ControllerEvent<T> {
     }
 
     public trigger(c: IController, data: T) {
-        this.handlers.slice(0).forEach((h) => h(c, data));
+        this.handlers.slice(0).forEach(h => h(c, data));
     }
 }

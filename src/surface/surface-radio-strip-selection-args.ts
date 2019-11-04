@@ -1,5 +1,5 @@
-import { SurfaceRadioStrip } from './surface-radio-strip';
-import { SurfaceRadioStripItem } from './surface-radio-strip-item';
+import {SurfaceRadioStrip} from './surface-radio-strip';
+import {SurfaceRadioStripItem} from './surface-radio-strip-item';
 
 export class SurfaceRadioStripSelectionArgs {
     /**

@@ -1,6 +1,6 @@
-import { Utility } from '../core/utility';
-import { SurfaceRadioItemSpriteElement } from './surface-radio-item-sprite-element';
-import { SurfaceRadioItemTextElement } from './surface-radio-item-text-element';
+import {Utility} from '../core/utility';
+import {SurfaceRadioItemSpriteElement} from './surface-radio-item-sprite-element';
+import {SurfaceRadioItemTextElement} from './surface-radio-item-text-element';
 
 export class SurfaceRadioStripItem {
     /**

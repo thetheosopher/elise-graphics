@@ -1,5 +1,5 @@
-import { Point } from './point';
-import { Size } from './size';
+import {Point} from './point';
+import {Size} from './size';
 
 export class Region {
     /**

@@ -1,4 +1,4 @@
-import { ResourceLoaderState } from './resource-loader-state';
+import {ResourceLoaderState} from './resource-loader-state';
 
 export class ResourceState {
     /**

@@ -1,12 +1,12 @@
-import { Color } from '../core/color';
-import { ErrorMessages } from '../core/error-messages';
-import { Model } from '../core/model';
-import { Point } from '../core/point';
-import { ElementBase } from '../elements/element-base';
-import { BitmapResource } from '../resource/bitmap-resource';
-import { ModelResource } from '../resource/model-resource';
-import { LinearGradientFill } from './linear-gradient-fill';
-import { RadialGradientFill } from './radial-gradient-fill';
+import {Color} from '../core/color';
+import {ErrorMessages} from '../core/error-messages';
+import {Model} from '../core/model';
+import {Point} from '../core/point';
+import {ElementBase} from '../elements/element-base';
+import {BitmapResource} from '../resource/bitmap-resource';
+import {ModelResource} from '../resource/model-resource';
+import {LinearGradientFill} from './linear-gradient-fill';
+import {RadialGradientFill} from './radial-gradient-fill';
 
 export class FillFactory {
     /**
@@ -33,7 +33,7 @@ export class FillFactory {
      */
     public static setElementFill(c: CanvasRenderingContext2D, el: ElementBase): boolean {
         let model = el.model;
-        if(!model && el instanceof Model) {
+        if (!model && el instanceof Model) {
             model = el;
         }
         if (!model) {

@@ -1,21 +1,21 @@
-import { ElementCommandHandler } from '../command/element-command-handler';
-import { IController } from '../controller/controller';
-import { CommonEvent } from '../core/common-event';
-import { ErrorMessages } from '../core/error-messages';
-import { Model } from '../core/model';
-import { PointEventParameters } from '../core/point-event-parameters';
-import { ElementBase } from '../elements/element-base';
-import { SpriteElement } from '../elements/sprite-element';
-import { SpriteFrame } from '../elements/sprite-frame';
-import { BitmapResource } from '../resource/bitmap-resource';
-import { Surface } from './surface';
-import { SurfaceElementStates } from './surface-element-states';
-import { SurfaceLayer } from './surface-layer';
-import { SurfaceRadioItemSpriteElement } from './surface-radio-item-sprite-element';
-import { SurfaceRadioItemTextElement } from './surface-radio-item-text-element';
-import { SurfaceRadioStripItem } from './surface-radio-strip-item';
-import { SurfaceRadioStripSelectionArgs } from './surface-radio-strip-selection-args';
-import { SurfaceRadioStripViewController } from './surface-radio-strip-view-controller';
+import {ElementCommandHandler} from '../command/element-command-handler';
+import {IController} from '../controller/controller';
+import {CommonEvent} from '../core/common-event';
+import {ErrorMessages} from '../core/error-messages';
+import {Model} from '../core/model';
+import {PointEventParameters} from '../core/point-event-parameters';
+import {ElementBase} from '../elements/element-base';
+import {SpriteElement} from '../elements/sprite-element';
+import {SpriteFrame} from '../elements/sprite-frame';
+import {BitmapResource} from '../resource/bitmap-resource';
+import {Surface} from './surface';
+import {SurfaceElementStates} from './surface-element-states';
+import {SurfaceLayer} from './surface-layer';
+import {SurfaceRadioItemSpriteElement} from './surface-radio-item-sprite-element';
+import {SurfaceRadioItemTextElement} from './surface-radio-item-text-element';
+import {SurfaceRadioStripItem} from './surface-radio-strip-item';
+import {SurfaceRadioStripSelectionArgs} from './surface-radio-strip-selection-args';
+import {SurfaceRadioStripViewController} from './surface-radio-strip-view-controller';
 
 export enum RadioStripOrientation {
     Horizontal = 0,
@@ -96,7 +96,9 @@ export class SurfaceRadioStrip extends SurfaceLayer {
     /**
      * Strip item selection event (strip: RadioStrip, item: RadioStripItem)
      */
-    public itemSelected: CommonEvent<SurfaceRadioStripSelectionArgs> = new CommonEvent<SurfaceRadioStripSelectionArgs>();
+    public itemSelected: CommonEvent<SurfaceRadioStripSelectionArgs> = new CommonEvent<
+        SurfaceRadioStripSelectionArgs
+    >();
 
     /**
      * Strip item normal state sprite index
@@ -312,7 +314,7 @@ export class SurfaceRadioStrip extends SurfaceLayer {
             return;
         }
         if (!item.isSelected) {
-            self.items.forEach((radioItem) => {
+            self.items.forEach(radioItem => {
                 if (radioItem.id === item.id) {
                     radioItem.isSelected = true;
                     if (radioItem.spriteElement) {
@@ -531,7 +533,16 @@ export class SurfaceRadioStrip extends SurfaceLayer {
         );
         if (surface.selectedImageSource) {
             background.frames.push(
-                SpriteFrame.create(SurfaceElementStates.SELECTED, this.left, this.top, this.width, this.height, 0, 'none', 0)
+                SpriteFrame.create(
+                    SurfaceElementStates.SELECTED,
+                    this.left,
+                    this.top,
+                    this.width,
+                    this.height,
+                    0,
+                    'none',
+                    0
+                )
             );
         }
         if (surface.highlightedImageSource) {
@@ -706,7 +717,7 @@ export class SurfaceRadioStrip extends SurfaceLayer {
         if (!model) {
             throw new Error(ErrorMessages.ModelUndefined);
         }
-        if(!this.controller) {
+        if (!this.controller) {
             throw new Error(ErrorMessages.ControllerIsUndefined);
         }
         const surface = this.surface;
@@ -1061,7 +1072,7 @@ export class SurfaceRadioStrip extends SurfaceLayer {
         }
 
         if (self.surface.resourceListenerEvent.hasListeners()) {
-            self.surface.resourceListenerEvent.listeners.forEach((listener) => {
+            self.surface.resourceListenerEvent.listeners.forEach(listener => {
                 if (!self.model) {
                     return;
                 }
@@ -1069,7 +1080,7 @@ export class SurfaceRadioStrip extends SurfaceLayer {
             });
         }
 
-        self.model.prepareResources(undefined, (success) => {
+        self.model.prepareResources(undefined, success => {
             if (!self.surface) {
                 throw new Error(ErrorMessages.SurfaceIsUndefined);
             }
@@ -1227,7 +1238,7 @@ export class SurfaceRadioStrip extends SurfaceLayer {
             return;
         }
         if (!item.isSelected) {
-            self.items.forEach((radioItem) => {
+            self.items.forEach(radioItem => {
                 if (radioItem.id === item.id) {
                     radioItem.isSelected = true;
                     if (radioItem.spriteElement) {

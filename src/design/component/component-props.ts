@@ -1,15 +1,15 @@
-import { Model } from '../../core/model';
-import { ElementCreationProps } from '../../elements/element-creation-props';
-import { ElementDragArgs } from '../../elements/element-drag-args';
-import { ElementSizeProps } from '../../elements/element-size-props';
-import { UploadCompletionProps } from '../../elements/upload-completion-props';
-import { UploadProgressProps } from '../../elements/upload-progress-props';
-import { LinearGradientFill } from '../../fill/linear-gradient-fill';
-import { RadialGradientFill } from '../../fill/radial-gradient-fill';
-import { ModelResource } from '../../resource/model-resource';
-import { Component } from './component';
-import { ComponentElement } from './component-element';
-import { ComponentEvent } from './component-event';
+import {Model} from '../../core/model';
+import {ElementCreationProps} from '../../elements/element-creation-props';
+import {ElementDragArgs} from '../../elements/element-drag-args';
+import {ElementSizeProps} from '../../elements/element-size-props';
+import {UploadCompletionProps} from '../../elements/upload-completion-props';
+import {UploadProgressProps} from '../../elements/upload-progress-props';
+import {LinearGradientFill} from '../../fill/linear-gradient-fill';
+import {RadialGradientFill} from '../../fill/radial-gradient-fill';
+import {ModelResource} from '../../resource/model-resource';
+import {Component} from './component';
+import {ComponentElement} from './component-element';
+import {ComponentEvent} from './component-event';
 
 export class ComponentProps {
     /**

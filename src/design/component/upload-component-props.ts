@@ -1,17 +1,17 @@
-import { Model } from '../../core/model';
-import { Point } from '../../core/point';
-import { Size } from '../../core/size';
-import { ElementCreationProps } from '../../elements/element-creation-props';
-import { ElementSizeProps } from '../../elements/element-size-props';
-import { RectangleElement } from '../../elements/rectangle-element';
-import { UploadCompletionProps } from '../../elements/upload-completion-props';
-import { UploadProgressProps } from '../../elements/upload-progress-props';
-import { BitmapResource } from '../../resource/bitmap-resource';
-import { ModelResource } from '../../resource/model-resource';
-import { Component } from '../component/component';
-import { ComponentElement } from './component-element';
-import { ImageBasedComponentProps } from './image-based-component-props';
-import { ProgressRectangle } from './progress-rectangle';
+import {Model} from '../../core/model';
+import {Point} from '../../core/point';
+import {Size} from '../../core/size';
+import {ElementCreationProps} from '../../elements/element-creation-props';
+import {ElementSizeProps} from '../../elements/element-size-props';
+import {RectangleElement} from '../../elements/rectangle-element';
+import {UploadCompletionProps} from '../../elements/upload-completion-props';
+import {UploadProgressProps} from '../../elements/upload-progress-props';
+import {BitmapResource} from '../../resource/bitmap-resource';
+import {ModelResource} from '../../resource/model-resource';
+import {Component} from '../component/component';
+import {ComponentElement} from './component-element';
+import {ImageBasedComponentProps} from './image-based-component-props';
+import {ProgressRectangle} from './progress-rectangle';
 
 export class UploadComponentProps extends ImageBasedComponentProps {
     public fileExtensions: string[] = [ '*' ];

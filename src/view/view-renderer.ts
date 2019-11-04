@@ -1,8 +1,8 @@
-import { ErrorMessages } from '../core/error-messages';
-import { Region } from '../core/region';
-import { ElementBase } from '../elements/element-base';
-import { FillFactory } from '../fill/fill-factory';
-import { ViewController } from './view-controller';
+import {ErrorMessages} from '../core/error-messages';
+import {Region} from '../core/region';
+import {ElementBase} from '../elements/element-base';
+import {FillFactory} from '../fill/fill-factory';
+import {ViewController} from './view-controller';
 
 export class ViewRenderer {
     /**

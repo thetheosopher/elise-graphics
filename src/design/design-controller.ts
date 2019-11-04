@@ -1,38 +1,38 @@
-import { ElementCommandHandler } from '../command/element-command-handler';
-import { IController } from '../controller/controller';
-import { ControllerEvent, IControllerEvent } from '../controller/controller-event';
-import { ControllerEventArgs } from '../controller/controller-event-args';
-import { Color } from '../core/color';
-import { ErrorMessages } from '../core/error-messages';
-import { Logging } from '../core/logging';
-import { Model } from '../core/model';
-import { IMouseEvent } from '../core/mouse-event';
-import { MouseEventArgs } from '../core/mouse-event-args';
-import { MouseLocationArgs } from '../core/mouse-location-args';
-import { Point } from '../core/point';
-import { PointDepth } from '../core/point-depth';
-import { PointEventParameters } from '../core/point-event-parameters';
-import { Region } from '../core/region';
-import { Size } from '../core/size';
-import { TimerParameters } from '../core/timer-parameters';
-import { Utility } from '../core/utility';
-import { ViewDragArgs } from '../core/view-drag-args';
-import { ElementBase } from '../elements/element-base';
-import { ElementCreationProps } from '../elements/element-creation-props';
-import { ElementDragArgs } from '../elements/element-drag-args';
-import { ElementLocationArgs } from '../elements/element-location-args';
-import { ElementSizeArgs } from '../elements/element-size-args';
-import { ElementSizeProps } from '../elements/element-size-props';
-import { MoveLocation } from '../elements/move-location';
-import { ResizeSize } from '../elements/resize-size';
-import { Component } from './component/component';
-import { ComponentElement } from './component/component-element';
-import { ComponentRegistry } from './component/component-registry';
-import { DesignRenderer } from './design-renderer';
-import { GridType } from './grid-type';
-import { Handle } from './handle';
-import { HandleFactory } from './handle-factory';
-import { DesignTool } from './tools/design-tool';
+import {ElementCommandHandler} from '../command/element-command-handler';
+import {IController} from '../controller/controller';
+import {ControllerEvent, IControllerEvent} from '../controller/controller-event';
+import {ControllerEventArgs} from '../controller/controller-event-args';
+import {Color} from '../core/color';
+import {ErrorMessages} from '../core/error-messages';
+import {Logging} from '../core/logging';
+import {Model} from '../core/model';
+import {IMouseEvent} from '../core/mouse-event';
+import {MouseEventArgs} from '../core/mouse-event-args';
+import {MouseLocationArgs} from '../core/mouse-location-args';
+import {Point} from '../core/point';
+import {PointDepth} from '../core/point-depth';
+import {PointEventParameters} from '../core/point-event-parameters';
+import {Region} from '../core/region';
+import {Size} from '../core/size';
+import {TimerParameters} from '../core/timer-parameters';
+import {Utility} from '../core/utility';
+import {ViewDragArgs} from '../core/view-drag-args';
+import {ElementBase} from '../elements/element-base';
+import {ElementCreationProps} from '../elements/element-creation-props';
+import {ElementDragArgs} from '../elements/element-drag-args';
+import {ElementLocationArgs} from '../elements/element-location-args';
+import {ElementSizeArgs} from '../elements/element-size-args';
+import {ElementSizeProps} from '../elements/element-size-props';
+import {MoveLocation} from '../elements/move-location';
+import {ResizeSize} from '../elements/resize-size';
+import {Component} from './component/component';
+import {ComponentElement} from './component/component-element';
+import {ComponentRegistry} from './component/component-registry';
+import {DesignRenderer} from './design-renderer';
+import {GridType} from './grid-type';
+import {Handle} from './handle';
+import {HandleFactory} from './handle-factory';
+import {DesignTool} from './tools/design-tool';
 
 const log = Logging.log;
 
@@ -89,9 +89,9 @@ export class DesignController implements IController {
         const ar = [ 37, 38, 39, 40 ];
 
         // Change to use DOM 0 Style binding to prevent multiples
-        hostDiv.onkeydown = (e) => {
+        hostDiv.onkeydown = e => {
             const key = e.which;
-            ar.forEach((k) => {
+            ar.forEach(k => {
                 if (k === key) {
                     e.preventDefault();
                     return false;
@@ -686,7 +686,7 @@ export class DesignController implements IController {
         }
 
         if (this.model.elements) {
-            this.model.elements.forEach((element) => {
+            this.model.elements.forEach(element => {
                 if (element.interactive === undefined) {
                     element.interactive = true;
                 }
@@ -710,7 +710,7 @@ export class DesignController implements IController {
         if (!enabled) {
             if (this.isMouseDown) {
                 this.cancelAction = true;
-                this.onCanvasMouseUp({ clientX: this.lastClientX, clientY: this.lastClientY });
+                this.onCanvasMouseUp({clientX: this.lastClientX, clientY: this.lastClientY});
             }
             if (this.isDragging) {
                 this.onCanvasDragLeave(undefined);
@@ -784,7 +784,7 @@ export class DesignController implements IController {
     public removeSelected(): void {
         const self = this;
         let itemsRemoved = false;
-        self.selectedElements.forEach((el) => {
+        self.selectedElements.forEach(el => {
             if (self.model) {
                 const index = self.model.remove(el);
                 if (index !== -1) {
@@ -830,7 +830,7 @@ export class DesignController implements IController {
         if (self.model) {
             const el = component.CreateElement(self.model, id, x, y, width, height, props);
             el.interactive = true;
-            self.model.prepareResources(undefined, (success) => {
+            self.model.prepareResources(undefined, success => {
                 if (success) {
                     self.onElementAdded(el);
                     self.onModelUpdated();
@@ -1103,7 +1103,7 @@ export class DesignController implements IController {
      * @param e - Mouse event
      */
     public onCanvasMouseDown(e: MouseEvent): void {
-        if(!this.model) {
+        if (!this.model) {
             throw new Error(ErrorMessages.ModelUndefined);
         }
         if (!this.canvas) {
@@ -1241,10 +1241,10 @@ export class DesignController implements IController {
                 this.sizeHandles = [];
                 if (this.resizeableSelectedElementCount() > 0) {
                     const self = this;
-                    this.selectedElements.forEach((selectedElement) => {
+                    this.selectedElements.forEach(selectedElement => {
                         if (selectedElement.canResize) {
                             const elementHandles = self.getElementHandles(selectedElement);
-                            elementHandles.forEach((handle) => {
+                            elementHandles.forEach(handle => {
                                 if (selectedHandle && handle.handleId === selectedHandle.handleId) {
                                     if (!self.sizeHandles) {
                                         self.sizeHandles = [];
@@ -1443,9 +1443,9 @@ export class DesignController implements IController {
 
         // If resizing
         if (this.isResizing && this.sizeHandles && this.sizeHandles.length > 0) {
-            this.sizeHandles.forEach((h) => {
+            this.sizeHandles.forEach(h => {
                 if (h.handleMoved) {
-                    h.handleMoved(h, { deltaX: Math.round(deltaX), deltaY: Math.round(deltaY) });
+                    h.handleMoved(h, {deltaX: Math.round(deltaX), deltaY: Math.round(deltaY)});
                 }
             });
         }
@@ -1790,7 +1790,7 @@ export class DesignController implements IController {
                 }
                 if (this.isMoving) {
                     this.clearElementMoveLocations();
-                    this.selectedElements.forEach((el) => {
+                    this.selectedElements.forEach(el => {
                         if (el instanceof ComponentElement && el.component) {
                             if (el.component.size.hasListeners()) {
                                 const size = el.getSize();
@@ -1806,7 +1806,7 @@ export class DesignController implements IController {
                 else if (this.isResizing) {
                     this.clearElementMoveLocations();
                     this.clearElementResizeSizes();
-                    this.selectedElements.forEach((el) => {
+                    this.selectedElements.forEach(el => {
                         if (el instanceof ComponentElement && el.component) {
                             if (el.component.size.hasListeners()) {
                                 const size = el.getSize();
@@ -1824,7 +1824,7 @@ export class DesignController implements IController {
                 else if (this.isMovingPoint) {
                     this.clearElementMoveLocations();
                     this.clearElementResizeSizes();
-                    this.selectedElements.forEach((el) => {
+                    this.selectedElements.forEach(el => {
                         el.clearBounds();
                     });
                     this.sizeHandles = undefined;
@@ -2315,7 +2315,7 @@ export class DesignController implements IController {
         if (!self.model) {
             return;
         }
-        self.model.elements.forEach((el) => {
+        self.model.elements.forEach(el => {
             if (self.isSelected(el) && el.id) {
                 selected.push(el.id);
                 if (el instanceof ComponentElement && el.component) {
@@ -2918,7 +2918,7 @@ export class DesignController implements IController {
      */
     public clearSelections(): void {
         if (this.selectedElements.length > 0) {
-            this.selectedElements.forEach((el) => {
+            this.selectedElements.forEach(el => {
                 if (el.canEditPoints()) {
                     el.editPoints = false;
                 }
@@ -3001,7 +3001,7 @@ export class DesignController implements IController {
         const c = this;
         c.selectedElements = [];
         if (c.model) {
-            c.model.elements.forEach((el) => {
+            c.model.elements.forEach(el => {
                 if (el.interactive) {
                     c.selectedElements.push(el);
                 }
@@ -3029,7 +3029,7 @@ export class DesignController implements IController {
         const self = this;
         const newSelected: ElementBase[] = [];
         if (this.selectedElements.length > 0) {
-            this.selectedElements.forEach((el) => {
+            this.selectedElements.forEach(el => {
                 const elc = el.clone();
                 elc.setInteractive(true);
                 if (self.model) {
@@ -3492,9 +3492,9 @@ export class DesignController implements IController {
         const ar = [ 37, 38, 39, 40 ];
 
         // Change to use DOM 0 Style binding to prevent multiples
-        hostDiv.onkeydown = (e) => {
+        hostDiv.onkeydown = e => {
             const key = e.which;
-            ar.forEach((k) => {
+            ar.forEach(k => {
                 if (k === key) {
                     e.preventDefault();
                     return false;

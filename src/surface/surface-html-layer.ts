@@ -1,6 +1,6 @@
-import { ErrorMessages } from '../core/error-messages';
-import { Surface } from './surface';
-import { SurfaceLayer } from './surface-layer';
+import {ErrorMessages} from '../core/error-messages';
+import {Surface} from './surface';
+import {SurfaceLayer} from './surface-layer';
 
 export class SurfaceHtmlLayer extends SurfaceLayer {
     /**

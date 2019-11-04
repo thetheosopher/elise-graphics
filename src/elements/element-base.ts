@@ -1,14 +1,14 @@
-import { Color } from '../core/color';
-import { ErrorMessages } from '../core/error-messages';
-import { Model } from '../core/model';
-import { Point } from '../core/point';
-import { IPointContainer } from '../core/point-container';
-import { PointDepth } from '../core/point-depth';
-import { Region } from '../core/region';
-import { Size } from '../core/size';
-import { LinearGradientFill } from '../fill/linear-gradient-fill';
-import { RadialGradientFill } from '../fill/radial-gradient-fill';
-import { ResourceManager } from '../resource/resource-manager';
+import {Color} from '../core/color';
+import {ErrorMessages} from '../core/error-messages';
+import {Model} from '../core/model';
+import {Point} from '../core/point';
+import {IPointContainer} from '../core/point-container';
+import {PointDepth} from '../core/point-depth';
+import {Region} from '../core/region';
+import {Size} from '../core/size';
+import {LinearGradientFill} from '../fill/linear-gradient-fill';
+import {RadialGradientFill} from '../fill/radial-gradient-fill';
+import {ResourceManager} from '../resource/resource-manager';
 
 export class ElementBase implements IPointContainer {
     /**
@@ -544,8 +544,10 @@ export class ElementBase implements IPointContainer {
         // If an image or model fill, then register referenced resource
         if (this.fill && typeof this.fill === 'string') {
             const fillString: string = this.fill as string;
-            if (fillString.toLowerCase().substring(0, 6) === 'image(' ||
-                fillString.toLowerCase().substring(0, 6) === 'model(') {
+            if (
+                fillString.toLowerCase().substring(0, 6) === 'image(' ||
+                fillString.toLowerCase().substring(0, 6) === 'model('
+            ) {
                 key = fillString.substring(6, fillString.length - 1);
                 if (key.indexOf(';') !== -1) {
                     const parts = key.split(';');
@@ -566,8 +568,10 @@ export class ElementBase implements IPointContainer {
         // If an image or model fill, then register referenced resource
         if (this.fill && typeof this.fill === 'string') {
             const fillString: string = this.fill as string;
-            if (fillString.toLowerCase().substring(0, 6) === 'image(' ||
-                fillString.toLowerCase().substring(0, 6) === 'model(') {
+            if (
+                fillString.toLowerCase().substring(0, 6) === 'image(' ||
+                fillString.toLowerCase().substring(0, 6) === 'model('
+            ) {
                 key = fillString.substring(6, fillString.length - 1);
                 if (key.indexOf(';') !== -1) {
                     const parts = key.split(';');
@@ -595,13 +599,13 @@ export class ElementBase implements IPointContainer {
      * @returns True if coordinate is contained within element
      */
     public hitTest(c: CanvasRenderingContext2D, tx: number, ty: number): boolean {
-        if(this._size === undefined) {
+        if (this._size === undefined) {
             throw new Error(ErrorMessages.SizeUndefined);
         }
-        if(this._location === undefined) {
+        if (this._location === undefined) {
             throw new Error(ErrorMessages.LocationUndefined);
         }
-        if(this.model === undefined) {
+        if (this.model === undefined) {
             throw new Error(ErrorMessages.ModelUndefined);
         }
         const model = this.model;
@@ -628,7 +632,7 @@ export class ElementBase implements IPointContainer {
      * @returns Resized element
      */
     public nudgeSize(widthDelta: number, heightDelta: number) {
-        if(this._size === undefined) {
+        if (this._size === undefined) {
             throw new Error(ErrorMessages.SizeUndefined);
         }
         let newWidth = this._size.width + widthDelta;
@@ -650,7 +654,7 @@ export class ElementBase implements IPointContainer {
      * @returns Relocated element
      */
     public translate(offsetX: number, offsetY: number) {
-        if(this._location === undefined) {
+        if (this._location === undefined) {
             throw new Error(ErrorMessages.LocationUndefined);
         }
         this._location = new Point(this._location.x + offsetX, this._location.y + offsetY);
@@ -664,10 +668,10 @@ export class ElementBase implements IPointContainer {
      * @returns Scaled element
      */
     public scale(scaleX: number, scaleY: number) {
-        if(this._size === undefined) {
+        if (this._size === undefined) {
             throw new Error(ErrorMessages.SizeUndefined);
         }
-        if(this._location === undefined) {
+        if (this._location === undefined) {
             throw new Error(ErrorMessages.LocationUndefined);
         }
         this._size = Size.scale(this._size, scaleX, scaleY);
@@ -680,10 +684,10 @@ export class ElementBase implements IPointContainer {
      * @returns Rectangular element bounding region
      */
     public getBounds(): Region | undefined {
-        if(this._size === undefined) {
+        if (this._size === undefined) {
             throw new Error(ErrorMessages.SizeUndefined);
         }
-        if(this._location === undefined) {
+        if (this._location === undefined) {
             throw new Error(ErrorMessages.LocationUndefined);
         }
         return new Region(this._location.x, this._location.y, this._size.width, this._size.height);
@@ -702,9 +706,9 @@ export class ElementBase implements IPointContainer {
      * Location get accessor
      */
     public getLocation(): Point | undefined {
-        if(this._location === undefined) {
+        if (this._location === undefined) {
             const bounds = this.getBounds();
-            if(bounds) {
+            if (bounds) {
                 this._location = bounds.location;
             }
         }
@@ -726,9 +730,9 @@ export class ElementBase implements IPointContainer {
      * @returns Size of element bounding region
      */
     public getSize(): Size | undefined {
-        if(this._size === undefined) {
+        if (this._size === undefined) {
             const bounds = this.getBounds();
-            if(bounds) {
+            if (bounds) {
                 this._size = bounds.size;
             }
         }

@@ -1,7 +1,7 @@
-import { Model } from '../../core/model';
-import { Component } from './component';
-import { ComponentElement } from './component-element';
-import { ComponentProps } from './component-props';
+import {Model} from '../../core/model';
+import {Component} from './component';
+import {ComponentElement} from './component-element';
+import {ComponentProps} from './component-props';
 
 export class ComponentRegistry {
     /**
@@ -116,7 +116,7 @@ export class ComponentRegistry {
 
         for (const component of ComponentRegistry.components) {
             if (!component.initialized && component.initialize) {
-                component.initialize((success) => {
+                component.initialize(success => {
                     if (success) {
                         component.initialized = true;
                         ComponentRegistry.initializeAll(ComponentRegistry.initializeAllCallback);

@@ -1,10 +1,10 @@
-import { ErrorMessages } from '../core/error-messages';
-import { Model } from '../core/model';
-import { Point } from '../core/point';
-import { Size } from '../core/size';
-import { ModelResource } from '../resource/model-resource';
-import { ResourceManager } from '../resource/resource-manager';
-import { ElementBase } from './element-base';
+import {ErrorMessages} from '../core/error-messages';
+import {Model} from '../core/model';
+import {Point} from '../core/point';
+import {Size} from '../core/size';
+import {ModelResource} from '../resource/model-resource';
+import {ResourceManager} from '../resource/resource-manager';
+import {ElementBase} from './element-base';
 
 export class ModelElement extends ElementBase {
     /**

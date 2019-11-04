@@ -1,5 +1,5 @@
-import { ErrorMessages } from './error-messages';
-import { NamedColor } from './named-color';
+import {ErrorMessages} from './error-messages';
+import {NamedColor} from './named-color';
 
 export class Color {
     public static Transparent = new Color(0, 255, 255, 255);

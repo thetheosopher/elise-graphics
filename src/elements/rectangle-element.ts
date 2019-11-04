@@ -1,8 +1,8 @@
-import { ErrorMessages } from '../core/error-messages';
-import { Point } from '../core/point';
-import { Size } from '../core/size';
-import { FillFactory } from '../fill/fill-factory';
-import { ElementBase } from './element-base';
+import {ErrorMessages} from '../core/error-messages';
+import {Point} from '../core/point';
+import {Size} from '../core/size';
+import {FillFactory} from '../fill/fill-factory';
+import {ElementBase} from './element-base';
 
 export class RectangleElement extends ElementBase {
     /**

@@ -1,14 +1,14 @@
-import { ErrorMessages } from '../core/error-messages';
-import { Utility } from '../core/utility';
-import { PaneTransitionDirection } from './pane-transitions/pane-transition-direction';
-import { PaneTransitionFade } from './pane-transitions/pane-transition-fade';
-import { PaneTransitionNone } from './pane-transitions/pane-transition-none';
-import { PaneTransitionPush } from './pane-transitions/pane-transition-push';
-import { PaneTransitionReveal } from './pane-transitions/pane-transition-reveal';
-import { PaneTransitionSlide } from './pane-transitions/pane-transition-slide';
-import { PaneTransitionWipe } from './pane-transitions/pane-transition-wipe';
-import { Surface } from './surface';
-import { SurfaceLayer } from './surface-layer';
+import {ErrorMessages} from '../core/error-messages';
+import {Utility} from '../core/utility';
+import {PaneTransitionDirection} from './pane-transitions/pane-transition-direction';
+import {PaneTransitionFade} from './pane-transitions/pane-transition-fade';
+import {PaneTransitionNone} from './pane-transitions/pane-transition-none';
+import {PaneTransitionPush} from './pane-transitions/pane-transition-push';
+import {PaneTransitionReveal} from './pane-transitions/pane-transition-reveal';
+import {PaneTransitionSlide} from './pane-transitions/pane-transition-slide';
+import {PaneTransitionWipe} from './pane-transitions/pane-transition-wipe';
+import {Surface} from './surface';
+import {SurfaceLayer} from './surface-layer';
 
 export class SurfacePane extends SurfaceLayer {
     /**
@@ -101,13 +101,13 @@ export class SurfacePane extends SurfaceLayer {
         }
         self.surface.div.appendChild(self.element);
         if (self.surface.resourceListenerEvent.hasListeners()) {
-            self.surface.resourceListenerEvent.listeners.forEach((listener) => {
+            self.surface.resourceListenerEvent.listeners.forEach(listener => {
                 self.childSurface.resourceListenerEvent.add(listener);
             });
         }
         self.childSurface.bind(
             self.element,
-            (surface) => {
+            surface => {
                 self.isPrepared = true;
                 callback(true);
             },
@@ -141,7 +141,12 @@ export class SurfacePane extends SurfaceLayer {
      * @param newChild - New child surface
      * @param callback - Callback (pane: Pane)
      */
-    public replaceSurface(newChild: Surface, callback: (pane: SurfacePane) => void, transition?: string, duration?: number) {
+    public replaceSurface(
+        newChild: Surface,
+        callback: (pane: SurfacePane) => void,
+        transition?: string,
+        duration?: number
+    ) {
         if (transition !== undefined && duration !== undefined) {
             switch (transition.toLowerCase()) {
                 case 'fade':
@@ -153,140 +158,260 @@ export class SurfacePane extends SurfaceLayer {
 
                 case 'pushleft':
                     {
-                        const t = new PaneTransitionPush(this, newChild, callback, duration, PaneTransitionDirection.Left);
+                        const t = new PaneTransitionPush(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.Left
+                        );
                         t.start();
                     }
                     break;
 
                 case 'pushright':
                     {
-                        const t = new PaneTransitionPush(this, newChild, callback, duration, PaneTransitionDirection.Right);
+                        const t = new PaneTransitionPush(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.Right
+                        );
                         t.start();
                     }
                     break;
 
                 case 'pushup':
                     {
-                        const t = new PaneTransitionPush(this, newChild, callback, duration, PaneTransitionDirection.Up);
+                        const t = new PaneTransitionPush(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.Up
+                        );
                         t.start();
                     }
                     break;
 
                 case 'pushdown':
                     {
-                        const t = new PaneTransitionPush(this, newChild, callback, duration, PaneTransitionDirection.Down);
+                        const t = new PaneTransitionPush(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.Down
+                        );
                         t.start();
                     }
                     break;
 
                 case 'wipeleft':
                     {
-                        const t = new PaneTransitionWipe(this, newChild, callback, duration, PaneTransitionDirection.Left);
+                        const t = new PaneTransitionWipe(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.Left
+                        );
                         t.start();
                     }
                     break;
 
                 case 'wipeleftup':
                     {
-                        const t = new PaneTransitionWipe(this, newChild, callback, duration, PaneTransitionDirection.LeftUp);
+                        const t = new PaneTransitionWipe(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.LeftUp
+                        );
                         t.start();
                     }
                     break;
 
                 case 'wipeleftdown':
                     {
-                        const t = new PaneTransitionWipe(this, newChild, callback, duration, PaneTransitionDirection.LeftDown);
+                        const t = new PaneTransitionWipe(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.LeftDown
+                        );
                         t.start();
                     }
                     break;
 
                 case 'wiperight':
                     {
-                        const t = new PaneTransitionWipe(this, newChild, callback, duration, PaneTransitionDirection.Right);
+                        const t = new PaneTransitionWipe(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.Right
+                        );
                         t.start();
                     }
                     break;
 
                 case 'wiperightup':
                     {
-                        const t = new PaneTransitionWipe(this, newChild, callback, duration, PaneTransitionDirection.RightUp);
+                        const t = new PaneTransitionWipe(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.RightUp
+                        );
                         t.start();
                     }
                     break;
 
                 case 'wiperightdown':
                     {
-                        const t = new PaneTransitionWipe(this, newChild, callback, duration, PaneTransitionDirection.RightDown);
+                        const t = new PaneTransitionWipe(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.RightDown
+                        );
                         t.start();
                     }
                     break;
 
                 case 'wipeup':
                     {
-                        const t = new PaneTransitionWipe(this, newChild, callback, duration, PaneTransitionDirection.Up);
+                        const t = new PaneTransitionWipe(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.Up
+                        );
                         t.start();
                     }
                     break;
 
                 case 'wipedown':
                     {
-                        const t = new PaneTransitionWipe(this, newChild, callback, duration, PaneTransitionDirection.Down);
+                        const t = new PaneTransitionWipe(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.Down
+                        );
                         t.start();
                     }
                     break;
 
                 case 'wipein':
                     {
-                        const t = new PaneTransitionWipe(this, newChild, callback, duration, PaneTransitionDirection.In);
+                        const t = new PaneTransitionWipe(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.In
+                        );
                         t.start();
                     }
                     break;
 
                 case 'wipeinx':
                     {
-                        const t = new PaneTransitionWipe(this, newChild, callback, duration, PaneTransitionDirection.InX);
+                        const t = new PaneTransitionWipe(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.InX
+                        );
                         t.start();
                     }
                     break;
 
                 case 'wipeiny':
                     {
-                        const t = new PaneTransitionWipe(this, newChild, callback, duration, PaneTransitionDirection.InY);
+                        const t = new PaneTransitionWipe(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.InY
+                        );
                         t.start();
                     }
                     break;
 
                 case 'wipeout':
                     {
-                        const t = new PaneTransitionWipe(this, newChild, callback, duration, PaneTransitionDirection.Out);
+                        const t = new PaneTransitionWipe(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.Out
+                        );
                         t.start();
                     }
                     break;
 
                 case 'wipeoutx':
                     {
-                        const t = new PaneTransitionWipe(this, newChild, callback, duration, PaneTransitionDirection.OutX);
+                        const t = new PaneTransitionWipe(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.OutX
+                        );
                         t.start();
                     }
                     break;
 
                 case 'wipeouty':
                     {
-                        const t = new PaneTransitionWipe(this, newChild, callback, duration, PaneTransitionDirection.OutY);
+                        const t = new PaneTransitionWipe(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.OutY
+                        );
                         t.start();
                     }
                     break;
 
                 case 'revealleft':
                     {
-                        const t = new PaneTransitionReveal(this, newChild, callback, duration, PaneTransitionDirection.Left);
+                        const t = new PaneTransitionReveal(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.Left
+                        );
                         t.start();
                     }
                     break;
 
                 case 'revealleftup':
                     {
-                        const t = new PaneTransitionReveal(this, newChild, callback, duration, PaneTransitionDirection.LeftUp);
+                        const t = new PaneTransitionReveal(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.LeftUp
+                        );
                         t.start();
                     }
                     break;
@@ -306,14 +431,26 @@ export class SurfacePane extends SurfaceLayer {
 
                 case 'revealright':
                     {
-                        const t = new PaneTransitionReveal(this, newChild, callback, duration, PaneTransitionDirection.Right);
+                        const t = new PaneTransitionReveal(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.Right
+                        );
                         t.start();
                     }
                     break;
 
                 case 'revealrightup':
                     {
-                        const t = new PaneTransitionReveal(this, newChild, callback, duration, PaneTransitionDirection.RightUp);
+                        const t = new PaneTransitionReveal(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.RightUp
+                        );
                         t.start();
                     }
                     break;
@@ -333,49 +470,91 @@ export class SurfacePane extends SurfaceLayer {
 
                 case 'revealup':
                     {
-                        const t = new PaneTransitionReveal(this, newChild, callback, duration, PaneTransitionDirection.Up);
+                        const t = new PaneTransitionReveal(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.Up
+                        );
                         t.start();
                     }
                     break;
 
                 case 'revealdown':
                     {
-                        const t = new PaneTransitionReveal(this, newChild, callback, duration, PaneTransitionDirection.Down);
+                        const t = new PaneTransitionReveal(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.Down
+                        );
                         t.start();
                     }
                     break;
 
                 case 'slideleft':
                     {
-                        const t = new PaneTransitionSlide(this, newChild, callback, duration, PaneTransitionDirection.Left);
+                        const t = new PaneTransitionSlide(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.Left
+                        );
                         t.start();
                     }
                     break;
 
                 case 'slideleftup':
                     {
-                        const t = new PaneTransitionSlide(this, newChild, callback, duration, PaneTransitionDirection.LeftUp);
+                        const t = new PaneTransitionSlide(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.LeftUp
+                        );
                         t.start();
                     }
                     break;
 
                 case 'slideleftdown':
                     {
-                        const t = new PaneTransitionSlide(this, newChild, callback, duration, PaneTransitionDirection.LeftDown);
+                        const t = new PaneTransitionSlide(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.LeftDown
+                        );
                         t.start();
                     }
                     break;
 
                 case 'slideright':
                     {
-                        const t = new PaneTransitionSlide(this, newChild, callback, duration, PaneTransitionDirection.Right);
+                        const t = new PaneTransitionSlide(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.Right
+                        );
                         t.start();
                     }
                     break;
 
                 case 'sliderightup':
                     {
-                        const t = new PaneTransitionSlide(this, newChild, callback, duration, PaneTransitionDirection.RightUp);
+                        const t = new PaneTransitionSlide(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.RightUp
+                        );
                         t.start();
                     }
                     break;
@@ -395,14 +574,26 @@ export class SurfacePane extends SurfaceLayer {
 
                 case 'slideup':
                     {
-                        const t = new PaneTransitionSlide(this, newChild, callback, duration, PaneTransitionDirection.Up);
+                        const t = new PaneTransitionSlide(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.Up
+                        );
                         t.start();
                     }
                     break;
 
                 case 'slidedown':
                     {
-                        const t = new PaneTransitionSlide(this, newChild, callback, duration, PaneTransitionDirection.Down);
+                        const t = new PaneTransitionSlide(
+                            this,
+                            newChild,
+                            callback,
+                            duration,
+                            PaneTransitionDirection.Down
+                        );
                         t.start();
                     }
                     break;

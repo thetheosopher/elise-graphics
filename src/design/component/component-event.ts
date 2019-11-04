@@ -1,4 +1,4 @@
-import { Component } from './component';
+import {Component} from './component';
 
 export class ComponentEvent<T> {
     private listeners: Array<(c: Component, data: T) => void> = [];
@@ -47,7 +47,7 @@ export class ComponentEvent<T> {
      * @param data - Event data
      */
     public trigger(c: Component, data: T) {
-        this.listeners.slice(0).forEach((h) => h(c, data));
+        this.listeners.slice(0).forEach(h => h(c, data));
     }
 
     /**
@@ -66,7 +66,7 @@ export class ComponentEvent<T> {
      * @param other - Target component event
      */
     public copyTo(other: ComponentEvent<T>) {
-        this.listeners.forEach((h) => {
+        this.listeners.forEach(h => {
             other.add(h);
         });
     }

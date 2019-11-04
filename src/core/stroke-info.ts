@@ -1,5 +1,5 @@
-import { ElementBase } from '../elements/element-base';
-import { Color } from './color';
+import {ElementBase} from '../elements/element-base';
+import {Color} from './color';
 
 export class StrokeInfo {
     public static getStrokeInfo(el: ElementBase) {

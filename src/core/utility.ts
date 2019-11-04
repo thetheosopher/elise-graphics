@@ -8,7 +8,7 @@ export class Utility {
     public static getRemoteText(url: string, callback: (result: string | undefined) => void): void {
         const request = new XMLHttpRequest();
         request.open('GET', url, true);
-        request.onreadystatechange = (status) => {
+        request.onreadystatechange = status => {
             if (request.readyState === 4) {
                 if (request.status === 200) {
                     callback(request.responseText);
@@ -63,7 +63,7 @@ export class Utility {
      * @returns New guid represented as a string in the form xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
      */
     public static guid(): string {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
             const r = (Math.random() * 16) | 0;
             const v = c === 'x' ? r : (r & 0x3) | 0x8;
             return v.toString(16);

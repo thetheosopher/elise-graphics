@@ -1,6 +1,6 @@
-import { Point } from '../core/point';
-import { Size } from '../core/size';
-import { TextElement } from '../elements/text-element';
+import {Point} from '../core/point';
+import {Size} from '../core/size';
+import {TextElement} from '../elements/text-element';
 
 export class SurfaceRadioItemTextElement extends TextElement {
     /**

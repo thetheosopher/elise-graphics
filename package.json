@@ -33,7 +33,7 @@
     "homepage": "https://github.com/thetheosopher/elise-graphics#readme",
     "devDependencies": {
         "awesome-typescript-loader": "^5.2.1",
-        "prettier": "^1.18.2",
+        "prettier-miscellaneous": "^1.5.3",
         "shx": "^0.3.2",
         "tslint": "^5.20.0",
         "tslint-config-prettier": "^1.18.0",

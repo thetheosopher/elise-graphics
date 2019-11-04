@@ -1,11 +1,11 @@
-import { IController } from '../controller/controller';
-import { Color } from '../core/color';
-import { CommonEvent } from '../core/common-event';
-import { ErrorMessages } from '../core/error-messages';
-import { Model } from '../core/model';
-import { FillFactory } from '../fill/fill-factory';
-import { FillInfo } from '../fill/fill-info';
-import { ViewController } from '../view/view-controller';
+import {IController} from '../controller/controller';
+import {Color} from '../core/color';
+import {CommonEvent} from '../core/common-event';
+import {ErrorMessages} from '../core/error-messages';
+import {Model} from '../core/model';
+import {FillFactory} from '../fill/fill-factory';
+import {FillInfo} from '../fill/fill-info';
+import {ViewController} from '../view/view-controller';
 
 export class Sketcher {
     public static create(modelUrl: string, scale: number = 1) {
@@ -73,7 +73,7 @@ export class Sketcher {
 
         // If model not provided, load externally
         if (!self.sourceModel && this.modelUrl) {
-            Model.load('', this.modelUrl, (_sourceModel) => {
+            Model.load('', this.modelUrl, _sourceModel => {
                 self.sourceModel = _sourceModel;
                 self.onModelSet();
             });
@@ -189,7 +189,7 @@ export class Sketcher {
             for (let i = 0; i < batchSize; i++) {
                 // Get next element from source model
                 const el = els[sketcher.elementIndex];
-                const isFillable = (el.type === 'path' || el.type === 'polygon');
+                const isFillable = el.type === 'path' || el.type === 'polygon';
                 if (!el) {
                     return;
                 }

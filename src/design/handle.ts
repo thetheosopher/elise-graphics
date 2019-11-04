@@ -1,11 +1,11 @@
-import { ErrorMessages } from '../core/error-messages';
-import { Point } from '../core/point';
-import { PointDepth } from '../core/point-depth';
-import { Region } from '../core/region';
-import { Size } from '../core/size';
-import { DesignController } from '../design/design-controller';
-import { ElementBase } from '../elements/element-base';
-import { HandleMovedArgs } from './handle-moved-args';
+import {ErrorMessages} from '../core/error-messages';
+import {Point} from '../core/point';
+import {PointDepth} from '../core/point-depth';
+import {Region} from '../core/region';
+import {Size} from '../core/size';
+import {DesignController} from '../design/design-controller';
+import {ElementBase} from '../elements/element-base';
+import {HandleMovedArgs} from './handle-moved-args';
 
 export class Handle {
     /**
@@ -65,7 +65,7 @@ export class Handle {
             throw new Error(ErrorMessages.BoundsAreUndefined);
         }
         if (!el) {
-            throw new Error(ErrorMessages.ElementUndefined)
+            throw new Error(ErrorMessages.ElementUndefined);
         }
         if (!el.model) {
             throw new Error(ErrorMessages.ModelUndefined);

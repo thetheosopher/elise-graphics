@@ -1,7 +1,7 @@
-import { MouseLocationArgs } from '../../core/mouse-location-args';
-import { Point } from '../../core/point';
-import { LineElement } from '../../elements/line-element';
-import { DesignTool } from './design-tool';
+import {MouseLocationArgs} from '../../core/mouse-location-args';
+import {Point} from '../../core/point';
+import {LineElement} from '../../elements/line-element';
+import {DesignTool} from './design-tool';
 
 export class LineTool extends DesignTool {
     public point1?: Point;

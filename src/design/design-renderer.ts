@@ -1,24 +1,24 @@
-import { ErrorMessages } from '../core/error-messages';
-import { Point } from '../core/point';
-import { PointDepth } from '../core/point-depth';
-import { Size } from '../core/size';
-import { WindingMode } from '../core/winding-mode';
-import { ElementBase } from '../elements/element-base';
-import { EllipseElement } from '../elements/ellipse-element';
-import { ImageElement } from '../elements/image-element';
-import { LineElement } from '../elements/line-element';
-import { ModelElement } from '../elements/model-element';
-import { PathElement } from '../elements/path-element';
-import { PolygonElement } from '../elements/polygon-element';
-import { PolylineElement } from '../elements/polyline-element';
-import { RectangleElement } from '../elements/rectangle-element';
-import { SpriteElement } from '../elements/sprite-element';
-import { TextElement } from '../elements/text-element';
-import { FillFactory } from '../fill/fill-factory';
-import { BitmapResource } from '../resource/bitmap-resource';
-import { ModelResource } from '../resource/model-resource';
-import { TextResource } from '../resource/text-resource';
-import { DesignController } from './design-controller';
+import {ErrorMessages} from '../core/error-messages';
+import {Point} from '../core/point';
+import {PointDepth} from '../core/point-depth';
+import {Size} from '../core/size';
+import {WindingMode} from '../core/winding-mode';
+import {ElementBase} from '../elements/element-base';
+import {EllipseElement} from '../elements/ellipse-element';
+import {ImageElement} from '../elements/image-element';
+import {LineElement} from '../elements/line-element';
+import {ModelElement} from '../elements/model-element';
+import {PathElement} from '../elements/path-element';
+import {PolygonElement} from '../elements/polygon-element';
+import {PolylineElement} from '../elements/polyline-element';
+import {RectangleElement} from '../elements/rectangle-element';
+import {SpriteElement} from '../elements/sprite-element';
+import {TextElement} from '../elements/text-element';
+import {FillFactory} from '../fill/fill-factory';
+import {BitmapResource} from '../resource/bitmap-resource';
+import {ModelResource} from '../resource/model-resource';
+import {TextResource} from '../resource/text-resource';
+import {DesignController} from './design-controller';
 
 export class DesignRenderer {
     /**
@@ -841,7 +841,6 @@ export class DesignRenderer {
         c.clip();
         let font = '';
         let fontSize = 10.0;
-        let i;
         let parts;
         if (textElement.typestyle) {
             parts = textElement.typestyle.split(',');
@@ -1007,7 +1006,7 @@ export class DesignRenderer {
         let location = modelElement.getLocation();
         let size = modelElement.getSize();
         if (!location) {
-            throw new Error(ErrorMessages.LocationUndefined)
+            throw new Error(ErrorMessages.LocationUndefined);
         }
         if (!size) {
             throw new Error(ErrorMessages.SizeUndefined);

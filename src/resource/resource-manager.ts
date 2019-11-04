@@ -1,9 +1,9 @@
-import { ErrorMessages } from '../core/error-messages';
-import { Model } from '../core/model';
-import { Resource } from './resource';
-import { ResourceLoaderState } from './resource-loader-state';
-import { ResourceManagerEvent } from './resource-manager-event';
-import { ResourceState } from './resource-state';
+import {ErrorMessages} from '../core/error-messages';
+import {Model} from '../core/model';
+import {Resource} from './resource';
+import {ResourceLoaderState} from './resource-loader-state';
+import {ResourceManagerEvent} from './resource-manager-event';
+import {ResourceState} from './resource-state';
 
 export class ResourceManager {
     /**
@@ -103,7 +103,7 @@ export class ResourceManager {
             throw new Error(ErrorMessages.ModelPathUndefined);
         }
         if (res.locale) {
-            this.model.resources.forEach((existing) => {
+            this.model.resources.forEach(existing => {
                 if (existing.key === res.key) {
                     if (existing.locale && existing.locale === res.locale) {
                         replaced = existing;
@@ -113,7 +113,7 @@ export class ResourceManager {
             });
         }
         else {
-            this.model.resources.forEach((existing) => {
+            this.model.resources.forEach(existing => {
                 if (existing.key === res.key) {
                     if (!existing.locale) {
                         replaced = existing;

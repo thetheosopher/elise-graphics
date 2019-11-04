@@ -1,9 +1,9 @@
-import { ErrorMessages } from '../../core/error-messages';
-import { TransitionRenderer } from '../../transitions/transitions';
-import { Surface } from '../surface';
-import { SurfacePane } from '../surface-pane';
-import { PaneTransition } from './pane-transition';
-import { PaneTransitionDirection } from './pane-transition-direction';
+import {ErrorMessages} from '../../core/error-messages';
+import {TransitionRenderer} from '../../transitions/transitions';
+import {Surface} from '../surface';
+import {SurfacePane} from '../surface-pane';
+import {PaneTransition} from './pane-transition';
+import {PaneTransitionDirection} from './pane-transition-direction';
 
 export class PaneTransitionSlide extends PaneTransition {
     public duration: number;
@@ -30,7 +30,7 @@ export class PaneTransitionSlide extends PaneTransition {
         self.source = self.pane.childSurface;
         self.onStart();
 
-        self.bind((surface) => {
+        self.bind(surface => {
             if (!self.source) {
                 throw new Error(ErrorMessages.SourceUndefined);
             }

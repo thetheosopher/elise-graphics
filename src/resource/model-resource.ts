@@ -1,9 +1,9 @@
-import { ErrorMessages } from '../core/error-messages';
-import { Model } from '../core/model';
-import { Size } from '../core/size';
-import { Utility } from '../core/utility';
-import { Resource } from './resource';
-import { ResourceFactory } from './resource-factory';
+import {ErrorMessages} from '../core/error-messages';
+import {Model} from '../core/model';
+import {Size} from '../core/size';
+import {Utility} from '../core/utility';
+import {Resource} from './resource';
+import {ResourceFactory} from './resource-factory';
 
 export class ModelResource extends Resource {
     /**
@@ -119,7 +119,7 @@ export class ModelResource extends Resource {
         }
         const basePath = res.resourceManager.model.basePath;
         const relUrl = url.substring(basePath.length, url.length);
-        Model.load(basePath, relUrl, (model) => {
+        Model.load(basePath, relUrl, model => {
             if (model && res.resourceManager) {
                 res.model = model;
                 res.model.prepareResources(res.resourceManager.currentLocaleId, () => {
@@ -142,7 +142,7 @@ export class ModelResource extends Resource {
         // If embedded model, no need to retrieve, but init resources
         if (this.model && self.resourceManager.model) {
             this.model.basePath = self.resourceManager.model.basePath;
-            this.model.prepareResources(self.resourceManager.currentLocaleId, (success) => {
+            this.model.prepareResources(self.resourceManager.currentLocaleId, success => {
                 if (self.resourceManager) {
                     self.resourceManager.unregister(self, success);
                 }
@@ -159,7 +159,7 @@ export class ModelResource extends Resource {
             // Local (Server) Model
             if (modelPath.charAt(0) === ':') {
                 const url = modelPath.substring(1, modelPath.length);
-                this.load(url, (success) => {
+                this.load(url, success => {
                     if (self.resourceManager) {
                         self.resourceManager.unregister(self, success);
                     }
@@ -168,7 +168,7 @@ export class ModelResource extends Resource {
             else if (modelPath.charAt(0) === '/') {
                 // Shared model resource relative to model base path
                 if (self.resourceManager && self.resourceManager.model && self.resourceManager.model.basePath) {
-                    this.load(Utility.joinPaths(self.resourceManager.model.basePath, modelPath), (success) => {
+                    this.load(Utility.joinPaths(self.resourceManager.model.basePath, modelPath), success => {
                         if (self.resourceManager) {
                             self.resourceManager.unregister(self, success);
                         }
@@ -178,7 +178,7 @@ export class ModelResource extends Resource {
             else {
                 // Embedded model resource
                 if (self.resourceManager && self.resourceManager.localResourcePath) {
-                    self.load(Utility.joinPaths(self.resourceManager.localResourcePath, modelPath), (success) => {
+                    self.load(Utility.joinPaths(self.resourceManager.localResourcePath, modelPath), success => {
                         if (self.resourceManager) {
                             self.resourceManager.unregister(self, success);
                         }

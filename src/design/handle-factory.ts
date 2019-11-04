@@ -1,10 +1,10 @@
-import { Point } from '../core/point';
-import { PointDepth } from '../core/point-depth';
-import { Size } from '../core/size';
-import { DesignController } from '../design/design-controller';
-import { ElementBase } from '../elements/element-base';
-import { PathElement } from '../elements/path-element';
-import { Handle } from './handle';
+import {Point} from '../core/point';
+import {PointDepth} from '../core/point-depth';
+import {Size} from '../core/size';
+import {DesignController} from '../design/design-controller';
+import {ElementBase} from '../elements/element-base';
+import {PathElement} from '../elements/path-element';
+import {Handle} from './handle';
 
 export class HandleFactory {
     /**

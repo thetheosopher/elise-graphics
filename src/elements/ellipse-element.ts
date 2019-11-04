@@ -1,9 +1,9 @@
-import { ErrorMessages } from '../core/error-messages';
-import { Point } from '../core/point';
-import { Region } from '../core/region';
-import { Size } from '../core/size';
-import { FillFactory } from '../fill/fill-factory';
-import { ElementBase } from './element-base';
+import {ErrorMessages} from '../core/error-messages';
+import {Point} from '../core/point';
+import {Region} from '../core/region';
+import {Size} from '../core/size';
+import {FillFactory} from '../fill/fill-factory';
+import {ElementBase} from './element-base';
 
 export class EllipseElement extends ElementBase {
     /**
@@ -216,7 +216,7 @@ export class EllipseElement extends ElementBase {
         if (!model) {
             throw new Error(ErrorMessages.ModelUndefined);
         }
-        if (this._center === undefined || this.radiusX === undefined || this.radiusY === undefined ) {
+        if (this._center === undefined || this.radiusX === undefined || this.radiusY === undefined) {
             throw new Error(ErrorMessages.PointsAreInvalid);
         }
         c.save();
@@ -245,7 +245,7 @@ export class EllipseElement extends ElementBase {
      * @returns Description
      */
     public toString(): string {
-        if (this._center === undefined || this.radiusX === undefined || this.radiusX === undefined ) {
+        if (this._center === undefined || this.radiusX === undefined || this.radiusX === undefined) {
             throw new Error(ErrorMessages.PointsAreInvalid);
         }
         return (
@@ -291,7 +291,7 @@ export class EllipseElement extends ElementBase {
      * @returns This ellipse element
      */
     public scale(scaleX: number, scaleY: number) {
-        if (this.radiusX === undefined || this.radiusY === undefined || this._center=== undefined) {
+        if (this.radiusX === undefined || this.radiusY === undefined || this._center === undefined) {
             throw new Error(ErrorMessages.PointsAreInvalid);
         }
         this.radiusX *= scaleX;

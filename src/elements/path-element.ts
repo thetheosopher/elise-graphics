@@ -1,13 +1,13 @@
-import { ErrorMessages } from '../core/error-messages';
-import { Point } from '../core/point';
-import { IPointContainer } from '../core/point-container';
-import { PointDepth } from '../core/point-depth';
-import { Region } from '../core/region';
-import { Size } from '../core/size';
-import { WindingMode } from '../core/winding-mode';
-import { FillFactory } from '../fill/fill-factory';
-import { ElementBase } from './element-base';
-import { InvalidIndexException } from './invalid-index-exception';
+import {ErrorMessages} from '../core/error-messages';
+import {Point} from '../core/point';
+import {IPointContainer} from '../core/point-container';
+import {PointDepth} from '../core/point-depth';
+import {Region} from '../core/region';
+import {Size} from '../core/size';
+import {WindingMode} from '../core/winding-mode';
+import {FillFactory} from '../fill/fill-factory';
+import {ElementBase} from './element-base';
+import {InvalidIndexException} from './invalid-index-exception';
 
 export class PathElement extends ElementBase implements IPointContainer {
     /**
@@ -360,7 +360,7 @@ export class PathElement extends ElementBase implements IPointContainer {
      * @returns This path element
      */
     public nudgeSize(offsetX: number, offsetY: number) {
-        if(!this._commands) {
+        if (!this._commands) {
             return this;
         }
         const b = this.getBounds();
@@ -405,28 +405,30 @@ export class PathElement extends ElementBase implements IPointContainer {
             throw new Error(ErrorMessages.LocationUndefined);
         }
         const newCommands: string[] = [];
-        for(const command of this._commands) {
+        for (const command of this._commands) {
             if (command.charAt(0) === 'm') {
                 newCommands.push(
                     'm' +
-                    Point.scale(
-                        Point.parse(command.substring(1, command.length)),
-                        scaleX,
-                        scaleY,
-                        location.x,
-                        location.y
-                    ).toString());
+                        Point.scale(
+                            Point.parse(command.substring(1, command.length)),
+                            scaleX,
+                            scaleY,
+                            location.x,
+                            location.y
+                        ).toString()
+                );
             }
             else if (command.charAt(0) === 'l') {
                 newCommands.push(
                     'l' +
-                    Point.scale(
-                        Point.parse(command.substring(1, command.length)),
-                        scaleX,
-                        scaleY,
-                        location.x,
-                        location.y
-                    ).toString());
+                        Point.scale(
+                            Point.parse(command.substring(1, command.length)),
+                            scaleX,
+                            scaleY,
+                            location.x,
+                            location.y
+                        ).toString()
+                );
             }
             else if (command.charAt(0) === 'c') {
                 const parts = command.substring(1, command.length).split(',');
@@ -470,16 +472,18 @@ export class PathElement extends ElementBase implements IPointContainer {
             return this;
         }
         const newCommands: string[] = [];
-        for(const command of this._commands) {
+        for (const command of this._commands) {
             if (command.charAt(0) === 'm') {
                 newCommands.push(
                     'm' +
-                    Point.translate(Point.parse(command.substring(1, command.length)), offsetX, offsetY).toString());
+                        Point.translate(Point.parse(command.substring(1, command.length)), offsetX, offsetY).toString()
+                );
             }
             else if (command.charAt(0) === 'l') {
                 newCommands.push(
                     'l' +
-                    Point.translate(Point.parse(command.substring(1, command.length)), offsetX, offsetY).toString());
+                        Point.translate(Point.parse(command.substring(1, command.length)), offsetX, offsetY).toString()
+                );
             }
             else if (command.charAt(0) === 'c') {
                 const parts = command.substring(1, command.length).split(',');
@@ -567,7 +571,7 @@ export class PathElement extends ElementBase implements IPointContainer {
      * @returns This path element
      */
     public setLocation(pointSource: string | Point) {
-        if(!this._commands) {
+        if (!this._commands) {
             return this;
         }
         const b = this.getBounds();

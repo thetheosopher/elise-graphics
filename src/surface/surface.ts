@@ -1,23 +1,23 @@
-import { ElementCommandHandler } from '../command/element-command-handler';
-import { IController } from '../controller/controller';
-import { CommonEvent } from '../core/common-event';
-import { ErrorMessages } from '../core/error-messages';
-import { Model } from '../core/model';
-import { Utility } from '../core/utility';
-import { ElementBase } from '../elements/element-base';
-import { ImageElement } from '../elements/image-element';
-import { SpriteElement } from '../elements/sprite-element';
-import { BitmapResource } from '../resource/bitmap-resource';
-import { ResourceManager } from '../resource/resource-manager';
-import { ResourceManagerEvent } from '../resource/resource-manager-event';
-import { ResourceState } from '../resource/resource-state';
-import { SurfaceButtonElement } from './surface-button-element';
-import { SurfaceElement } from './surface-element';
-import { SurfaceElementStates } from './surface-element-states';
-import { SurfaceLayer } from './surface-layer';
-import { SurfaceTextElement } from './surface-text-element';
-import { SurfaceVideoLayer } from './surface-video-layer';
-import { SurfaceViewController } from './surface-view-controller';
+import {ElementCommandHandler} from '../command/element-command-handler';
+import {IController} from '../controller/controller';
+import {CommonEvent} from '../core/common-event';
+import {ErrorMessages} from '../core/error-messages';
+import {Model} from '../core/model';
+import {Utility} from '../core/utility';
+import {ElementBase} from '../elements/element-base';
+import {ImageElement} from '../elements/image-element';
+import {SpriteElement} from '../elements/sprite-element';
+import {BitmapResource} from '../resource/bitmap-resource';
+import {ResourceManager} from '../resource/resource-manager';
+import {ResourceManagerEvent} from '../resource/resource-manager-event';
+import {ResourceState} from '../resource/resource-state';
+import {SurfaceButtonElement} from './surface-button-element';
+import {SurfaceElement} from './surface-element';
+import {SurfaceElementStates} from './surface-element-states';
+import {SurfaceLayer} from './surface-layer';
+import {SurfaceTextElement} from './surface-text-element';
+import {SurfaceVideoLayer} from './surface-video-layer';
+import {SurfaceViewController} from './surface-view-controller';
 
 export class Surface {
     /**
@@ -270,7 +270,7 @@ export class Surface {
             }
         );
 
-        self.layers.forEach((layer) => {
+        self.layers.forEach(layer => {
             if (layer.element && self.div) {
                 self.div.appendChild(layer.element);
             }
@@ -349,7 +349,7 @@ export class Surface {
         }
 
         // Destroy layer elements
-        this.layers.forEach((layer) => {
+        this.layers.forEach(layer => {
             layer.destroy();
         });
 
@@ -373,7 +373,7 @@ export class Surface {
      */
     public onload() {
         // Call onload on all layer elements
-        this.layers.forEach((layer) => {
+        this.layers.forEach(layer => {
             layer.onload();
         });
     }
@@ -383,7 +383,7 @@ export class Surface {
      */
     public onunload() {
         // Call onunload on all layer elements
-        this.layers.forEach((layer) => {
+        this.layers.forEach(layer => {
             layer.onunload();
         });
     }
@@ -396,7 +396,7 @@ export class Surface {
         if (this.controller) {
             this.controller.setScale(this.scale);
         }
-        this.layers.forEach((layer) => {
+        this.layers.forEach(layer => {
             layer.setScale(scale);
         });
         return this;
@@ -410,7 +410,7 @@ export class Surface {
         if (this.div) {
             this.div.style.opacity = this.opacity.toString();
         }
-        this.layers.forEach((layer) => {
+        this.layers.forEach(layer => {
             layer.setOpacity(opacity);
         });
         return this;
@@ -456,7 +456,7 @@ export class Surface {
         const model = Model.create(self.width, self.height);
         self.model = model;
         if (self.resourceListenerEvent.hasListeners()) {
-            self.resourceListenerEvent.listeners.forEach((listener) => {
+            self.resourceListenerEvent.listeners.forEach(listener => {
                 if (self.model) {
                     self.model.resourceManager.listenerEvent.add(listener);
                 }
@@ -511,7 +511,7 @@ export class Surface {
         // Find next unprepared layer
         for (const layer of self.layers) {
             if (!layer.isPrepared) {
-                layer.prepare((success) => {
+                layer.prepare(success => {
                     self.loadResources();
                 });
                 return;
@@ -520,7 +520,7 @@ export class Surface {
 
         // Prepare resources and return model
         if (self.model) {
-            self.model.prepareResources(undefined, (success) => {
+            self.model.prepareResources(undefined, success => {
                 if (success) {
                     self.loaded.trigger(true);
                 }
@@ -551,7 +551,7 @@ export class Surface {
     }
 
     public startVideos() {
-        this.layers.forEach((layer) => {
+        this.layers.forEach(layer => {
             if (layer instanceof SurfaceVideoLayer) {
                 if (layer.autoPlay && layer.element) {
                     layer.element.play();

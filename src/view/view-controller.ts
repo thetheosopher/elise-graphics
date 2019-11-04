@@ -1,16 +1,16 @@
-import { ElementCommandHandler } from '../command/element-command-handler';
-import { IController } from '../controller/controller';
-import { ControllerEvent } from '../controller/controller-event';
-import { ErrorMessages } from '../core/error-messages';
-import { Logging } from '../core/logging';
-import { Model } from '../core/model';
-import { MouseEventArgs } from '../core/mouse-event-args';
-import { MousePositionInfo } from '../core/mouse-position-info';
-import { Point } from '../core/point';
-import { PointEventParameters } from '../core/point-event-parameters';
-import { TimerParameters } from '../core/timer-parameters';
-import { ElementBase } from '../elements/element-base';
-import { ViewRenderer } from './view-renderer';
+import {ElementCommandHandler} from '../command/element-command-handler';
+import {IController} from '../controller/controller';
+import {ControllerEvent} from '../controller/controller-event';
+import {ErrorMessages} from '../core/error-messages';
+import {Logging} from '../core/logging';
+import {Model} from '../core/model';
+import {MouseEventArgs} from '../core/mouse-event-args';
+import {MousePositionInfo} from '../core/mouse-position-info';
+import {Point} from '../core/point';
+import {PointEventParameters} from '../core/point-event-parameters';
+import {TimerParameters} from '../core/timer-parameters';
+import {ElementBase} from '../elements/element-base';
+import {ViewRenderer} from './view-renderer';
 
 const log = Logging.log;
 
@@ -369,7 +369,7 @@ export class ViewController implements IController {
             }
         }
         if (this.model.elements !== undefined && this.model.elements.length > 0) {
-            this.model.elements.forEach((element) => {
+            this.model.elements.forEach(element => {
                 if (element.interactive === undefined) {
                     element.interactive = true;
                 }

@@ -1,13 +1,13 @@
-import { ErrorMessages } from '../core/error-messages';
-import { Point } from '../core/point';
-import { IPointContainer } from '../core/point-container';
-import { PointDepth } from '../core/point-depth';
-import { Region } from '../core/region';
-import { Size } from '../core/size';
-import { WindingMode } from '../core/winding-mode';
-import { FillFactory } from '../fill/fill-factory';
-import { ElementBase } from './element-base';
-import { InvalidIndexException } from './invalid-index-exception';
+import {ErrorMessages} from '../core/error-messages';
+import {Point} from '../core/point';
+import {IPointContainer} from '../core/point-container';
+import {PointDepth} from '../core/point-depth';
+import {Region} from '../core/region';
+import {Size} from '../core/size';
+import {WindingMode} from '../core/winding-mode';
+import {FillFactory} from '../fill/fill-factory';
+import {ElementBase} from './element-base';
+import {InvalidIndexException} from './invalid-index-exception';
 
 export class PolygonElement extends ElementBase implements IPointContainer {
     /**
@@ -62,7 +62,7 @@ export class PolygonElement extends ElementBase implements IPointContainer {
             let result = '';
             let isFirst = true;
             for (const p of this._points) {
-                if(isFirst) {
+                if (isFirst) {
                     isFirst = false;
                 }
                 else {
@@ -73,7 +73,6 @@ export class PolygonElement extends ElementBase implements IPointContainer {
             return result;
         }
     }
-
 
     /**
      * Points set accessor as string.  Parses serialized string of points.
@@ -161,10 +160,10 @@ export class PolygonElement extends ElementBase implements IPointContainer {
     public clone() {
         const e: PolygonElement = PolygonElement.create();
         super.cloneTo(e);
-        if(this.points) {
+        if (this.points) {
             e.points = this.points;
         }
-        if(this.winding) {
+        if (this.winding) {
             e.winding = this.winding;
         }
         return e;
@@ -481,7 +480,7 @@ export class PolygonElement extends ElementBase implements IPointContainer {
      * @returns This polygon
      */
     public setLocation(pointSource: string | Point) {
-        if(!this._points) {
+        if (!this._points) {
             return this;
         }
         const bounds = this.getBounds();
@@ -536,7 +535,7 @@ export class PolygonElement extends ElementBase implements IPointContainer {
      * @returns Requested point
      */
     public getPointAt(index: number, depth?: PointDepth): Point {
-        if(!this._points) {
+        if (!this._points) {
             throw new Error(ErrorMessages.NoPointsAreDefined);
         }
         if (index >= 0 && index < this._points.length) {
@@ -553,7 +552,7 @@ export class PolygonElement extends ElementBase implements IPointContainer {
      * @returns This polygon
      */
     public setPointAt(index: number, value: Point, depth: PointDepth) {
-        if(!this._points) {
+        if (!this._points) {
             throw new Error(ErrorMessages.NoPointsAreDefined);
         }
         if (index >= 0 && index < this._points.length) {

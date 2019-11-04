@@ -21,6 +21,6 @@ export class CommonEvent<T> {
     }
 
     public trigger(data?: T) {
-        this.handlers.slice(0).forEach((h) => h(data));
+        this.handlers.slice(0).forEach(h => h(data));
     }
 }

@@ -1,10 +1,10 @@
-import { ErrorMessages } from '../core/error-messages';
-import { Point } from '../core/point';
-import { Size } from '../core/size';
-import { FillFactory } from '../fill/fill-factory';
-import { ResourceManager } from '../resource/resource-manager';
-import { TextResource } from '../resource/text-resource';
-import { ElementBase } from './element-base';
+import {ErrorMessages} from '../core/error-messages';
+import {Point} from '../core/point';
+import {Size} from '../core/size';
+import {FillFactory} from '../fill/fill-factory';
+import {ResourceManager} from '../resource/resource-manager';
+import {TextResource} from '../resource/text-resource';
+import {ElementBase} from './element-base';
 
 export class TextElement extends ElementBase {
     /**
@@ -441,7 +441,7 @@ export class TextElement extends ElementBase {
             let lastLine = words[0];
             let measure = 0;
             const wl = words.length;
-            for(let i = 1; i < wl; i++) {
+            for (let i = 1; i < wl; i++) {
                 const word = words[i];
                 measure = c.measureText(lastLine + word).width;
                 if (measure < lineWidth) {

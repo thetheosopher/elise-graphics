@@ -1,8 +1,8 @@
-import { ErrorMessages } from '../core/error-messages';
-import { Size } from '../core/size';
-import { Utility } from '../core/utility';
-import { Resource } from './resource';
-import { ResourceFactory } from './resource-factory';
+import {ErrorMessages} from '../core/error-messages';
+import {Size} from '../core/size';
+import {Utility} from '../core/utility';
+import {Resource} from './resource';
+import {ResourceFactory} from './resource-factory';
 
 export class BitmapResource extends Resource {
     /**
@@ -107,17 +107,17 @@ export class BitmapResource extends Resource {
         const image = new Image();
         this.image = image;
         image.src = url;
-        image.onload = (e) => {
+        image.onload = e => {
             if (callback) {
                 callback(true);
             }
         };
-        image.onabort = (e) => {
+        image.onabort = e => {
             if (callback) {
                 callback(false);
             }
         };
-        image.onerror = (e) => {
+        image.onerror = e => {
             if (callback) {
                 callback(false);
             }
@@ -146,7 +146,7 @@ export class BitmapResource extends Resource {
             // Local (Server) Image
             if (imagePath.charAt(0) === ':') {
                 const url = imagePath.substring(1, imagePath.length);
-                self.load(url, (success) => {
+                self.load(url, success => {
                     if (self.resourceManager) {
                         self.resourceManager.unregister(self, success);
                     }
@@ -155,7 +155,7 @@ export class BitmapResource extends Resource {
             else if (imagePath.charAt(0) === '/') {
                 // Shared Image
                 if (self.resourceManager && self.resourceManager.model) {
-                    self.load(Utility.joinPaths(self.resourceManager.model.basePath, imagePath), (success) => {
+                    self.load(Utility.joinPaths(self.resourceManager.model.basePath, imagePath), success => {
                         if (self.resourceManager) {
                             self.resourceManager.unregister(self, success);
                         }
@@ -164,7 +164,7 @@ export class BitmapResource extends Resource {
             }
             else if (imagePathLowered.indexOf('http://') === 0 || imagePathLowered.indexOf('https://') === 0) {
                 // Remote / External Image (http:// or https://)
-                self.load(imagePath, (success) => {
+                self.load(imagePath, success => {
                     if (self.resourceManager) {
                         self.resourceManager.unregister(self, success);
                     }
@@ -173,7 +173,7 @@ export class BitmapResource extends Resource {
             else {
                 // Embedded Image
                 if (self.resourceManager && self.resourceManager.localResourcePath) {
-                    self.load(Utility.joinPaths(self.resourceManager.localResourcePath, imagePath), (success) => {
+                    self.load(Utility.joinPaths(self.resourceManager.localResourcePath, imagePath), success => {
                         if (self.resourceManager) {
                             self.resourceManager.unregister(self, success);
                         }

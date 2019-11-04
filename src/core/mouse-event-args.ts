@@ -1,4 +1,4 @@
-import { IMouseEvent } from './mouse-event';
+import {IMouseEvent} from './mouse-event';
 
 export class MouseEventArgs {
     /**

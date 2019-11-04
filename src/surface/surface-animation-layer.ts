@@ -1,19 +1,19 @@
-import { ElementCommandHandler } from '../command/element-command-handler';
-import { IController } from '../controller/controller';
-import { CommonEvent } from '../core/common-event';
-import { ErrorMessages } from '../core/error-messages';
-import { Model } from '../core/model';
-import { ElementBase } from '../elements/element-base';
-import { SpriteElement } from '../elements/sprite-element';
-import { SpriteFrame } from '../elements/sprite-frame';
-import { BitmapResource } from '../resource/bitmap-resource';
-import { ResourceManager } from '../resource/resource-manager';
-import { ResourceState } from '../resource/resource-state';
-import { TransitionRenderer } from '../transitions/transitions';
-import { SurfaceAnimationFrame } from './surface-animation-frame';
-import { SurfaceAnimationViewController } from './surface-animation-view-controller';
-import { SurfaceLayer } from './surface-layer';
-import { Surface } from './surface';
+import {ElementCommandHandler} from '../command/element-command-handler';
+import {IController} from '../controller/controller';
+import {CommonEvent} from '../core/common-event';
+import {ErrorMessages} from '../core/error-messages';
+import {Model} from '../core/model';
+import {ElementBase} from '../elements/element-base';
+import {SpriteElement} from '../elements/sprite-element';
+import {SpriteFrame} from '../elements/sprite-frame';
+import {BitmapResource} from '../resource/bitmap-resource';
+import {ResourceManager} from '../resource/resource-manager';
+import {ResourceState} from '../resource/resource-state';
+import {TransitionRenderer} from '../transitions/transitions';
+import {Surface} from './surface';
+import {SurfaceAnimationFrame} from './surface-animation-frame';
+import {SurfaceAnimationViewController} from './surface-animation-view-controller';
+import {SurfaceLayer} from './surface-layer';
 
 export class SurfaceAnimationLayer extends SurfaceLayer {
     public static ANIMATION_CLICK = 'animationClick';
@@ -233,7 +233,7 @@ export class SurfaceAnimationLayer extends SurfaceLayer {
         const model = Model.create(this.width, this.height);
         this.model = model;
         if (surface.resourceListenerEvent.hasListeners()) {
-            surface.resourceListenerEvent.listeners.forEach((listener) => {
+            surface.resourceListenerEvent.listeners.forEach(listener => {
                 model.resourceManager.listenerEvent.add(listener);
             });
         }
@@ -365,7 +365,7 @@ export class SurfaceAnimationLayer extends SurfaceLayer {
             }
         );
         if (self.model) {
-            self.model.prepareResources(undefined, (success) => {
+            self.model.prepareResources(undefined, success => {
                 if (success) {
                     self.isPrepared = true;
                     if (self.controller) {

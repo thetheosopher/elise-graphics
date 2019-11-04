@@ -1,4 +1,4 @@
-import { ResourceManager } from './resource-manager';
+import {ResourceManager} from './resource-manager';
 
 export class ResourceManagerEvent<T> {
     public listeners: Array<(resourceManager: ResourceManager, data?: T) => void> = [];
@@ -46,7 +46,7 @@ export class ResourceManagerEvent<T> {
      * @param data - Event data
      */
     public trigger(rm: ResourceManager, data?: T) {
-        this.listeners.slice(0).forEach((h) => h(rm, data));
+        this.listeners.slice(0).forEach(h => h(rm, data));
     }
 
     /**

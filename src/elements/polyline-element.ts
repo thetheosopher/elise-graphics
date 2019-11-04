@@ -1,11 +1,11 @@
-import { ErrorMessages } from '../core/error-messages';
-import { Point } from '../core/point';
-import { IPointContainer } from '../core/point-container';
-import { PointDepth } from '../core/point-depth';
-import { Region } from '../core/region';
-import { Size } from '../core/size';
-import { ElementBase } from './element-base';
-import { InvalidIndexException } from './invalid-index-exception';
+import {ErrorMessages} from '../core/error-messages';
+import {Point} from '../core/point';
+import {IPointContainer} from '../core/point-container';
+import {PointDepth} from '../core/point-depth';
+import {Region} from '../core/region';
+import {Size} from '../core/size';
+import {ElementBase} from './element-base';
+import {InvalidIndexException} from './invalid-index-exception';
 
 export class PolylineElement extends ElementBase implements IPointContainer {
     /**
@@ -59,7 +59,7 @@ export class PolylineElement extends ElementBase implements IPointContainer {
             let result = '';
             let isFirst = true;
             for (const p of this._points) {
-                if(isFirst) {
+                if (isFirst) {
                     isFirst = false;
                 }
                 else {
@@ -462,7 +462,7 @@ export class PolylineElement extends ElementBase implements IPointContainer {
      * @returns This polyline
      */
     public setLocation(pointSource: string | Point) {
-        if(!this._points) {
+        if (!this._points) {
             return this;
         }
         const bounds = this.getBounds();
@@ -517,7 +517,7 @@ export class PolylineElement extends ElementBase implements IPointContainer {
      * @returns Requested point
      */
     public getPointAt(index: number, depth?: PointDepth): Point {
-        if(!this._points) {
+        if (!this._points) {
             throw new Error(ErrorMessages.NoPointsAreDefined);
         }
         if (index >= 0 && index < this._points.length) {
@@ -533,7 +533,7 @@ export class PolylineElement extends ElementBase implements IPointContainer {
      * @param depth - Not applicable to this element
      */
     public setPointAt(index: number, value: Point, depth: PointDepth) {
-        if(!this._points) {
+        if (!this._points) {
             throw new Error(ErrorMessages.NoPointsAreDefined);
         }
         if (index >= 0 && index < this._points.length) {

@@ -1,6 +1,6 @@
-import { Resource } from './resource';
-import { IResourceCreator } from './resource-creator';
-import { ResourceCreatorRegistration } from './resource-creator-registration';
+import {Resource} from './resource';
+import {IResourceCreator} from './resource-creator';
+import {ResourceCreatorRegistration} from './resource-creator-registration';
 
 export class ResourceFactory {
     /**

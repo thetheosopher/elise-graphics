@@ -1,17 +1,17 @@
-import { IController } from '../controller/controller';
-import { ElementBase } from '../elements/element-base';
-import { ElementFactory } from '../elements/element-factory';
-import { FillFactory } from '../fill/fill-factory';
-import { Resource } from '../resource/resource';
-import { ResourceFactory } from '../resource/resource-factory';
-import { ResourceManager } from '../resource/resource-manager';
-import { ResourceState } from '../resource/resource-state';
-import { Color } from './color';
-import { ModelEvent } from './model-event';
-import { Point } from './point';
-import { ScalingInfo } from './scaling-info';
-import { Size } from './size';
-import { Utility } from './utility';
+import {IController} from '../controller/controller';
+import {ElementBase} from '../elements/element-base';
+import {ElementFactory} from '../elements/element-factory';
+import {FillFactory} from '../fill/fill-factory';
+import {Resource} from '../resource/resource';
+import {ResourceFactory} from '../resource/resource-factory';
+import {ResourceManager} from '../resource/resource-manager';
+import {ResourceState} from '../resource/resource-state';
+import {Color} from './color';
+import {ModelEvent} from './model-event';
+import {Point} from './point';
+import {ScalingInfo} from './scaling-info';
+import {Size} from './size';
+import {Utility} from './utility';
 
 export class Model extends ElementBase {
     /**
@@ -60,7 +60,7 @@ export class Model extends ElementBase {
             modelPath = basePath + uri.substring(0, uri.lastIndexOf('/') + 1);
             modelFilePath = basePath + uri;
         }
-        Utility.getRemoteText(modelFilePath, (json) => {
+        Utility.getRemoteText(modelFilePath, json => {
             if (json) {
                 const model = Model.parse(json);
                 model.setBasePath(basePath);
@@ -306,7 +306,7 @@ export class Model extends ElementBase {
      * @param localeId - Desired locale ID (e.g. en-US) or null for any locale
      */
     public getResourceKeyReferenceCounts(localeId: string) {
-        const keys: { [index: string]: any } = {};
+        const keys: {[index: string]: any} = {};
 
         const rm = this.resourceManager;
         const model = this;
@@ -707,7 +707,7 @@ export class Model extends ElementBase {
      */
     public elementsAt(c: CanvasRenderingContext2D, tx: number, ty: number): ElementBase[] {
         const els: ElementBase[] = [];
-        this.elements.forEach((el) => {
+        this.elements.forEach(el => {
             if (el.interactive && el.hitTest(c, tx, ty)) {
                 els.push(el);
             }
@@ -843,13 +843,13 @@ export class Model extends ElementBase {
         super.cloneTo(m);
         if (this.resourceManager && this.resources && this.resources.length > 0) {
             m.resources = [];
-            this.resources.forEach((r) => {
+            this.resources.forEach(r => {
                 m.resources.push(r.clone());
             });
         }
         if (this.elements && this.elements.length > 0) {
             m.elements = [];
-            this.elements.forEach((e) => {
+            this.elements.forEach(e => {
                 const clone = e.clone();
                 clone.model = m;
                 m.elements.push(clone);
@@ -866,13 +866,13 @@ export class Model extends ElementBase {
         const o = super.serialize();
         if (this.resources && this.resources.length > 0) {
             o.resources = [];
-            this.resources.forEach((r) => {
+            this.resources.forEach(r => {
                 o.resources.push(r.serialize());
             });
         }
         if (this.elements && this.elements.length > 0) {
             o.elements = [];
-            this.elements.forEach((e) => {
+            this.elements.forEach(e => {
                 o.elements.push(e.serialize());
             });
         }

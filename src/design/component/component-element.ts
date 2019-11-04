@@ -1,7 +1,7 @@
-import { Point } from '../../core/point';
-import { Size } from '../../core/size';
-import { ModelElement } from '../../elements/model-element';
-import { Component } from './component';
+import {Point} from '../../core/point';
+import {Size} from '../../core/size';
+import {ModelElement} from '../../elements/model-element';
+import {Component} from './component';
 
 export class ComponentElement extends ModelElement {
     /**

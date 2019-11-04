@@ -1,6 +1,6 @@
-import { Surface } from '../surface';
-import { SurfacePane } from '../surface-pane';
-import { PaneTransition } from './pane-transition';
+import {Surface} from '../surface';
+import {SurfacePane} from '../surface-pane';
+import {PaneTransition} from './pane-transition';
 /*
   NoTransition
 */
@@ -13,7 +13,7 @@ export class PaneTransitionNone extends PaneTransition {
         const self = this;
         const source = self.pane.childSurface;
         self.onStart();
-        self.bind((surface) => {
+        self.bind(surface => {
             source.unbind();
             self.onComplete();
         }, false);

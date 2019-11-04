@@ -1,11 +1,11 @@
-import { CommonEvent } from '../core/common-event';
-import { ErrorMessages } from '../core/error-messages';
-import { Model } from '../core/model';
-import { SpriteElement } from '../elements/sprite-element';
-import { SpriteFrame } from '../elements/sprite-frame';
-import { Surface } from './surface';
-import { SurfaceElement } from './surface-element';
-import { SurfaceElementStates } from './surface-element-states';
+import {CommonEvent} from '../core/common-event';
+import {ErrorMessages} from '../core/error-messages';
+import {Model} from '../core/model';
+import {SpriteElement} from '../elements/sprite-element';
+import {SpriteFrame} from '../elements/sprite-frame';
+import {Surface} from './surface';
+import {SurfaceElement} from './surface-element';
+import {SurfaceElementStates} from './surface-element-states';
 
 export class SurfaceButtonElement extends SurfaceElement {
     public static BUTTON_CLICK = 'buttonClick';
@@ -212,7 +212,16 @@ export class SurfaceButtonElement extends SurfaceElement {
 
         if (surface.selectedImageSource) {
             sprite.frames.push(
-                SpriteFrame.create(SurfaceElementStates.SELECTED, this.left, this.top, this.width, this.height, 0, 'none', 0)
+                SpriteFrame.create(
+                    SurfaceElementStates.SELECTED,
+                    this.left,
+                    this.top,
+                    this.width,
+                    this.height,
+                    0,
+                    'none',
+                    0
+                )
             );
             this.selectedIndex = sprite.frames.length - 1;
         }
@@ -238,7 +247,16 @@ export class SurfaceButtonElement extends SurfaceElement {
 
         if (surface.disabledImageSource) {
             sprite.frames.push(
-                SpriteFrame.create(SurfaceElementStates.DISABLED, this.left, this.top, this.width, this.height, 0, 'none', 0)
+                SpriteFrame.create(
+                    SurfaceElementStates.DISABLED,
+                    this.left,
+                    this.top,
+                    this.width,
+                    this.height,
+                    0,
+                    'none',
+                    0
+                )
             );
             this.disabledIndex = sprite.frames.length - 1;
         }
@@ -279,7 +297,7 @@ export class SurfaceButtonElement extends SurfaceElement {
         if (self.isToggle) {
             if (self.groupId !== null) {
                 if (!self.isSelected) {
-                    self.surface.elements.forEach((sel) => {
+                    self.surface.elements.forEach(sel => {
                         if (sel instanceof SurfaceButtonElement && sel.spriteElement) {
                             if (sel.id === self.id) {
                                 sel.isSelected = true;
@@ -298,7 +316,7 @@ export class SurfaceButtonElement extends SurfaceElement {
                     });
                 }
                 else {
-                    self.surface.elements.forEach((sel) => {
+                    self.surface.elements.forEach(sel => {
                         if (sel instanceof SurfaceButtonElement && sel.spriteElement) {
                             if (self.groupId === sel.groupId) {
                                 sel.isSelected = false;

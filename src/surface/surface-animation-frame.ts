@@ -1,4 +1,4 @@
-import { Utility } from '../core/utility';
+import {Utility} from '../core/utility';
 
 export class SurfaceAnimationFrame {
     /**

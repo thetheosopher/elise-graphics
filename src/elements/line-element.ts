@@ -1,10 +1,10 @@
-import { ErrorMessages } from '../core/error-messages';
-import { Point } from '../core/point';
-import { IPointContainer } from '../core/point-container';
-import { PointDepth } from '../core/point-depth';
-import { Region } from '../core/region';
-import { ElementBase } from './element-base';
-import { InvalidIndexException } from './invalid-index-exception';
+import {ErrorMessages} from '../core/error-messages';
+import {Point} from '../core/point';
+import {IPointContainer} from '../core/point-container';
+import {PointDepth} from '../core/point-depth';
+import {Region} from '../core/region';
+import {ElementBase} from './element-base';
+import {InvalidIndexException} from './invalid-index-exception';
 
 export class LineElement extends ElementBase implements IPointContainer {
     /**
@@ -17,8 +17,7 @@ export class LineElement extends ElementBase implements IPointContainer {
      */
     public static create(x1?: number, y1?: number, x2?: number, y2?: number) {
         const e = new LineElement();
-        if (x1 !== undefined && x2 !== undefined &&
-            y1 !== undefined && y2 !== undefined) {
+        if (x1 !== undefined && x2 !== undefined && y1 !== undefined && y2 !== undefined) {
             e._p1 = new Point(x1, y1);
             e._p2 = new Point(x2, y2);
         }

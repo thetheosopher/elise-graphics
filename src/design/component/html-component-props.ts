@@ -1,4 +1,4 @@
-import { UploadComponentProps } from './upload-component-props';
+import {UploadComponentProps} from './upload-component-props';
 
 export class HtmlComponentProps extends UploadComponentProps {
     constructor() {

@@ -1,4 +1,4 @@
-import { IResourceCreator } from './resource-creator';
+import {IResourceCreator} from './resource-creator';
 
 export class ResourceCreatorRegistration {
     /**

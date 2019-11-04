@@ -1,4 +1,4 @@
-import { Model } from './model';
+import {Model} from './model';
 
 export class ModelEvent<T> {
     /**
@@ -48,6 +48,6 @@ export class ModelEvent<T> {
      *  @param Event data
      */
     public trigger(model: Model, data?: T) {
-        this.listeners.slice(0).forEach((h) => h(model, data));
+        this.listeners.slice(0).forEach(h => h(model, data));
     }
 }
