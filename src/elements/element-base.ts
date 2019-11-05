@@ -1,14 +1,14 @@
-import {Color} from '../core/color';
-import {ErrorMessages} from '../core/error-messages';
-import {Model} from '../core/model';
-import {Point} from '../core/point';
-import {IPointContainer} from '../core/point-container';
-import {PointDepth} from '../core/point-depth';
-import {Region} from '../core/region';
-import {Size} from '../core/size';
-import {LinearGradientFill} from '../fill/linear-gradient-fill';
-import {RadialGradientFill} from '../fill/radial-gradient-fill';
-import {ResourceManager} from '../resource/resource-manager';
+import { Color } from '../core/color';
+import { ErrorMessages } from '../core/error-messages';
+import { Model } from '../core/model';
+import { Point } from '../core/point';
+import { IPointContainer } from '../core/point-container';
+import { PointDepth } from '../core/point-depth';
+import { Region } from '../core/region';
+import { Size } from '../core/size';
+import { LinearGradientFill } from '../fill/linear-gradient-fill';
+import { RadialGradientFill } from '../fill/radial-gradient-fill';
+import { ResourceManager } from '../resource/resource-manager';
 
 export class ElementBase implements IPointContainer {
     /**

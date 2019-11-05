@@ -1,9 +1,9 @@
-import {ErrorMessages} from '../core/error-messages';
-import {Model} from '../core/model';
-import {Resource} from './resource';
-import {ResourceLoaderState} from './resource-loader-state';
-import {ResourceManagerEvent} from './resource-manager-event';
-import {ResourceState} from './resource-state';
+import { ErrorMessages } from '../core/error-messages';
+import { Model } from '../core/model';
+import { Resource } from './resource';
+import { ResourceLoaderState } from './resource-loader-state';
+import { ResourceManagerEvent } from './resource-manager-event';
+import { ResourceState } from './resource-state';
 
 export class ResourceManager {
     /**

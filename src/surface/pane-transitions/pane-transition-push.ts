@@ -1,8 +1,8 @@
-import {TransitionRenderer} from '../../transitions/transitions';
-import {Surface} from '../surface';
-import {SurfacePane} from '../surface-pane';
-import {PaneTransition} from './pane-transition';
-import {PaneTransitionDirection} from './pane-transition-direction';
+import { TransitionRenderer } from '../../transitions/transitions';
+import { Surface } from '../surface';
+import { SurfacePane } from '../surface-pane';
+import { PaneTransition } from './pane-transition';
+import { PaneTransitionDirection } from './pane-transition-direction';
 
 export class PaneTransitionPush extends PaneTransition {
     public duration: number;

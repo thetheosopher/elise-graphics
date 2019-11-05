@@ -1,4 +1,4 @@
-import {GradientFillStop} from './gradient-fill-stop';
+import { GradientFillStop } from './gradient-fill-stop';
 
 export class RadialGradientFill {
     /**

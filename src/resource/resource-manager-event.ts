@@ -1,4 +1,4 @@
-import {ResourceManager} from './resource-manager';
+import { ResourceManager } from './resource-manager';
 
 export class ResourceManagerEvent<T> {
     public listeners: Array<(resourceManager: ResourceManager, data?: T) => void> = [];

@@ -1,8 +1,8 @@
-import {Model} from '../../core/model';
-import {MouseLocationArgs} from '../../core/mouse-location-args';
-import {LinearGradientFill} from '../../fill/linear-gradient-fill';
-import {RadialGradientFill} from '../../fill/radial-gradient-fill';
-import {DesignController} from '../design-controller';
+import { Model } from '../../core/model';
+import { MouseLocationArgs } from '../../core/mouse-location-args';
+import { LinearGradientFill } from '../../fill/linear-gradient-fill';
+import { RadialGradientFill } from '../../fill/radial-gradient-fill';
+import { DesignController } from '../design-controller';
 
 export abstract class DesignTool {
     public model?: Model;

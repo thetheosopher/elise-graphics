@@ -1,5 +1,5 @@
-import {Size} from '../core/size';
-import {ElementBase} from './element-base';
+import { Size } from '../core/size';
+import { ElementBase } from './element-base';
 
 export class ElementSizeProps {
     /**

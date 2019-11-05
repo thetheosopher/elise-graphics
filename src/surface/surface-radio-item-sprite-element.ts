@@ -1,6 +1,6 @@
-import {Point} from '../core/point';
-import {Size} from '../core/size';
-import {SpriteElement} from '../elements/sprite-element';
+import { Point } from '../core/point';
+import { Size } from '../core/size';
+import { SpriteElement } from '../elements/sprite-element';
 
 export class SurfaceRadioItemSpriteElement extends SpriteElement {
     /**

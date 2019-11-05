@@ -1,23 +1,23 @@
-import {ElementCommandHandler} from '../command/element-command-handler';
-import {IController} from '../controller/controller';
-import {CommonEvent} from '../core/common-event';
-import {ErrorMessages} from '../core/error-messages';
-import {Model} from '../core/model';
-import {Utility} from '../core/utility';
-import {ElementBase} from '../elements/element-base';
-import {ImageElement} from '../elements/image-element';
-import {SpriteElement} from '../elements/sprite-element';
-import {BitmapResource} from '../resource/bitmap-resource';
-import {ResourceManager} from '../resource/resource-manager';
-import {ResourceManagerEvent} from '../resource/resource-manager-event';
-import {ResourceState} from '../resource/resource-state';
-import {SurfaceButtonElement} from './surface-button-element';
-import {SurfaceElement} from './surface-element';
-import {SurfaceElementStates} from './surface-element-states';
-import {SurfaceLayer} from './surface-layer';
-import {SurfaceTextElement} from './surface-text-element';
-import {SurfaceVideoLayer} from './surface-video-layer';
-import {SurfaceViewController} from './surface-view-controller';
+import { ElementCommandHandler } from '../command/element-command-handler';
+import { IController } from '../controller/controller';
+import { CommonEvent } from '../core/common-event';
+import { ErrorMessages } from '../core/error-messages';
+import { Model } from '../core/model';
+import { Utility } from '../core/utility';
+import { ElementBase } from '../elements/element-base';
+import { ImageElement } from '../elements/image-element';
+import { SpriteElement } from '../elements/sprite-element';
+import { BitmapResource } from '../resource/bitmap-resource';
+import { ResourceManager } from '../resource/resource-manager';
+import { ResourceManagerEvent } from '../resource/resource-manager-event';
+import { ResourceState } from '../resource/resource-state';
+import { SurfaceButtonElement } from './surface-button-element';
+import { SurfaceElement } from './surface-element';
+import { SurfaceElementStates } from './surface-element-states';
+import { SurfaceLayer } from './surface-layer';
+import { SurfaceTextElement } from './surface-text-element';
+import { SurfaceVideoLayer } from './surface-video-layer';
+import { SurfaceViewController } from './surface-view-controller';
 
 export class Surface {
     /**

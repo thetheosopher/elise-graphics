@@ -1,6 +1,6 @@
-import {ViewController} from '../view/view-controller';
-import {Surface} from './surface';
-import {SurfaceRadioStrip} from './surface-radio-strip';
+import { ViewController } from '../view/view-controller';
+import { Surface } from './surface';
+import { SurfaceRadioStrip } from './surface-radio-strip';
 
 export class SurfaceRadioStripViewController extends ViewController {
     /**

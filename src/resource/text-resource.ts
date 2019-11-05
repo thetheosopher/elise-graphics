@@ -1,7 +1,7 @@
-import {ErrorMessages} from '../core/error-messages';
-import {Utility} from '../core/utility';
-import {Resource} from './resource';
-import {ResourceFactory} from './resource-factory';
+import { ErrorMessages } from '../core/error-messages';
+import { Utility } from '../core/utility';
+import { Resource } from './resource';
+import { ResourceFactory } from './resource-factory';
 
 export class TextResource extends Resource {
     /**

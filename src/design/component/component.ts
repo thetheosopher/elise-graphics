@@ -1,16 +1,16 @@
-import {Model} from '../../core/model';
-import {ElementCreationProps} from '../../elements/element-creation-props';
-import {ElementDragArgs} from '../../elements/element-drag-args';
-import {ElementSizeProps} from '../../elements/element-size-props';
-import {RectangleElement} from '../../elements/rectangle-element';
-import {UploadCompletionProps} from '../../elements/upload-completion-props';
-import {UploadProgressProps} from '../../elements/upload-progress-props';
-import {LinearGradientFill} from '../../fill/linear-gradient-fill';
-import {RadialGradientFill} from '../../fill/radial-gradient-fill';
-import {ModelResource} from '../../resource/model-resource';
-import {ComponentElement} from './component-element';
-import {ComponentEvent} from './component-event';
-import {ComponentProps} from './component-props';
+import { Model } from '../../core/model';
+import { ElementCreationProps } from '../../elements/element-creation-props';
+import { ElementDragArgs } from '../../elements/element-drag-args';
+import { ElementSizeProps } from '../../elements/element-size-props';
+import { RectangleElement } from '../../elements/rectangle-element';
+import { UploadCompletionProps } from '../../elements/upload-completion-props';
+import { UploadProgressProps } from '../../elements/upload-progress-props';
+import { LinearGradientFill } from '../../fill/linear-gradient-fill';
+import { RadialGradientFill } from '../../fill/radial-gradient-fill';
+import { ModelResource } from '../../resource/model-resource';
+import { ComponentElement } from './component-element';
+import { ComponentEvent } from './component-event';
+import { ComponentProps } from './component-props';
 
 export class Component {
     public static baseImagePath: string;

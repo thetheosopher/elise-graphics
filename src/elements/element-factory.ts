@@ -1,16 +1,16 @@
-import {ElementBase} from './element-base';
-import {IElementCreator} from './element-creator';
-import {ElementCreatorRegistration} from './element-creator-registration';
-import {EllipseElement} from './ellipse-element';
-import {ImageElement} from './image-element';
-import {LineElement} from './line-element';
-import {ModelElement} from './model-element';
-import {PathElement} from './path-element';
-import {PolygonElement} from './polygon-element';
-import {PolylineElement} from './polyline-element';
-import {RectangleElement} from './rectangle-element';
-import {SpriteElement} from './sprite-element';
-import {TextElement} from './text-element';
+import { ElementBase } from './element-base';
+import { IElementCreator } from './element-creator';
+import { ElementCreatorRegistration } from './element-creator-registration';
+import { EllipseElement } from './ellipse-element';
+import { ImageElement } from './image-element';
+import { LineElement } from './line-element';
+import { ModelElement } from './model-element';
+import { PathElement } from './path-element';
+import { PolygonElement } from './polygon-element';
+import { PolylineElement } from './polyline-element';
+import { RectangleElement } from './rectangle-element';
+import { SpriteElement } from './sprite-element';
+import { TextElement } from './text-element';
 
 export class ElementFactory {
     /**

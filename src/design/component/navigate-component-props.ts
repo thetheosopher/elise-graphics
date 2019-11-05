@@ -1,4 +1,4 @@
-import {ImageBasedComponentProps} from './image-based-component-props';
+import { ImageBasedComponentProps } from './image-based-component-props';
 
 export class NavigateComponentProps extends ImageBasedComponentProps {
     constructor() {

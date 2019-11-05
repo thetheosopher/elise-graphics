@@ -1,13 +1,13 @@
-import {ErrorMessages} from '../core/error-messages';
-import {Point} from '../core/point';
-import {IPointContainer} from '../core/point-container';
-import {PointDepth} from '../core/point-depth';
-import {Region} from '../core/region';
-import {Size} from '../core/size';
-import {WindingMode} from '../core/winding-mode';
-import {FillFactory} from '../fill/fill-factory';
-import {ElementBase} from './element-base';
-import {InvalidIndexException} from './invalid-index-exception';
+import { ErrorMessages } from '../core/error-messages';
+import { Point } from '../core/point';
+import { IPointContainer } from '../core/point-container';
+import { PointDepth } from '../core/point-depth';
+import { Region } from '../core/region';
+import { Size } from '../core/size';
+import { WindingMode } from '../core/winding-mode';
+import { FillFactory } from '../fill/fill-factory';
+import { ElementBase } from './element-base';
+import { InvalidIndexException } from './invalid-index-exception';
 
 export class PolygonElement extends ElementBase implements IPointContainer {
     /**

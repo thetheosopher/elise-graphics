@@ -25,7 +25,7 @@ var config = {
         path: PATHS.bundles,
         filename: '[name].js',
         libraryTarget: 'umd',
-        library: 'Elise',
+        library: 'elise',
         umdNamedDefine: true
     },
     // Add resolve for `tsx` and `ts` files, otherwise Webpack would

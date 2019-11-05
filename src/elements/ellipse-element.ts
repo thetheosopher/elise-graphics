@@ -1,9 +1,9 @@
-import {ErrorMessages} from '../core/error-messages';
-import {Point} from '../core/point';
-import {Region} from '../core/region';
-import {Size} from '../core/size';
-import {FillFactory} from '../fill/fill-factory';
-import {ElementBase} from './element-base';
+import { ErrorMessages } from '../core/error-messages';
+import { Point } from '../core/point';
+import { Region } from '../core/region';
+import { Size } from '../core/size';
+import { FillFactory } from '../fill/fill-factory';
+import { ElementBase } from './element-base';
 
 export class EllipseElement extends ElementBase {
     /**

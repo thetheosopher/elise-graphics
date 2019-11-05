@@ -1,10 +1,10 @@
-import {ElementCommand} from '../command/element-command';
-import {IController} from '../controller/controller';
-import {ErrorMessages} from '../core/error-messages';
-import {TimerParameters} from '../core/timer-parameters';
-import {ElementBase} from '../elements/element-base';
-import {SpriteElement} from '../elements/sprite-element';
-import {BitmapResource} from '../resource/bitmap-resource';
+import { ElementCommand } from '../command/element-command';
+import { IController } from '../controller/controller';
+import { ErrorMessages } from '../core/error-messages';
+import { TimerParameters } from '../core/timer-parameters';
+import { ElementBase } from '../elements/element-base';
+import { SpriteElement } from '../elements/sprite-element';
+import { BitmapResource } from '../resource/bitmap-resource';
 
 export type TransitionRenderFunction = (
     context: CanvasRenderingContext2D,
@@ -36,60 +36,60 @@ export class TransitionRenderer {
     public static SPRITE_TRANSITION = 'spriteTransition';
 
     public static renderFunctions: INamedTransitionRenderFunction[] = [
-        {name: 'none', render: TransitionRenderer.renderNone},
-        {name: 'fade', render: TransitionRenderer.renderFade},
-        {name: 'pushLeft', render: TransitionRenderer.renderPushLeft},
-        {name: 'pushRight', render: TransitionRenderer.renderPushRight},
-        {name: 'pushUp', render: TransitionRenderer.renderPushUp},
-        {name: 'pushDown', render: TransitionRenderer.renderPushDown},
-        {name: 'wipeLeft', render: TransitionRenderer.renderWipeLeft},
-        {name: 'wipeRight', render: TransitionRenderer.renderWipeRight},
-        {name: 'wipeUp', render: TransitionRenderer.renderWipeUp},
-        {name: 'wipeDown', render: TransitionRenderer.renderWipeDown},
-        {name: 'slideLeft', render: TransitionRenderer.renderSlideLeft},
-        {name: 'slideRight', render: TransitionRenderer.renderSlideRight},
-        {name: 'slideUp', render: TransitionRenderer.renderSlideUp},
-        {name: 'slideDown', render: TransitionRenderer.renderSlideDown},
-        {name: 'slideLeftDown', render: TransitionRenderer.renderSlideLeftDown},
-        {name: 'slideRightDown', render: TransitionRenderer.renderSlideRightDown},
-        {name: 'slideLeftUp', render: TransitionRenderer.renderSlideLeftUp},
-        {name: 'slideRightUp', render: TransitionRenderer.renderSlideRightUp},
-        {name: 'revealLeft', render: TransitionRenderer.renderRevealLeft},
-        {name: 'revealRight', render: TransitionRenderer.renderRevealRight},
-        {name: 'revealUp', render: TransitionRenderer.renderRevealUp},
-        {name: 'revealDown', render: TransitionRenderer.renderRevealDown},
-        {name: 'revealLeftDown', render: TransitionRenderer.renderRevealLeftDown},
-        {name: 'revealRightDown', render: TransitionRenderer.renderRevealRightDown},
-        {name: 'revealLeftUp', render: TransitionRenderer.renderRevealLeftUp},
-        {name: 'revealRightUp', render: TransitionRenderer.renderRevealRightUp},
-        {name: 'ellipticalIn', render: TransitionRenderer.renderEllipticalIn},
-        {name: 'ellipticalOut', render: TransitionRenderer.renderEllipticalOut},
-        {name: 'rectangularIn', render: TransitionRenderer.renderRectangularIn},
-        {name: 'rectangularOut', render: TransitionRenderer.renderRectangularOut},
-        {name: 'grid', render: TransitionRenderer.renderGrid},
-        {name: 'expandHorizontal', render: TransitionRenderer.renderExpandHorizontal},
-        {name: 'expandVertical', render: TransitionRenderer.renderExpandVertical},
-        {name: 'zoomIn', render: TransitionRenderer.renderZoomIn},
-        {name: 'zoomOut', render: TransitionRenderer.renderZoomOut},
-        {name: 'zoomRotateIn', render: TransitionRenderer.renderZoomRotateIn},
-        {name: 'zoomRotateOut', render: TransitionRenderer.renderZoomRotateOut},
-        {name: 'radar', render: TransitionRenderer.renderRadar}
+        { name: 'none', render: TransitionRenderer.renderNone },
+        { name: 'fade', render: TransitionRenderer.renderFade },
+        { name: 'pushLeft', render: TransitionRenderer.renderPushLeft },
+        { name: 'pushRight', render: TransitionRenderer.renderPushRight },
+        { name: 'pushUp', render: TransitionRenderer.renderPushUp },
+        { name: 'pushDown', render: TransitionRenderer.renderPushDown },
+        { name: 'wipeLeft', render: TransitionRenderer.renderWipeLeft },
+        { name: 'wipeRight', render: TransitionRenderer.renderWipeRight },
+        { name: 'wipeUp', render: TransitionRenderer.renderWipeUp },
+        { name: 'wipeDown', render: TransitionRenderer.renderWipeDown },
+        { name: 'slideLeft', render: TransitionRenderer.renderSlideLeft },
+        { name: 'slideRight', render: TransitionRenderer.renderSlideRight },
+        { name: 'slideUp', render: TransitionRenderer.renderSlideUp },
+        { name: 'slideDown', render: TransitionRenderer.renderSlideDown },
+        { name: 'slideLeftDown', render: TransitionRenderer.renderSlideLeftDown },
+        { name: 'slideRightDown', render: TransitionRenderer.renderSlideRightDown },
+        { name: 'slideLeftUp', render: TransitionRenderer.renderSlideLeftUp },
+        { name: 'slideRightUp', render: TransitionRenderer.renderSlideRightUp },
+        { name: 'revealLeft', render: TransitionRenderer.renderRevealLeft },
+        { name: 'revealRight', render: TransitionRenderer.renderRevealRight },
+        { name: 'revealUp', render: TransitionRenderer.renderRevealUp },
+        { name: 'revealDown', render: TransitionRenderer.renderRevealDown },
+        { name: 'revealLeftDown', render: TransitionRenderer.renderRevealLeftDown },
+        { name: 'revealRightDown', render: TransitionRenderer.renderRevealRightDown },
+        { name: 'revealLeftUp', render: TransitionRenderer.renderRevealLeftUp },
+        { name: 'revealRightUp', render: TransitionRenderer.renderRevealRightUp },
+        { name: 'ellipticalIn', render: TransitionRenderer.renderEllipticalIn },
+        { name: 'ellipticalOut', render: TransitionRenderer.renderEllipticalOut },
+        { name: 'rectangularIn', render: TransitionRenderer.renderRectangularIn },
+        { name: 'rectangularOut', render: TransitionRenderer.renderRectangularOut },
+        { name: 'grid', render: TransitionRenderer.renderGrid },
+        { name: 'expandHorizontal', render: TransitionRenderer.renderExpandHorizontal },
+        { name: 'expandVertical', render: TransitionRenderer.renderExpandVertical },
+        { name: 'zoomIn', render: TransitionRenderer.renderZoomIn },
+        { name: 'zoomOut', render: TransitionRenderer.renderZoomOut },
+        { name: 'zoomRotateIn', render: TransitionRenderer.renderZoomRotateIn },
+        { name: 'zoomRotateOut', render: TransitionRenderer.renderZoomRotateOut },
+        { name: 'radar', render: TransitionRenderer.renderRadar }
     ];
 
     public static easingFunctions: INamedEasingFunction[] = [
-        {name: 'easeLinear', ease: TransitionRenderer.easeLinear},
-        {name: 'easeInQuad', ease: TransitionRenderer.easeInQuad},
-        {name: 'easeOutQuad', ease: TransitionRenderer.easeOutQuad},
-        {name: 'easeInOutQuad', ease: TransitionRenderer.easeInOutQuad},
-        {name: 'easeInCubic', ease: TransitionRenderer.easeInCubic},
-        {name: 'easeOutCubic', ease: TransitionRenderer.easeOutCubic},
-        {name: 'easeInOutCubic', ease: TransitionRenderer.easeInOutCubic},
-        {name: 'easeInQuart', ease: TransitionRenderer.easeInQuart},
-        {name: 'easeOutQuart', ease: TransitionRenderer.easeOutQuart},
-        {name: 'easeInOutQuart', ease: TransitionRenderer.easeInOutQuart},
-        {name: 'easeInQuint', ease: TransitionRenderer.easeInQuint},
-        {name: 'easeOutQuint', ease: TransitionRenderer.easeOutQuint},
-        {name: 'easeInOutQuint', ease: TransitionRenderer.easeInOutQuint}
+        { name: 'easeLinear', ease: TransitionRenderer.easeLinear },
+        { name: 'easeInQuad', ease: TransitionRenderer.easeInQuad },
+        { name: 'easeOutQuad', ease: TransitionRenderer.easeOutQuad },
+        { name: 'easeInOutQuad', ease: TransitionRenderer.easeInOutQuad },
+        { name: 'easeInCubic', ease: TransitionRenderer.easeInCubic },
+        { name: 'easeOutCubic', ease: TransitionRenderer.easeOutCubic },
+        { name: 'easeInOutCubic', ease: TransitionRenderer.easeInOutCubic },
+        { name: 'easeInQuart', ease: TransitionRenderer.easeInQuart },
+        { name: 'easeOutQuart', ease: TransitionRenderer.easeOutQuart },
+        { name: 'easeInOutQuart', ease: TransitionRenderer.easeInOutQuart },
+        { name: 'easeInQuint', ease: TransitionRenderer.easeInQuint },
+        { name: 'easeOutQuint', ease: TransitionRenderer.easeOutQuint },
+        { name: 'easeInOutQuint', ease: TransitionRenderer.easeInOutQuint }
     ];
 
     public static transitionSprite(

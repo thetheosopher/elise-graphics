@@ -1,7 +1,7 @@
-import {CommonEvent} from '../core/common-event';
-import {ErrorMessages} from '../core/error-messages';
-import {Surface} from './surface';
-import {SurfaceLayer} from './surface-layer';
+import { CommonEvent } from '../core/common-event';
+import { ErrorMessages } from '../core/error-messages';
+import { Surface } from './surface';
+import { SurfaceLayer } from './surface-layer';
 
 export class SurfaceImageLayer extends SurfaceLayer {
     /**

@@ -1,9 +1,9 @@
-import {CommonEvent} from '../core/common-event';
-import {Model} from '../core/model';
-import {RectangleElement} from '../elements/rectangle-element';
-import {TextElement} from '../elements/text-element';
-import {Surface} from './surface';
-import {SurfaceElement} from './surface-element';
+import { CommonEvent } from '../core/common-event';
+import { Model } from '../core/model';
+import { RectangleElement } from '../elements/rectangle-element';
+import { TextElement } from '../elements/text-element';
+import { Surface } from './surface';
+import { SurfaceElement } from './surface-element';
 
 export class SurfaceTextElement extends SurfaceElement {
     public static TEXT_CLICK = 'textClick';

@@ -1,8 +1,8 @@
-import {MouseLocationArgs} from '../../core/mouse-location-args';
-import {Point} from '../../core/point';
-import {LineElement} from '../../elements/line-element';
-import {PolygonElement} from '../../elements/polygon-element';
-import {DesignTool} from './design-tool';
+import { MouseLocationArgs } from '../../core/mouse-location-args';
+import { Point } from '../../core/point';
+import { LineElement } from '../../elements/line-element';
+import { PolygonElement } from '../../elements/polygon-element';
+import { DesignTool } from './design-tool';
 
 export class PolygonTool extends DesignTool {
     public points?: Point[];

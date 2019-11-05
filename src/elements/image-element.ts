@@ -1,9 +1,9 @@
-import {ErrorMessages} from '../core/error-messages';
-import {Point} from '../core/point';
-import {Size} from '../core/size';
-import {BitmapResource} from '../resource/bitmap-resource';
-import {ResourceManager} from '../resource/resource-manager';
-import {ElementBase} from './element-base';
+import { ErrorMessages } from '../core/error-messages';
+import { Point } from '../core/point';
+import { Size } from '../core/size';
+import { BitmapResource } from '../resource/bitmap-resource';
+import { ResourceManager } from '../resource/resource-manager';
+import { ElementBase } from './element-base';
 
 export class ImageElement extends ElementBase {
     /**

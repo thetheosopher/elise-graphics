@@ -1,8 +1,8 @@
-import {MouseLocationArgs} from '../../core/mouse-location-args';
-import {Point} from '../../core/point';
-import {Size} from '../../core/size';
-import {RectangleElement} from '../../elements/rectangle-element';
-import {DesignTool} from './design-tool';
+import { MouseLocationArgs } from '../../core/mouse-location-args';
+import { Point } from '../../core/point';
+import { Size } from '../../core/size';
+import { RectangleElement } from '../../elements/rectangle-element';
+import { DesignTool } from './design-tool';
 
 export class RectangleTool extends DesignTool {
     public point1?: Point;

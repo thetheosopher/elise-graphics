@@ -1,4 +1,4 @@
-import {IController} from './controller';
+import { IController } from './controller';
 
 export interface IControllerEvent<T> {
     add(handler: (c: IController, data: T) => void): void;

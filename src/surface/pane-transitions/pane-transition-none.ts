@@ -1,6 +1,6 @@
-import {Surface} from '../surface';
-import {SurfacePane} from '../surface-pane';
-import {PaneTransition} from './pane-transition';
+import { Surface } from '../surface';
+import { SurfacePane } from '../surface-pane';
+import { PaneTransition } from './pane-transition';
 /*
   NoTransition
 */

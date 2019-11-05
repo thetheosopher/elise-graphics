@@ -1,6 +1,6 @@
-import {ErrorMessages} from '../../core/error-messages';
-import {Surface} from '../surface';
-import {SurfacePane} from '../surface-pane';
+import { ErrorMessages } from '../../core/error-messages';
+import { Surface } from '../surface';
+import { SurfacePane } from '../surface-pane';
 
 export abstract class PaneTransition {
     public pane: SurfacePane;

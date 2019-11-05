@@ -1,14 +1,14 @@
-import {ErrorMessages} from '../core/error-messages';
-import {Utility} from '../core/utility';
-import {PaneTransitionDirection} from './pane-transitions/pane-transition-direction';
-import {PaneTransitionFade} from './pane-transitions/pane-transition-fade';
-import {PaneTransitionNone} from './pane-transitions/pane-transition-none';
-import {PaneTransitionPush} from './pane-transitions/pane-transition-push';
-import {PaneTransitionReveal} from './pane-transitions/pane-transition-reveal';
-import {PaneTransitionSlide} from './pane-transitions/pane-transition-slide';
-import {PaneTransitionWipe} from './pane-transitions/pane-transition-wipe';
-import {Surface} from './surface';
-import {SurfaceLayer} from './surface-layer';
+import { ErrorMessages } from '../core/error-messages';
+import { Utility } from '../core/utility';
+import { PaneTransitionDirection } from './pane-transitions/pane-transition-direction';
+import { PaneTransitionFade } from './pane-transitions/pane-transition-fade';
+import { PaneTransitionNone } from './pane-transitions/pane-transition-none';
+import { PaneTransitionPush } from './pane-transitions/pane-transition-push';
+import { PaneTransitionReveal } from './pane-transitions/pane-transition-reveal';
+import { PaneTransitionSlide } from './pane-transitions/pane-transition-slide';
+import { PaneTransitionWipe } from './pane-transitions/pane-transition-wipe';
+import { Surface } from './surface';
+import { SurfaceLayer } from './surface-layer';
 
 export class SurfacePane extends SurfaceLayer {
     /**

@@ -1,9 +1,9 @@
-import {ErrorMessages} from '../core/error-messages';
-import {Model} from '../core/model';
-import {Size} from '../core/size';
-import {Utility} from '../core/utility';
-import {Resource} from './resource';
-import {ResourceFactory} from './resource-factory';
+import { ErrorMessages } from '../core/error-messages';
+import { Model } from '../core/model';
+import { Size } from '../core/size';
+import { Utility } from '../core/utility';
+import { Resource } from './resource';
+import { ResourceFactory } from './resource-factory';
 
 export class ModelResource extends Resource {
     /**

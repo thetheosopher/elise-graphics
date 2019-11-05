@@ -1,14 +1,14 @@
-import {ErrorMessages} from '../../core/error-messages';
-import {Model} from '../../core/model';
-import {Size} from '../../core/size';
-import {ElementCreationProps} from '../../elements/element-creation-props';
-import {ElementSizeProps} from '../../elements/element-size-props';
-import {RectangleElement} from '../../elements/rectangle-element';
-import {BitmapResource} from '../../resource/bitmap-resource';
-import {ModelResource} from '../../resource/model-resource';
-import {ComponentElement} from '../component/component-element';
-import {Component} from './component';
-import {ComponentProps} from './component-props';
+import { ErrorMessages } from '../../core/error-messages';
+import { Model } from '../../core/model';
+import { Size } from '../../core/size';
+import { ElementCreationProps } from '../../elements/element-creation-props';
+import { ElementSizeProps } from '../../elements/element-size-props';
+import { RectangleElement } from '../../elements/rectangle-element';
+import { BitmapResource } from '../../resource/bitmap-resource';
+import { ModelResource } from '../../resource/model-resource';
+import { ComponentElement } from '../component/component-element';
+import { Component } from './component';
+import { ComponentProps } from './component-props';
 
 export class ImageBasedComponentProps extends ComponentProps {
     public imageTag: string;

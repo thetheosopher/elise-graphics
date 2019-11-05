@@ -1,17 +1,17 @@
-import {IController} from '../controller/controller';
-import {ElementBase} from '../elements/element-base';
-import {ElementFactory} from '../elements/element-factory';
-import {FillFactory} from '../fill/fill-factory';
-import {Resource} from '../resource/resource';
-import {ResourceFactory} from '../resource/resource-factory';
-import {ResourceManager} from '../resource/resource-manager';
-import {ResourceState} from '../resource/resource-state';
-import {Color} from './color';
-import {ModelEvent} from './model-event';
-import {Point} from './point';
-import {ScalingInfo} from './scaling-info';
-import {Size} from './size';
-import {Utility} from './utility';
+import { IController } from '../controller/controller';
+import { ElementBase } from '../elements/element-base';
+import { ElementFactory } from '../elements/element-factory';
+import { FillFactory } from '../fill/fill-factory';
+import { Resource } from '../resource/resource';
+import { ResourceFactory } from '../resource/resource-factory';
+import { ResourceManager } from '../resource/resource-manager';
+import { ResourceState } from '../resource/resource-state';
+import { Color } from './color';
+import { ModelEvent } from './model-event';
+import { Point } from './point';
+import { ScalingInfo } from './scaling-info';
+import { Size } from './size';
+import { Utility } from './utility';
 
 export class Model extends ElementBase {
     /**
@@ -306,7 +306,7 @@ export class Model extends ElementBase {
      * @param localeId - Desired locale ID (e.g. en-US) or null for any locale
      */
     public getResourceKeyReferenceCounts(localeId: string) {
-        const keys: {[index: string]: any} = {};
+        const keys: { [index: string]: any } = {};
 
         const rm = this.resourceManager;
         const model = this;

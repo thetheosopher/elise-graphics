@@ -1,19 +1,19 @@
-import {ElementCommandHandler} from '../command/element-command-handler';
-import {IController} from '../controller/controller';
-import {CommonEvent} from '../core/common-event';
-import {ErrorMessages} from '../core/error-messages';
-import {Model} from '../core/model';
-import {ElementBase} from '../elements/element-base';
-import {SpriteElement} from '../elements/sprite-element';
-import {SpriteFrame} from '../elements/sprite-frame';
-import {BitmapResource} from '../resource/bitmap-resource';
-import {ResourceManager} from '../resource/resource-manager';
-import {ResourceState} from '../resource/resource-state';
-import {TransitionRenderer} from '../transitions/transitions';
-import {Surface} from './surface';
-import {SurfaceAnimationFrame} from './surface-animation-frame';
-import {SurfaceAnimationViewController} from './surface-animation-view-controller';
-import {SurfaceLayer} from './surface-layer';
+import { ElementCommandHandler } from '../command/element-command-handler';
+import { IController } from '../controller/controller';
+import { CommonEvent } from '../core/common-event';
+import { ErrorMessages } from '../core/error-messages';
+import { Model } from '../core/model';
+import { ElementBase } from '../elements/element-base';
+import { SpriteElement } from '../elements/sprite-element';
+import { SpriteFrame } from '../elements/sprite-frame';
+import { BitmapResource } from '../resource/bitmap-resource';
+import { ResourceManager } from '../resource/resource-manager';
+import { ResourceState } from '../resource/resource-state';
+import { TransitionRenderer } from '../transitions/transitions';
+import { Surface } from './surface';
+import { SurfaceAnimationFrame } from './surface-animation-frame';
+import { SurfaceAnimationViewController } from './surface-animation-view-controller';
+import { SurfaceLayer } from './surface-layer';
 
 export class SurfaceAnimationLayer extends SurfaceLayer {
     public static ANIMATION_CLICK = 'animationClick';

@@ -1,10 +1,10 @@
-import {ErrorMessages} from '../core/error-messages';
-import {Point} from '../core/point';
-import {Size} from '../core/size';
-import {FillFactory} from '../fill/fill-factory';
-import {ResourceManager} from '../resource/resource-manager';
-import {TextResource} from '../resource/text-resource';
-import {ElementBase} from './element-base';
+import { ErrorMessages } from '../core/error-messages';
+import { Point } from '../core/point';
+import { Size } from '../core/size';
+import { FillFactory } from '../fill/fill-factory';
+import { ResourceManager } from '../resource/resource-manager';
+import { TextResource } from '../resource/text-resource';
+import { ElementBase } from './element-base';
 
 export class TextElement extends ElementBase {
     /**

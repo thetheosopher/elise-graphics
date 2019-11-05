@@ -1,6 +1,6 @@
-import {CommonEvent} from '../core/common-event';
-import {Surface} from './surface';
-import {SurfaceLayer} from './surface-layer';
+import { CommonEvent } from '../core/common-event';
+import { Surface } from './surface';
+import { SurfaceLayer } from './surface-layer';
 
 export class SurfaceHiddenLayer extends SurfaceLayer {
     /**

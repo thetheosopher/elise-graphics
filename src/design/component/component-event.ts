@@ -1,4 +1,4 @@
-import {Component} from './component';
+import { Component } from './component';
 
 export class ComponentEvent<T> {
     private listeners: Array<(c: Component, data: T) => void> = [];

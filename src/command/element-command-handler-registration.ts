@@ -1,5 +1,5 @@
-import {ElementBase} from '../elements/element-base';
-import {ICommandHandlerMethod} from './command-handler';
+import { ElementBase } from '../elements/element-base';
+import { ICommandHandlerMethod } from './command-handler';
 
 export class ElementCommandHandlerRegistration {
     public command: string;

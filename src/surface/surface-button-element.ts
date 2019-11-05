@@ -1,11 +1,11 @@
-import {CommonEvent} from '../core/common-event';
-import {ErrorMessages} from '../core/error-messages';
-import {Model} from '../core/model';
-import {SpriteElement} from '../elements/sprite-element';
-import {SpriteFrame} from '../elements/sprite-frame';
-import {Surface} from './surface';
-import {SurfaceElement} from './surface-element';
-import {SurfaceElementStates} from './surface-element-states';
+import { CommonEvent } from '../core/common-event';
+import { ErrorMessages } from '../core/error-messages';
+import { Model } from '../core/model';
+import { SpriteElement } from '../elements/sprite-element';
+import { SpriteFrame } from '../elements/sprite-frame';
+import { Surface } from './surface';
+import { SurfaceElement } from './surface-element';
+import { SurfaceElementStates } from './surface-element-states';
 
 export class SurfaceButtonElement extends SurfaceElement {
     public static BUTTON_CLICK = 'buttonClick';

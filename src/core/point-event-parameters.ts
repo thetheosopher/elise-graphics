@@ -1,5 +1,5 @@
-import {MousePositionInfo} from './mouse-position-info';
-import {Point} from './point';
+import { MousePositionInfo } from './mouse-position-info';
+import { Point } from './point';
 
 export class PointEventParameters {
     /**

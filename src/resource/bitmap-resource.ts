@@ -1,8 +1,8 @@
-import {ErrorMessages} from '../core/error-messages';
-import {Size} from '../core/size';
-import {Utility} from '../core/utility';
-import {Resource} from './resource';
-import {ResourceFactory} from './resource-factory';
+import { ErrorMessages } from '../core/error-messages';
+import { Size } from '../core/size';
+import { Utility } from '../core/utility';
+import { Resource } from './resource';
+import { ResourceFactory } from './resource-factory';
 
 export class BitmapResource extends Resource {
     /**

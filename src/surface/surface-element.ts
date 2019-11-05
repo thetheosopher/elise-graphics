@@ -1,7 +1,7 @@
-import {Model} from '../core/model';
-import {Utility} from '../core/utility';
-import {ElementBase} from '../elements/element-base';
-import {Surface} from './surface';
+import { Model } from '../core/model';
+import { Utility } from '../core/utility';
+import { ElementBase } from '../elements/element-base';
+import { Surface } from './surface';
 
 export class SurfaceElement {
     /**

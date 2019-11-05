@@ -1,10 +1,10 @@
-import {ErrorMessages} from '../core/error-messages';
-import {Point} from '../core/point';
-import {IPointContainer} from '../core/point-container';
-import {PointDepth} from '../core/point-depth';
-import {Region} from '../core/region';
-import {ElementBase} from './element-base';
-import {InvalidIndexException} from './invalid-index-exception';
+import { ErrorMessages } from '../core/error-messages';
+import { Point } from '../core/point';
+import { IPointContainer } from '../core/point-container';
+import { PointDepth } from '../core/point-depth';
+import { Region } from '../core/region';
+import { ElementBase } from './element-base';
+import { InvalidIndexException } from './invalid-index-exception';
 
 export class LineElement extends ElementBase implements IPointContainer {
     /**

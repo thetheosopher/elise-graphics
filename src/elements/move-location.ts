@@ -1,5 +1,5 @@
-import {Point} from '../core/point';
-import {ElementBase} from './element-base';
+import { Point } from '../core/point';
+import { ElementBase } from './element-base';
 
 /**
  * Represents the tentative location of an element during a move operation

@@ -1,4 +1,4 @@
-import {Model} from '../core/model';
+import { Model } from '../core/model';
 
 export class ElementCreationProps {
     /**

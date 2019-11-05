@@ -1,11 +1,11 @@
-import {IController} from '../controller/controller';
-import {Color} from '../core/color';
-import {CommonEvent} from '../core/common-event';
-import {ErrorMessages} from '../core/error-messages';
-import {Model} from '../core/model';
-import {FillFactory} from '../fill/fill-factory';
-import {FillInfo} from '../fill/fill-info';
-import {ViewController} from '../view/view-controller';
+import { IController } from '../controller/controller';
+import { Color } from '../core/color';
+import { CommonEvent } from '../core/common-event';
+import { ErrorMessages } from '../core/error-messages';
+import { Model } from '../core/model';
+import { FillFactory } from '../fill/fill-factory';
+import { FillInfo } from '../fill/fill-info';
+import { ViewController } from '../view/view-controller';
 
 export class Sketcher {
     public static create(modelUrl: string, scale: number = 1) {

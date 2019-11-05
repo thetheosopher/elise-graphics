@@ -1,6 +1,6 @@
-import {IMouseEvent} from './mouse-event';
-import {MouseEventArgs} from './mouse-event-args';
-import {Point} from './point';
+import { IMouseEvent } from './mouse-event';
+import { MouseEventArgs } from './mouse-event-args';
+import { Point } from './point';
 
 export class MouseLocationArgs extends MouseEventArgs {
     /**

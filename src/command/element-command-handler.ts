@@ -1,15 +1,15 @@
-import {IController} from '../controller/controller';
-import {Model} from '../core/model';
-import {TimerParameters} from '../core/timer-parameters';
-import {ElementBase} from '../elements/element-base';
-import {ModelElement} from '../elements/model-element';
-import {SpriteElement} from '../elements/sprite-element';
-import {ModelResource} from '../resource/model-resource';
-import {CommandEventTrigger} from './command-event-trigger';
-import {ICommandHandlerMethod} from './command-handler';
-import {ICommandHandler} from './command-handler';
-import {ElementCommand} from './element-command';
-import {ElementCommandHandlerRegistration} from './element-command-handler-registration';
+import { IController } from '../controller/controller';
+import { Model } from '../core/model';
+import { TimerParameters } from '../core/timer-parameters';
+import { ElementBase } from '../elements/element-base';
+import { ModelElement } from '../elements/model-element';
+import { SpriteElement } from '../elements/sprite-element';
+import { ModelResource } from '../resource/model-resource';
+import { CommandEventTrigger } from './command-event-trigger';
+import { ICommandHandlerMethod } from './command-handler';
+import { ICommandHandler } from './command-handler';
+import { ElementCommand } from './element-command';
+import { ElementCommandHandlerRegistration } from './element-command-handler-registration';
 
 export class ElementCommandHandler implements ICommandHandler<ElementBase> {
     public static PUSH_FILL = 'pushFill';

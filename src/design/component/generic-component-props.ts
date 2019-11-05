@@ -1,5 +1,5 @@
-import {Color} from '../../core/color';
-import {ComponentProps} from './component-props';
+import { Color } from '../../core/color';
+import { ComponentProps } from './component-props';
 
 export class GenericComponentProps extends ComponentProps {
     constructor() {

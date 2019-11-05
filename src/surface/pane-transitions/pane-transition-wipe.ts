@@ -1,9 +1,9 @@
-import {ErrorMessages} from '../../core/error-messages';
-import {TransitionRenderer} from '../../transitions/transitions';
-import {Surface} from '../surface';
-import {SurfacePane} from '../surface-pane';
-import {PaneTransition} from './pane-transition';
-import {PaneTransitionDirection} from './pane-transition-direction';
+import { ErrorMessages } from '../../core/error-messages';
+import { TransitionRenderer } from '../../transitions/transitions';
+import { Surface } from '../surface';
+import { SurfacePane } from '../surface-pane';
+import { PaneTransition } from './pane-transition';
+import { PaneTransitionDirection } from './pane-transition-direction';
 
 export class PaneTransitionWipe extends PaneTransition {
     public duration: number;

@@ -1,4 +1,4 @@
-import {IController} from '../controller/controller';
+import { IController } from '../controller/controller';
 
 export type ICommandHandlerMethod<T> = (
     controller: IController,

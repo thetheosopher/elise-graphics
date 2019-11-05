@@ -1,6 +1,6 @@
-import {Size} from '../core/size';
-import {SizeArgs} from '../core/size-args';
-import {ElementBase} from './element-base';
+import { Size } from '../core/size';
+import { SizeArgs } from '../core/size-args';
+import { ElementBase } from './element-base';
 
 export class ElementSizeArgs extends SizeArgs {
     /**

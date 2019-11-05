@@ -1,8 +1,8 @@
-import {ElementCommandHandler} from '../command/element-command-handler';
-import {Model} from '../core/model';
-import {TimerParameters} from '../core/timer-parameters';
-import {ElementBase} from '../elements/element-base';
-import {IControllerEvent} from './controller-event';
+import { ElementCommandHandler } from '../command/element-command-handler';
+import { Model } from '../core/model';
+import { TimerParameters } from '../core/timer-parameters';
+import { ElementBase } from '../elements/element-base';
+import { IControllerEvent } from './controller-event';
 
 export interface IController {
     model?: Model;

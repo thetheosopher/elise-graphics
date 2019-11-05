@@ -1,5 +1,5 @@
-import {ViewController} from '../view/view-controller';
-import {Surface} from './surface';
+import { ViewController } from '../view/view-controller';
+import { Surface } from './surface';
 
 export class SurfaceViewController extends ViewController {
     /**

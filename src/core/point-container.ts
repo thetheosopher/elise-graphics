@@ -1,5 +1,5 @@
-import {Point} from './point';
-import {PointDepth} from './point-depth';
+import { Point } from './point';
+import { PointDepth } from './point-depth';
 
 export interface IPointContainer {
     /**

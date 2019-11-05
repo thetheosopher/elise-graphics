@@ -1,10 +1,10 @@
-import {Color} from '../core/color';
-import {Model} from '../core/model';
-import {ScalingInfo} from '../core/scaling-info';
-import {ElementBase} from '../elements/element-base';
-import {GradientFillStop} from './gradient-fill-stop';
-import {LinearGradientFill} from './linear-gradient-fill';
-import {RadialGradientFill} from './radial-gradient-fill';
+import { Color } from '../core/color';
+import { Model } from '../core/model';
+import { ScalingInfo } from '../core/scaling-info';
+import { ElementBase } from '../elements/element-base';
+import { GradientFillStop } from './gradient-fill-stop';
+import { LinearGradientFill } from './linear-gradient-fill';
+import { RadialGradientFill } from './radial-gradient-fill';
 
 export class FillInfo {
     public static getNoFillInfo() {

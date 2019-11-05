@@ -1,8 +1,8 @@
-import {ErrorMessages} from '../../core/error-messages';
-import {TransitionRenderer} from '../../transitions/transitions';
-import {Surface} from '../surface';
-import {SurfacePane} from '../surface-pane';
-import {PaneTransition} from './pane-transition';
+import { ErrorMessages } from '../../core/error-messages';
+import { TransitionRenderer } from '../../transitions/transitions';
+import { Surface } from '../surface';
+import { SurfacePane } from '../surface-pane';
+import { PaneTransition } from './pane-transition';
 
 export class PaneTransitionFade extends PaneTransition {
     public duration: number;

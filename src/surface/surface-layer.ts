@@ -1,5 +1,5 @@
-import {Surface} from './surface';
-import {SurfaceElement} from './surface-element';
+import { Surface } from './surface';
+import { SurfaceElement } from './surface-element';
 
 export abstract class SurfaceLayer extends SurfaceElement {
     /**

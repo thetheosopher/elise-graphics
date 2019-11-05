@@ -1,6 +1,6 @@
-import {LocationArgs} from '../core/location-args';
-import {Point} from '../core/point';
-import {ElementBase} from './element-base';
+import { LocationArgs } from '../core/location-args';
+import { Point } from '../core/point';
+import { ElementBase } from './element-base';
 
 export class ElementLocationArgs extends LocationArgs {
     /**

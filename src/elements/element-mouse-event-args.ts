@@ -1,5 +1,5 @@
-import {MouseEventArgs} from '../core/mouse-event-args';
-import {ElementBase} from './element-base';
+import { MouseEventArgs } from '../core/mouse-event-args';
+import { ElementBase } from './element-base';
 
 export class ElementMouseEventArgs extends MouseEventArgs {
     /**

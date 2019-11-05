@@ -1,5 +1,5 @@
-import {LocationArgs} from './location-args';
-import {Point} from './point';
+import { LocationArgs } from './location-args';
+import { Point } from './point';
 
 export class ViewDragArgs extends LocationArgs {
     /**

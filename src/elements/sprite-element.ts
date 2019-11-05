@@ -1,11 +1,11 @@
-import {ErrorMessages} from '../core/error-messages';
-import {Point} from '../core/point';
-import {Size} from '../core/size';
-import {BitmapResource} from '../resource/bitmap-resource';
-import {ResourceManager} from '../resource/resource-manager';
-import {ElementBase} from './element-base';
-import {SpriteFrame} from './sprite-frame';
-import {SpriteState} from './sprite-state';
+import { ErrorMessages } from '../core/error-messages';
+import { Point } from '../core/point';
+import { Size } from '../core/size';
+import { BitmapResource } from '../resource/bitmap-resource';
+import { ResourceManager } from '../resource/resource-manager';
+import { ElementBase } from './element-base';
+import { SpriteFrame } from './sprite-frame';
+import { SpriteState } from './sprite-state';
 
 export class SpriteElement extends ElementBase {
     /**

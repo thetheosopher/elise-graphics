@@ -1,5 +1,5 @@
-import {SurfaceAnimationLayer} from './surface-animation-layer';
-import {SurfaceViewController} from './surface-view-controller';
+import { SurfaceAnimationLayer } from './surface-animation-layer';
+import { SurfaceViewController } from './surface-view-controller';
 
 export class SurfaceAnimationViewController extends SurfaceViewController {
     /**

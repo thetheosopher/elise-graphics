@@ -1,38 +1,38 @@
-import {ElementCommandHandler} from '../command/element-command-handler';
-import {IController} from '../controller/controller';
-import {ControllerEvent, IControllerEvent} from '../controller/controller-event';
-import {ControllerEventArgs} from '../controller/controller-event-args';
-import {Color} from '../core/color';
-import {ErrorMessages} from '../core/error-messages';
-import {Logging} from '../core/logging';
-import {Model} from '../core/model';
-import {IMouseEvent} from '../core/mouse-event';
-import {MouseEventArgs} from '../core/mouse-event-args';
-import {MouseLocationArgs} from '../core/mouse-location-args';
-import {Point} from '../core/point';
-import {PointDepth} from '../core/point-depth';
-import {PointEventParameters} from '../core/point-event-parameters';
-import {Region} from '../core/region';
-import {Size} from '../core/size';
-import {TimerParameters} from '../core/timer-parameters';
-import {Utility} from '../core/utility';
-import {ViewDragArgs} from '../core/view-drag-args';
-import {ElementBase} from '../elements/element-base';
-import {ElementCreationProps} from '../elements/element-creation-props';
-import {ElementDragArgs} from '../elements/element-drag-args';
-import {ElementLocationArgs} from '../elements/element-location-args';
-import {ElementSizeArgs} from '../elements/element-size-args';
-import {ElementSizeProps} from '../elements/element-size-props';
-import {MoveLocation} from '../elements/move-location';
-import {ResizeSize} from '../elements/resize-size';
-import {Component} from './component/component';
-import {ComponentElement} from './component/component-element';
-import {ComponentRegistry} from './component/component-registry';
-import {DesignRenderer} from './design-renderer';
-import {GridType} from './grid-type';
-import {Handle} from './handle';
-import {HandleFactory} from './handle-factory';
-import {DesignTool} from './tools/design-tool';
+import { ElementCommandHandler } from '../command/element-command-handler';
+import { IController } from '../controller/controller';
+import { ControllerEvent, IControllerEvent } from '../controller/controller-event';
+import { ControllerEventArgs } from '../controller/controller-event-args';
+import { Color } from '../core/color';
+import { ErrorMessages } from '../core/error-messages';
+import { Logging } from '../core/logging';
+import { Model } from '../core/model';
+import { IMouseEvent } from '../core/mouse-event';
+import { MouseEventArgs } from '../core/mouse-event-args';
+import { MouseLocationArgs } from '../core/mouse-location-args';
+import { Point } from '../core/point';
+import { PointDepth } from '../core/point-depth';
+import { PointEventParameters } from '../core/point-event-parameters';
+import { Region } from '../core/region';
+import { Size } from '../core/size';
+import { TimerParameters } from '../core/timer-parameters';
+import { Utility } from '../core/utility';
+import { ViewDragArgs } from '../core/view-drag-args';
+import { ElementBase } from '../elements/element-base';
+import { ElementCreationProps } from '../elements/element-creation-props';
+import { ElementDragArgs } from '../elements/element-drag-args';
+import { ElementLocationArgs } from '../elements/element-location-args';
+import { ElementSizeArgs } from '../elements/element-size-args';
+import { ElementSizeProps } from '../elements/element-size-props';
+import { MoveLocation } from '../elements/move-location';
+import { ResizeSize } from '../elements/resize-size';
+import { Component } from './component/component';
+import { ComponentElement } from './component/component-element';
+import { ComponentRegistry } from './component/component-registry';
+import { DesignRenderer } from './design-renderer';
+import { GridType } from './grid-type';
+import { Handle } from './handle';
+import { HandleFactory } from './handle-factory';
+import { DesignTool } from './tools/design-tool';
 
 const log = Logging.log;
 
@@ -710,7 +710,7 @@ export class DesignController implements IController {
         if (!enabled) {
             if (this.isMouseDown) {
                 this.cancelAction = true;
-                this.onCanvasMouseUp({clientX: this.lastClientX, clientY: this.lastClientY});
+                this.onCanvasMouseUp({ clientX: this.lastClientX, clientY: this.lastClientY });
             }
             if (this.isDragging) {
                 this.onCanvasDragLeave(undefined);
@@ -1445,7 +1445,7 @@ export class DesignController implements IController {
         if (this.isResizing && this.sizeHandles && this.sizeHandles.length > 0) {
             this.sizeHandles.forEach(h => {
                 if (h.handleMoved) {
-                    h.handleMoved(h, {deltaX: Math.round(deltaX), deltaY: Math.round(deltaY)});
+                    h.handleMoved(h, { deltaX: Math.round(deltaX), deltaY: Math.round(deltaY) });
                 }
             });
         }

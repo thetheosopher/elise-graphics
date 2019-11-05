@@ -1,11 +1,11 @@
-import {ErrorMessages} from '../core/error-messages';
-import {Point} from '../core/point';
-import {IPointContainer} from '../core/point-container';
-import {PointDepth} from '../core/point-depth';
-import {Region} from '../core/region';
-import {Size} from '../core/size';
-import {ElementBase} from './element-base';
-import {InvalidIndexException} from './invalid-index-exception';
+import { ErrorMessages } from '../core/error-messages';
+import { Point } from '../core/point';
+import { IPointContainer } from '../core/point-container';
+import { PointDepth } from '../core/point-depth';
+import { Region } from '../core/region';
+import { Size } from '../core/size';
+import { ElementBase } from './element-base';
+import { InvalidIndexException } from './invalid-index-exception';
 
 export class PolylineElement extends ElementBase implements IPointContainer {
     /**

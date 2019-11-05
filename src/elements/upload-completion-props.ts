@@ -1,4 +1,4 @@
-import {ElementBase} from './element-base';
+import { ElementBase } from './element-base';
 
 export class UploadCompletionProps {
     /**
