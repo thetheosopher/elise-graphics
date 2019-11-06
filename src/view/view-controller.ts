@@ -414,6 +414,15 @@ export class ViewController implements IController {
         if (!this.canvas) {
             throw new Error(ErrorMessages.CanvasIsUndefined);
         }
+        if(!this.model) {
+            throw new Error(ErrorMessages.ModelUndefined);
+        }
+        const size = this.model.getSize();
+        if(!size) {
+            throw new Error(ErrorMessages.SizeUndefined);
+        }
+        this.canvas.width = size.width * this.scale;
+        this.canvas.height = size.height * this.scale;
         return this.canvas;
     }
 
@@ -788,6 +797,7 @@ export class ViewController implements IController {
         if (scale === this.scale) {
             return;
         }
+        this.scale = scale;
         if (!this.model) {
             return;
         }
@@ -798,7 +808,6 @@ export class ViewController implements IController {
         if (!size) {
             throw new Error(ErrorMessages.SizeUndefined);
         }
-        this.scale = scale;
         if (this.canvas) {
             this.canvas.width = size.width * scale;
             this.canvas.height = size.height * scale;
