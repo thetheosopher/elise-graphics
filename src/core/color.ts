@@ -208,6 +208,9 @@ export class Color {
         }
 
         // Lookup known color
+        if(evalString === 'transparent') {
+            return Color.Transparent;
+        }
         for (const namedColor of Color.NamedColors) {
             if (namedColor.name.toLowerCase() === evalString) {
                 if (alpha === 255) {
@@ -275,6 +278,12 @@ export class Color {
      * @returns String representation of color
      */
     public toString(): string {
+
+        // Check for transparent
+        if(this.a === 0) {
+            return 'Transparent';
+        }
+
         // Check for known color
         for (const namedColor of Color.NamedColors) {
             if (this.equalsHue(namedColor.color)) {

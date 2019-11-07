@@ -371,5 +371,33 @@ const uriTextResource = TextResource.createFromUri;
 export { uriTextResource };
 
 export default {
+    bind: (bind),
+    bitmapResource: (bitmapResource),
+    color: (color),
+    ellipse: (ellipse),
+    embeddedTextResource: (embeddedTextResource),
+    gradientFillStop: (gradientFillStop),
+    image: (image),
+    innerModel: (innerModel),
+    line: (line),
+    linearGradientFill: (linearGradientFill),
+    log: (log),
+    matrix2D: (matrix2D),
+    model: (model),
+    modelResource: (modelResource),
+    newId: (newId),
+    path: (path),
+    point: (point),
+    polygon: (polygon),
+    polyline: (polyline),
+    radialGradientFill: (radialGradientFill),
+    rectangle: (rectangle),
+    region: (region),
     requestAnimationFrame: false,
+    size: (size),
+    sketcher: (sketcher),
+    sprite: (sprite),
+    spriteFrame: (spriteFrame),
+    text: (text),
+    uriTextResource: (uriTextResource)
 };
