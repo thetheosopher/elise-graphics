@@ -740,8 +740,9 @@ export class Model extends ElementBase {
         if (!this._size) {
             throw new Error('Size is undefined.');
         }
-        if (!this._location) {
-            throw new Error('Location is undefined.');
+        let location = this._location;
+        if (!location) {
+            location = new Point(0, 0);
         }
         let w = this._size.width;
         let h = this._size.height;
@@ -756,7 +757,7 @@ export class Model extends ElementBase {
         c.rect(0, 0, w, h);
         c.clip();
         if (this.transform) {
-            this.setRenderTransform(c, this.transform, this._location);
+            this.setRenderTransform(c, this.transform, location);
         }
 
         // Fill
