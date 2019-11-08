@@ -414,11 +414,11 @@ export class ViewController implements IController {
         if (!this.canvas) {
             throw new Error(ErrorMessages.CanvasIsUndefined);
         }
-        if(!this.model) {
+        if (!this.model) {
             throw new Error(ErrorMessages.ModelUndefined);
         }
         const size = this.model.getSize();
-        if(!size) {
+        if (!size) {
             throw new Error(ErrorMessages.SizeUndefined);
         }
         this.canvas.width = size.width * this.scale;

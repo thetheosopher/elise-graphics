@@ -208,7 +208,7 @@ export class Color {
         }
 
         // Lookup known color
-        if(evalString === 'transparent') {
+        if (evalString === 'transparent') {
             return Color.Transparent;
         }
         for (const namedColor of Color.NamedColors) {
@@ -278,9 +278,8 @@ export class Color {
      * @returns String representation of color
      */
     public toString(): string {
-
         // Check for transparent
-        if(this.a === 0) {
+        if (this.a === 0) {
             return 'Transparent';
         }
 

@@ -147,8 +147,10 @@ export class FillFactory {
                     offscreen.height = size.height * scaling.ry;
                 }
                 const c2 = offscreen.getContext('2d');
-                if (c2 !== null && (scaling.rx !== 1 || scaling.ry !== 1)) {
-                    c2.scale(scaling.rx, scaling.ry);
+                if (c2 !== null) {
+                    if (scaling.rx !== 1 || scaling.ry !== 1) {
+                        c2.scale(scaling.rx, scaling.ry);
+                    }
                     innerModel.renderToContext(c2);
                 }
 
