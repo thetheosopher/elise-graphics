@@ -265,7 +265,7 @@ export class ElementBase implements IPointContainer {
             if (typeof o.fill === 'string') {
                 this.fill = o.fill;
             }
-            else if (o.fill.type instanceof LinearGradientFill) {
+            else if (o.fill.type === 'linearGradient') {
                 const lgr1 = o.fill as LinearGradientFill;
                 const lgr2 = new LinearGradientFill(lgr1.start, lgr1.end);
                 for (const stop of lgr1.stops) {
@@ -273,7 +273,7 @@ export class ElementBase implements IPointContainer {
                 }
                 this.fill = lgr2;
             }
-            else if (o.fill.type instanceof RadialGradientFill) {
+            else if (o.fill.type === 'radialGradient') {
                 const rgr1 = o.fill as RadialGradientFill;
                 const rgr2 = new RadialGradientFill(rgr1.center, rgr1.focus, rgr1.radiusX, rgr1.radiusY);
                 for (const stop of rgr1.stops) {
