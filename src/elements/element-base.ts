@@ -687,10 +687,11 @@ export class ElementBase implements IPointContainer {
         if (this._size === undefined) {
             throw new Error(ErrorMessages.SizeUndefined);
         }
-        if (this._location === undefined) {
-            throw new Error(ErrorMessages.LocationUndefined);
+        let location = this._location;
+        if (location === undefined) {
+            location = new Point(0, 0);
         }
-        return new Region(this._location.x, this._location.y, this._size.width, this._size.height);
+        return new Region(location.x, location.y, this._size.width, this._size.height);
     }
 
     /**
