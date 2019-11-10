@@ -107,6 +107,7 @@ export class SurfaceTextElement extends SurfaceElement {
     ) {
         super(id, left, top, width, height);
         this.onClicked = this.onClicked.bind(this);
+        this.addToModel = this.addToModel.bind(this);
         this.color = 'Black';
         this.textAlignment = 'left,top';
         this.typeFace = 'sans-serif';
@@ -114,10 +115,6 @@ export class SurfaceTextElement extends SurfaceElement {
         this.typeStyle = '';
         this.padding = 0;
         this.content = content;
-
-        this.addToModel = this.addToModel.bind(this);
-        this.onClicked = this.onClicked.bind(this);
-
         if (clickListener) {
             this.clicked.add(clickListener);
         }

@@ -219,18 +219,6 @@ export class SurfaceRadioStrip extends SurfaceLayer {
     ) {
         super(id, areaLeft, areaTop, areaWidth, areaHeight);
 
-        this.normalIndex = 0;
-        this.selectedIndex = 0;
-        this.highlightedIndex = 0;
-        this.normalColor = 'Black';
-        this.highlightedColor = 'Black';
-        this.selectedColor = 'Black';
-        this.textAlignment = 'center,middle';
-        this.typeFace = 'sans-serif';
-        this.typeSize = 12;
-        this.typeStyle = '';
-        this.padding = 0;
-
         this.addItem = this.addItem.bind(this);
         this.removeItem = this.removeItem.bind(this);
         this.itemWithId = this.itemWithId.bind(this);
@@ -245,10 +233,21 @@ export class SurfaceRadioStrip extends SurfaceLayer {
         this.moveEnd = this.moveEnd.bind(this);
         this.moveBack = this.moveBack.bind(this);
         this.moveForward = this.moveForward.bind(this);
-
         this.onRadioButtonDown = this.onRadioButtonDown.bind(this);
         this.onRadioButtonUp = this.onRadioButtonUp.bind(this);
         this.onRadioButtonClicked = this.onRadioButtonClicked.bind(this);
+
+        this.normalIndex = 0;
+        this.selectedIndex = 0;
+        this.highlightedIndex = 0;
+        this.normalColor = 'Black';
+        this.highlightedColor = 'Black';
+        this.selectedColor = 'Black';
+        this.textAlignment = 'center,middle';
+        this.typeFace = 'sans-serif';
+        this.typeSize = 12;
+        this.typeStyle = '';
+        this.padding = 0;
 
         this.buttonLeft = buttonLeft;
         this.buttonTop = buttonTop;

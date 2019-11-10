@@ -145,11 +145,16 @@ export class SurfaceAnimationLayer extends SurfaceLayer {
         frameAdvancedListener: (animation: SurfaceAnimationLayer | undefined) => void
     ) {
         super(id, left, top, width, height);
+        this.addFrame = this.addFrame.bind(this);
+        this.setResourceListener = this.setResourceListener.bind(this);
+        this.pause = this.pause.bind(this);
+        this.onAnimationClick = this.onAnimationClick.bind(this);
+        this.onAnimationAdvance = this.onAnimationAdvance.bind(this);
+
         this.frameIndex = 0;
         this.isPaused = false;
         this.isStopped = false;
         this.rememberFrame = false;
-
         this.loop = loop;
         if (clickListener) {
             this.clicked.add(clickListener);
@@ -158,12 +163,6 @@ export class SurfaceAnimationLayer extends SurfaceLayer {
         if (frameAdvancedListener) {
             this.frameAdvanced.add(frameAdvancedListener);
         }
-
-        this.addFrame = this.addFrame.bind(this);
-        this.setResourceListener = this.setResourceListener.bind(this);
-        this.pause = this.pause.bind(this);
-        this.onAnimationClick = this.onAnimationClick.bind(this);
-        this.onAnimationAdvance = this.onAnimationAdvance.bind(this);
     }
 
     /**

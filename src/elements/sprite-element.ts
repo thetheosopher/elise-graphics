@@ -124,14 +124,13 @@ export class SpriteElement extends ElementBase {
      */
     constructor() {
         super('sprite');
-        this.frames = [];
-        this.frameIndex = 0;
-        this.loop = true;
-
         this.createSheetFrames = this.createSheetFrames.bind(this);
         this.computeTimeline = this.computeTimeline.bind(this);
         this.getStateForTime = this.getStateForTime.bind(this);
         this.getTimeForFrame = this.getTimeForFrame.bind(this);
+        this.frames = [];
+        this.frameIndex = 0;
+        this.loop = true;
     }
 
     /**

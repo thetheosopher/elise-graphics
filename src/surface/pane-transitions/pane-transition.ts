@@ -8,14 +8,13 @@ export abstract class PaneTransition {
     public callback: (pane: SurfacePane) => void;
 
     constructor(pane: SurfacePane, target: Surface, callback: (pane: SurfacePane) => void) {
-        this.pane = pane;
-        this.target = target;
-        this.callback = callback;
-
         this.start = this.start.bind(this);
         this.onStart = this.onStart.bind(this);
         this.onComplete = this.onComplete.bind(this);
         this.bind = this.bind.bind(this);
+        this.pane = pane;
+        this.target = target;
+        this.callback = callback;
     }
 
     public abstract start(): void;

@@ -18,23 +18,25 @@ export class UploadComponentProps extends ImageBasedComponentProps {
 
     constructor() {
         super();
-        this.imageTag = 'upload';
-        this.acceptsDrag = true;
-
-        this.initialize = this.onInitialize;
-        this.create = this.onCreate;
-        this.setCreationFill = this.onSetCreationFill;
-        this.getFillImage = this.onGetFillImage;
-        this.size.add(this.onSize);
-        this.uploadStart.add(this.onUploadStart);
-        this.uploadProgress.add(this.onUploadProgress);
-        this.uploadComplete.add(this.onUploadComplete);
 
         this.onCreate = this.onCreate.bind(this);
         this.onSize = this.onSize.bind(this);
         this.onUploadStart = this.onUploadStart.bind(this);
         this.onUploadProgress = this.onUploadProgress.bind(this);
         this.onUploadComplete = this.onUploadComplete.bind(this);
+
+        this.imageTag = 'upload';
+        this.acceptsDrag = true;
+
+        this.size.add(this.onSize);
+        this.uploadStart.add(this.onUploadStart);
+        this.uploadProgress.add(this.onUploadProgress);
+        this.uploadComplete.add(this.onUploadComplete);
+
+        this.initialize = this.onInitialize;
+        this.create = this.onCreate;
+        this.setCreationFill = this.onSetCreationFill;
+        this.getFillImage = this.onGetFillImage;
     }
 
     /**

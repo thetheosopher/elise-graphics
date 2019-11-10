@@ -37,10 +37,6 @@ export abstract class SurfaceLayer extends SurfaceElement {
      */
     constructor(id: string, left: number, top: number, width: number, height: number) {
         super(id, left, top, width, height);
-        this.isPrepared = false;
-        this.opacity = 1;
-        this.translateX = 0;
-        this.translateY = 0;
         this.addToSurface = this.addToSurface.bind(this);
         this.prepare = this.prepare.bind(this);
         this.destroy = this.destroy.bind(this);
@@ -50,6 +46,10 @@ export abstract class SurfaceLayer extends SurfaceElement {
         this.setOpacity = this.setOpacity.bind(this);
         this.setTranslateX = this.setTranslateX.bind(this);
         this.setTranslateY = this.setTranslateY.bind(this);
+        this.isPrepared = false;
+        this.opacity = 1;
+        this.translateX = 0;
+        this.translateY = 0;
     }
 
     /**

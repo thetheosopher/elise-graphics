@@ -61,8 +61,8 @@ export class ModelElement extends ElementBase {
      */
     constructor() {
         super('model');
-        this.opacity = 1;
         this.setOpacity = this.setOpacity.bind(this);
+        this.opacity = 1;
     }
 
     /**

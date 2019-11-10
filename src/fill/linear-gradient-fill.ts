@@ -37,11 +37,11 @@ export class LinearGradientFill {
      * @param end - End point serialized as a string
      */
     constructor(start: string, end: string) {
+        this.addFillStop = this.addFillStop.bind(this);
         this.start = start;
         this.end = end;
         this.stops = [];
         this.type = 'linearGradient';
-        this.addFillStop = this.addFillStop.bind(this);
     }
 
     public clone(): LinearGradientFill {

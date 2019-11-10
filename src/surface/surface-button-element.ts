@@ -144,6 +144,9 @@ export class SurfaceButtonElement extends SurfaceElement {
         clickListener: (button: SurfaceButtonElement | undefined) => void
     ) {
         super(id, left, top, width, height);
+        this.setEnabled = this.setEnabled.bind(this);
+        this.addToModel = this.addToModel.bind(this);
+        this.onClicked = this.onClicked.bind(this);
         this.normalIndex = 0;
         this.selectedIndex = 0;
         this.highlightedIndex = 0;
@@ -151,9 +154,6 @@ export class SurfaceButtonElement extends SurfaceElement {
         this.isEnabled = true;
         this.isSelected = false;
         this.isToggle = false;
-        this.setEnabled = this.setEnabled.bind(this);
-        this.addToModel = this.addToModel.bind(this);
-        this.onClicked = this.onClicked.bind(this);
         if (clickListener) {
             this.clicked.add(clickListener);
         }

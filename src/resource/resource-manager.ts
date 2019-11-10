@@ -66,11 +66,6 @@ export class ResourceManager {
      * @param model - Model with resources to manage
      */
     constructor(model: Model) {
-        this.pendingResourceCount = 0;
-        this.totalResourceCount = 0;
-        this.numberLoaded = 0;
-        this.model = model;
-
         this.add = this.add.bind(this);
         this.merge = this.merge.bind(this);
         this.findBestResource = this.findBestResource.bind(this);
@@ -80,6 +75,11 @@ export class ResourceManager {
         this.oncomplete = this.oncomplete.bind(this);
         this.load = this.load.bind(this);
         this.loadNext = this.loadNext.bind(this);
+
+        this.pendingResourceCount = 0;
+        this.totalResourceCount = 0;
+        this.numberLoaded = 0;
+        this.model = model;
     }
 
     /**

@@ -4,6 +4,5 @@ export class NavigateComponentProps extends ImageBasedComponentProps {
     constructor() {
         super();
         this.imageTag = 'navigate';
-        console.log(this.imageTag);
     }
 }

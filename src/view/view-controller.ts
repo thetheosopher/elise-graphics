@@ -289,15 +289,6 @@ export class ViewController implements IController {
         /** Initialize animation timer function */
         // Animation.initialize();
 
-        this.enabled = true;
-        this.scale = 1;
-        this.offsetX = 0;
-        this.offsetY = 0;
-        this.lastDeltaX = -1;
-        this.lastDeltaY = -1;
-        this.eventDelay = 0;
-
-        this.timerParameters = new TimerParameters(0, 0);
         this.setModel = this.setModel.bind(this);
         this.setEnabled = this.setEnabled.bind(this);
         this.getCanvas = this.getCanvas.bind(this);
@@ -327,6 +318,16 @@ export class ViewController implements IController {
         this.elapsedTime = this.elapsedTime.bind(this);
         this.timerPhase = this.timerPhase.bind(this);
         this.bindTarget = this.bindTarget.bind(this);
+
+        this.enabled = true;
+        this.scale = 1;
+        this.offsetX = 0;
+        this.offsetY = 0;
+        this.lastDeltaX = -1;
+        this.lastDeltaY = -1;
+        this.eventDelay = 0;
+
+        this.timerParameters = new TimerParameters(0, 0);
     }
 
     /**

@@ -55,8 +55,8 @@ export class ImageElement extends ElementBase {
      */
     constructor() {
         super('image');
-        this.opacity = 1.0;
         this.setOpacity = this.setOpacity.bind(this);
+        this.opacity = 1.0;
     }
 
     /**

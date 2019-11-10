@@ -35,6 +35,13 @@ export class Sketcher {
     public scale: number = 1;
 
     constructor(model: string | Model, scale: number = 1) {
+        this.addTo = this.addTo.bind(this);
+        this.controllerAttached = this.controllerAttached.bind(this);
+        this.controllerDetached = this.controllerDetached.bind(this);
+        this.clampColor = this.clampColor.bind(this);
+        this.drawNextElement = this.drawNextElement.bind(this);
+        this.onModelSet = this.onModelSet.bind(this);
+
         if (model instanceof Model) {
             this.sourceModel = model;
         }
@@ -50,13 +57,6 @@ export class Sketcher {
         this.repeatDelay = 10000;
         this.sketchColor = false;
         this.strokeOpacity = 128;
-
-        this.addTo = this.addTo.bind(this);
-        this.controllerAttached = this.controllerAttached.bind(this);
-        this.controllerDetached = this.controllerDetached.bind(this);
-        this.clampColor = this.clampColor.bind(this);
-        this.drawNextElement = this.drawNextElement.bind(this);
-        this.onModelSet = this.onModelSet.bind(this);
     }
 
     public addTo(model: Model) {

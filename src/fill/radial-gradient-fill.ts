@@ -51,13 +51,13 @@ export class RadialGradientFill {
      * @param radiuxY - Vertical radius
      */
     constructor(center: string, focus: string, radiusX: number, radiusY: number) {
+        this.addFillStop = this.addFillStop.bind(this);
         this.center = center;
         this.focus = focus;
         this.radiusX = radiusX;
         this.radiusY = radiusY;
         this.stops = [];
         this.type = 'radialGradient';
-        this.addFillStop = this.addFillStop.bind(this);
     }
 
     /**

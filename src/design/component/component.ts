@@ -194,6 +194,15 @@ export class Component {
      * @param props - Component properties
      */
     constructor(name: string, props: ComponentProps) {
+        this.CreateElement = this.CreateElement.bind(this);
+        this.GetFillImage = this.GetFillImage.bind(this);
+        this.onSize = this.onSize.bind(this);
+        this.onSelect = this.onSelect.bind(this);
+        this.onDeselect = this.onDeselect.bind(this);
+        this.onUploadStart = this.onUploadStart.bind(this);
+        this.onUploadComplete = this.onUploadComplete.bind(this);
+        this.onComponentUploadProgress = this.onComponentUploadProgress.bind(this);
+
         this.name = name;
         if (props.fill) {
             this.fill = props.fill;
@@ -268,14 +277,6 @@ export class Component {
         if (props.uploadProgress.hasListeners()) {
             props.uploadProgress.copyTo(this.uploadProgress);
         }
-        this.CreateElement = this.CreateElement.bind(this);
-        this.GetFillImage = this.GetFillImage.bind(this);
-        this.onSize = this.onSize.bind(this);
-        this.onSelect = this.onSelect.bind(this);
-        this.onDeselect = this.onDeselect.bind(this);
-        this.onUploadStart = this.onUploadStart.bind(this);
-        this.onUploadComplete = this.onUploadComplete.bind(this);
-        this.onComponentUploadProgress = this.onComponentUploadProgress.bind(this);
     }
 
     /**

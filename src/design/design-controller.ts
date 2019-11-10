@@ -522,30 +522,6 @@ export class DesignController implements IController {
      * Manages rendering and interaction with rendered model content
      */
     constructor() {
-        this.enabled = true;
-        this.scale = 1.0;
-        this.lastDeltaX = -1;
-        this.lastDeltaY = -1;
-        this.isDirty = false;
-        this.isMouseDown = false;
-        this.isMoving = false;
-        this.isResizing = false;
-        this.isMovingPoint = false;
-        this.isDragging = false;
-        this.lastClientX = -1;
-        this.lastClientY = -1;
-        this.selecting = false;
-        this.rubberBandActive = false;
-        this.snapToGrid = false;
-        this.gridSpacing = 8;
-        this.lockAspect = false;
-        this.constrainToBounds = true;
-        this.gridColor = 'Black';
-        this.cancelAction = false;
-        this.selectionEnabled = true;
-        this.needsRedraw = false;
-        this.largeJump = 10;
-
         this.setModel = this.setModel.bind(this);
         this.setEnabled = this.setEnabled.bind(this);
         this.addElement = this.addElement.bind(this);
@@ -626,6 +602,30 @@ export class DesignController implements IController {
         this.setGridSpacing = this.setGridSpacing.bind(this);
         this.setGridColor = this.setGridColor.bind(this);
         this.bindTarget = this.bindTarget.bind(this);
+
+        this.enabled = true;
+        this.scale = 1.0;
+        this.lastDeltaX = -1;
+        this.lastDeltaY = -1;
+        this.isDirty = false;
+        this.isMouseDown = false;
+        this.isMoving = false;
+        this.isResizing = false;
+        this.isMovingPoint = false;
+        this.isDragging = false;
+        this.lastClientX = -1;
+        this.lastClientY = -1;
+        this.selecting = false;
+        this.rubberBandActive = false;
+        this.snapToGrid = false;
+        this.gridSpacing = 8;
+        this.lockAspect = false;
+        this.constrainToBounds = true;
+        this.gridColor = 'Black';
+        this.cancelAction = false;
+        this.selectionEnabled = true;
+        this.needsRedraw = false;
+        this.largeJump = 10;
     }
 
     /**

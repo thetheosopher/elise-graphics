@@ -485,6 +485,9 @@ export class Handle {
      * @param y - Y coordinate
      */
     constructor(x: number, y: number, element: ElementBase, controller: DesignController) {
+        this.getBounds = this.getBounds.bind(this);
+        this.draw = this.draw.bind(this);
+
         this.x = x;
         this.y = y;
         this.element = element;
@@ -493,9 +496,6 @@ export class Handle {
         this.canMoveVertical = true;
         this.cursor = 'crosshair';
         this.scale = 1.0;
-
-        this.getBounds = this.getBounds.bind(this);
-        this.draw = this.draw.bind(this);
     }
 
     /**

@@ -31,7 +31,6 @@ export class DesignRenderer {
      * @param controller - Design controller
      */
     constructor(controller: DesignController) {
-        this.controller = controller;
         this.renderToContext = this.renderToContext.bind(this);
         this.renderElement = this.renderElement.bind(this);
         this.renderImageElement = this.renderImageElement.bind(this);
@@ -44,6 +43,8 @@ export class DesignRenderer {
         this.renderEllipseElement = this.renderEllipseElement.bind(this);
         this.renderTextElement = this.renderTextElement.bind(this);
         this.renderModelElement = this.renderModelElement.bind(this);
+
+        this.controller = controller;
     }
 
     /**

@@ -20,10 +20,9 @@ export class PaneTransitionReveal extends PaneTransition {
         direction: PaneTransitionDirection
     ) {
         super(pane, target, callback);
+        this.tick = this.tick.bind(this);
         this.duration = duration;
         this.direction = direction;
-
-        this.tick = this.tick.bind(this);
     }
 
     public start() {

@@ -16,14 +16,15 @@ export abstract class DesignTool {
     public isCreating: boolean = false;
 
     constructor() {
-        this.opacity = 255;
-        this.fillScale = 1;
-        this.fillOffsetX = 0;
-        this.fillOffsetY = 0;
         this.cancel = this.cancel.bind(this);
         this.mouseDown = this.mouseDown.bind(this);
         this.mouseMove = this.mouseMove.bind(this);
         this.mouseUp = this.mouseUp.bind(this);
+
+        this.opacity = 255;
+        this.fillScale = 1;
+        this.fillOffsetX = 0;
+        this.fillOffsetY = 0;
     }
 
     public abstract mouseDown(args: MouseLocationArgs): void;
