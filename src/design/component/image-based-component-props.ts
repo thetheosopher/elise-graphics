@@ -18,18 +18,18 @@ export class ImageBasedComponentProps extends ComponentProps {
     constructor() {
         super();
 
+        this.onCreate = this.onCreate.bind(this);
+        this.onInitialize = this.onInitialize.bind(this);
+        this.onSetCreationFill = this.onSetCreationFill.bind(this);
+        this.onGetFillImage = this.onGetFillImage.bind(this);
+        this.onSize = this.onSize.bind(this);
+
         this.initialize = this.onInitialize;
         this.create = this.onCreate;
         this.setCreationFill = this.onSetCreationFill;
         this.getFillImage = this.onGetFillImage;
         this.size.add(this.onSize);
         this.imageTag = 'push-button';
-
-        this.onCreate = this.onCreate.bind(this);
-        this.onInitialize = this.onInitialize.bind(this);
-        this.onSetCreationFill = this.onSetCreationFill.bind(this);
-        this.onGetFillImage = this.onGetFillImage.bind(this);
-        this.onSize = this.onSize.bind(this);
     }
 
     protected onCreate(props: ElementCreationProps) {
