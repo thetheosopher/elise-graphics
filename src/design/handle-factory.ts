@@ -318,8 +318,8 @@ export class HandleFactory {
      */
     public static pointContainerHandles(el: ElementBase, c: DesignController, scale: number): Handle[] {
         const handles: Handle[] = [];
-        let movingPointIndex = -1;
-        if (c.isMovingPoint && c.movingPointIndex) {
+        let movingPointIndex: number | undefined;
+        if (c.isMovingPoint && c.movingPointIndex !== undefined) {
             movingPointIndex = c.movingPointIndex;
         }
         let offsetX = 0;
