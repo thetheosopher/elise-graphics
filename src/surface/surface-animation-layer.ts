@@ -263,6 +263,7 @@ export class SurfaceAnimationLayer extends SurfaceLayer {
         sprite.timer = TransitionRenderer.SPRITE_TRANSITION;
         sprite.click = SurfaceAnimationLayer.ANIMATION_CLICK;
         sprite.onAdvance = SurfaceAnimationLayer.ANIMATION_ADVANCE;
+        sprite.frames = [];
         sprite.setInteractive(true);
 
         // Add frames
@@ -274,7 +275,6 @@ export class SurfaceAnimationLayer extends SurfaceLayer {
                     break;
                 }
             }
-            sprite.frames = [];
             sprite.frames.push(
                 SpriteFrame.create(
                     key,
