@@ -382,7 +382,7 @@ export class Handle {
     public static movePointContainerPoint(h: Handle, args: HandleMovedArgs): void {
         const el = h.element;
         const pointIndex = h.handleIndex;
-        if (!pointIndex) {
+        if (pointIndex === undefined) {
             return;
         }
         let depth = PointDepth.Simple;

@@ -285,14 +285,14 @@ export { TransitionRenderer } from './transitions/transitions';
 export { ViewController } from './view/view-controller';
 export { ViewRenderer } from './view/view-renderer';
 
-const bind = ViewController.initializeTarget;
-export { bind };
-
 const bitmapResource = BitmapResource.create;
 export { bitmapResource };
 
 const color = Color.create;
 export { color };
+
+const design = DesignController.initializeTarget;
+export { design };
 
 const ellipse = EllipseElement.create;
 export { ellipse };
@@ -369,6 +369,9 @@ export { text };
 
 const uriTextResource = TextResource.createFromUri;
 export { uriTextResource };
+
+const view = ViewController.initializeTarget;
+export { view };
 
 export default {
     BitmapResource: BitmapResource,
@@ -503,9 +506,9 @@ export default {
     ViewRenderer: ViewRenderer,
     WindingMode: WindingMode,
 
-    bind: bind,
     bitmapResource: bitmapResource,
     color: color,
+    design: design,
     ellipse: ellipse,
     embeddedTextResource: embeddedTextResource,
     gradientFillStop: gradientFillStop,
@@ -531,5 +534,6 @@ export default {
     sprite: sprite,
     spriteFrame: spriteFrame,
     text: text,
-    uriTextResource: uriTextResource
+    uriTextResource: uriTextResource,
+    view: view
 };
