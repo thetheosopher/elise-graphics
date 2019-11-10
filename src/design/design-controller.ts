@@ -1260,7 +1260,7 @@ export class DesignController implements IController {
                     const el = this.selectedElements[0];
                     if (el.canMovePoint()) {
                         const pointIndex = selectedHandle.handleIndex;
-                        if (pointIndex) {
+                        if (pointIndex !== undefined) {
                             this.sizeHandles.push(selectedHandle);
                             this.isMovingPoint = true;
                             this.movingPointLocation = el.getPointAt(pointIndex, PointDepth.Full);
@@ -1531,7 +1531,7 @@ export class DesignController implements IController {
                 }
             }
         }
-        else if (this.isMovingPoint && this.movingPointIndex) {
+        else if (this.isMovingPoint && this.movingPointIndex !== undefined) {
             const pointHolder = this.selectedElements[0];
             let depth = PointDepth.Simple;
             if (this.selectedElementCount() === 1) {
@@ -1875,7 +1875,7 @@ export class DesignController implements IController {
                 this.invalidate();
                 this.canvas.style.cursor = 'crosshair';
             }
-            else if (this.isMovingPoint && this.movingPointIndex && this.movingPointLocation) {
+            else if (this.isMovingPoint && this.movingPointIndex !== undefined && this.movingPointLocation) {
                 const selectedElement = this.selectedElements[0];
                 const moveLocation = this.movingPointLocation;
                 let depth = PointDepth.Simple;

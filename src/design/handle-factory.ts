@@ -187,7 +187,7 @@ export class HandleFactory {
             offsetX = offset.x - b.x;
             offsetY = offset.y - b.y;
         }
-        if (c.isMovingPoint && c.movingPointIndex) {
+        if (c.isMovingPoint && c.movingPointIndex !== undefined) {
             movingPointIndex = c.movingPointIndex;
         }
         let depth = PointDepth.Simple;
