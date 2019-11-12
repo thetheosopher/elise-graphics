@@ -1,3 +1,5 @@
+import { ErrorMessages } from './error-messages';
+
 export class Size {
     /**
      * Empty size
@@ -21,8 +23,14 @@ export class Size {
     public static parse(sizeSource: string | Size): Size {
         if (typeof sizeSource === 'string') {
             const parts = sizeSource.split('x');
+            if(parts.length !== 2) {
+                throw new Error(ErrorMessages.InvalidSizeString);
+            }
             const width = parseFloat(parts[0]);
             const height = parseFloat(parts[1]);
+            if(isNaN(width) || isNaN(height)) {
+                throw new Error(ErrorMessages.InvalidSizeString);
+            }
             return new Size(width, height);
         }
         else {

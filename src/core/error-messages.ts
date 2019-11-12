@@ -13,6 +13,7 @@ export class ErrorMessages {
     public static InvalidColorString = 'Invalid color string.';
     public static InvalidFrameIndex = 'Invalid frame index.';
     public static InvalidResourceType = 'Invalid resource type.';
+    public static InvalidSizeString = 'Invalid size string';
     public static LocationUndefined = 'Location is undefined.';
     public static ModelUndefined = 'Model is undefined.';
     public static ModelBasePathUndefined = 'Model base path is undefined.';

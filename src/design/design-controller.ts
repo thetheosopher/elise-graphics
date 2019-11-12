@@ -1242,7 +1242,7 @@ export class DesignController implements IController {
                 if (this.resizeableSelectedElementCount() > 0) {
                     const self = this;
                     this.selectedElements.forEach(selectedElement => {
-                        if (selectedElement.canResize) {
+                        if (selectedElement.canResize()) {
                             const elementHandles = self.getElementHandles(selectedElement);
                             elementHandles.forEach(handle => {
                                 if (selectedHandle && handle.handleId === selectedHandle.handleId) {
@@ -2961,7 +2961,7 @@ export class DesignController implements IController {
         const index = this.selectedElements.indexOf(el);
         if (index !== -1) {
             this.selectedElements.splice(index, 1);
-            if (el.canEditPoints) {
+            if (el.canEditPoints()) {
                 el.editPoints = false;
             }
             this.onSelectionChanged();
