@@ -1,5 +1,8 @@
 import { GradientFillStop } from './gradient-fill-stop';
 
+/**
+ * Describes a radial gradient fill
+ */
 export class RadialGradientFill {
     /**
      * Radial gradient factory function
@@ -44,7 +47,6 @@ export class RadialGradientFill {
     public stops: GradientFillStop[];
 
     /**
-     * Represents a radial gradient fill
      * @param center - Gradient center point serialized as string
      * @param focus - Gradient focal point serialized as string
      * @param radiusX - Horizontal radius

@@ -1,8 +1,10 @@
 import { ResourceLoaderState } from './resource-loader-state';
 
+/**
+ * Indicates state of loaded resources
+ */
 export class ResourceState {
     /**
-     * Indicates state of loaded resources
      * @param numberLoaded - Number of resources loaded
      * @param totalResources - Total number of resource to load
      * @param code - Resource loader state enumeration

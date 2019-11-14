@@ -10,6 +10,9 @@ import { PaneTransitionWipe } from './pane-transitions/pane-transition-wipe';
 import { Surface } from './surface';
 import { SurfaceLayer } from './surface-layer';
 
+/**
+ * Hosts a child surface in a parent surface layer
+ */
 export class SurfacePane extends SurfaceLayer {
     /**
      * Creates a surface pane layer
@@ -37,7 +40,6 @@ export class SurfacePane extends SurfaceLayer {
     public element?: HTMLDivElement;
 
     /**
-     * Hosts a child surface in a parent surface layer
      * @param id - Pane id
      * @param left - Layout area x coordinate
      * @param top - Layout area y coordinate
@@ -638,9 +640,9 @@ export class SurfacePane extends SurfaceLayer {
         }
         if (this.element && this.element.parentElement) {
             this.element.parentElement.removeChild(this.element);
-            delete this.element;
+            this.element = undefined;
         }
-        delete this.surface;
+        this.surface = undefined;
     }
 
     /**

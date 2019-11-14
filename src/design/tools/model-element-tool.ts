@@ -3,7 +3,9 @@ import { Point } from '../../core/point';
 import { Size } from '../../core/size';
 import { ModelElement } from '../../elements/model-element';
 import { DesignTool } from './design-tool';
-
+/**
+ * Model element creation tool
+ */
 export class ModelElementTool extends DesignTool {
     public point1?: Point;
     public source?: string;

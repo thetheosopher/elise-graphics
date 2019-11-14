@@ -5,6 +5,9 @@ import { ResourceLoaderState } from './resource-loader-state';
 import { ResourceManagerEvent } from './resource-manager-event';
 import { ResourceState } from './resource-state';
 
+/**
+ * Manages model resource loading and resolution
+ */
 export class ResourceManager {
     /**
      * Local resource path for model level resources
@@ -62,7 +65,6 @@ export class ResourceManager {
     public model?: Model;
 
     /**
-     * Constructs a new resource manager
      * @param model - Model with resources to manage
      */
     constructor(model: Model) {

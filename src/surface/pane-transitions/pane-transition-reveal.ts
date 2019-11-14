@@ -5,6 +5,9 @@ import { SurfacePane } from '../surface-pane';
 import { PaneTransition } from './pane-transition';
 import { PaneTransitionDirection } from './pane-transition-direction';
 
+/**
+ * Reveal pane transition
+ */
 export class PaneTransitionReveal extends PaneTransition {
     public duration: number;
     public startTime?: number;
@@ -27,6 +30,9 @@ export class PaneTransitionReveal extends PaneTransition {
 
     public start() {
         const self = this;
+        if (!self.pane) {
+            return;
+        }
         self.source = self.pane.childSurface;
         self.onStart();
 
@@ -40,6 +46,9 @@ export class PaneTransitionReveal extends PaneTransition {
     }
 
     public tick() {
+        if (!this.pane) {
+            return;
+        }
         if (!this.startTime) {
             throw new Error(ErrorMessages.StartTimeIsUndefined);
         }
@@ -55,7 +64,7 @@ export class PaneTransitionReveal extends PaneTransition {
         if (offset >= 1 || isNaN(offset)) {
             if (this.timer) {
                 clearInterval(this.timer);
-                delete this.timer;
+                this.timer = undefined;
             }
             this.source.unbind();
             this.onComplete();

@@ -1,3 +1,6 @@
+/**
+ * Describes depth context for point container point references
+ */
 export enum PointDepth {
     /**
      * Simple - Top level points

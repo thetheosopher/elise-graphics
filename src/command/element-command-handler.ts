@@ -42,7 +42,7 @@ export class ElementCommandHandler implements ICommandHandler<ElementBase> {
             el.fill = el.fillStack.pop();
         }
         if (el.fillStack.length === 0) {
-            delete el.fillStack;
+            el.fillStack = undefined;
         }
         c.draw();
     }
@@ -70,7 +70,7 @@ export class ElementCommandHandler implements ICommandHandler<ElementBase> {
             el.stroke = el.strokeStack.pop();
         }
         if (el.strokeStack.length === 0) {
-            delete el.strokeStack;
+            el.strokeStack = undefined;
         }
         c.draw();
     }
@@ -98,7 +98,7 @@ export class ElementCommandHandler implements ICommandHandler<ElementBase> {
             }
         }
         if (el.frameStack.length === 0) {
-            delete el.frameStack;
+            el.frameStack = undefined;
         }
         c.draw();
     }

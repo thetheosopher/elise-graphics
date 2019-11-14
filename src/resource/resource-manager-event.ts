@@ -1,11 +1,11 @@
 import { ResourceManager } from './resource-manager';
 
+/**
+ * Resource manager event
+ */
 export class ResourceManagerEvent<T> {
     public listeners: Array<(resourceManager: ResourceManager, data?: T) => void> = [];
 
-    /**
-     * Constructs resource manager event
-     */
     constructor() {
         this.add = this.add.bind(this);
         this.remove = this.remove.bind(this);

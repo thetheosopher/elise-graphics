@@ -1,3 +1,4 @@
+import { ErrorMessages } from '../../core/error-messages';
 import { Model } from '../../core/model';
 import { ElementCreationProps } from '../../elements/element-creation-props';
 import { ElementDragArgs } from '../../elements/element-drag-args';
@@ -12,6 +13,9 @@ import { ComponentElement } from './component-element';
 import { ComponentEvent } from './component-event';
 import { ComponentProps } from './component-props';
 
+/**
+ * Element component template
+ */
 export class Component {
     public static baseImagePath: string;
 
@@ -44,7 +48,7 @@ export class Component {
             return;
         }
         if (!el.id) {
-            throw new Error('Element ID is undefined.');
+            throw new Error(ErrorMessages.ElementIdUndefined);
         }
         const mr: ModelResource = el.model.resourceManager.get(el.id) as ModelResource;
         const model = mr.model;
@@ -53,7 +57,7 @@ export class Component {
         }
         const size = model.getSize();
         if (!size) {
-            throw new Error('Model size in undefined.');
+            throw new Error(ErrorMessages.SizeUndefined);
         }
         model.setStroke(undefined);
         let dragRect = model.elementWithId('dragrect');
@@ -79,7 +83,7 @@ export class Component {
         const mr: ModelResource = el.model.resourceManager.get(el.id) as ModelResource;
         const model = mr.model;
         if (!model) {
-            throw new Error('Model is undefined.');
+            throw new Error(ErrorMessages.ModelUndefined);
         }
         model.setStroke('Black');
         const dragRect = model.elementWithId('dragrect');
@@ -189,7 +193,6 @@ export class Component {
     public uploadProgress: ComponentEvent<UploadProgressProps> = new ComponentEvent<UploadProgressProps>();
 
     /**
-     * Element component template
      * @param name - Component name
      * @param props - Component properties
      */

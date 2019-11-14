@@ -1,3 +1,6 @@
+/**
+ * Generic multicast event dispatcher
+ */
 export class CommonEvent<T> {
     private handlers: Array<(data?: T) => void> = [];
 

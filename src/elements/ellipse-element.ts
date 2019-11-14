@@ -5,6 +5,9 @@ import { Size } from '../core/size';
 import { FillFactory } from '../fill/fill-factory';
 import { ElementBase } from './element-base';
 
+/**
+ * Renders stroked and/or filled ellipse element
+ */
 export class EllipseElement extends ElementBase {
     /**
      * Ellipse element factory function
@@ -44,9 +47,6 @@ export class EllipseElement extends ElementBase {
      */
     private _center?: Point;
 
-    /**
-     * Renders stroked and/or filled ellipse.
-     */
     constructor() {
         super('ellipse');
         this.getCenter = this.getCenter.bind(this);

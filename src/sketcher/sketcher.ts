@@ -7,6 +7,9 @@ import { FillFactory } from '../fill/fill-factory';
 import { FillInfo } from '../fill/fill-info';
 import { ViewController } from '../view/view-controller';
 
+/**
+ * Implements gradual drawing of models with polygon elements
+ */
 export class Sketcher {
     public static create(modelUrl: string, scale: number = 1) {
         return new Sketcher(modelUrl, scale);

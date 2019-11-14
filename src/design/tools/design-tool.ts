@@ -4,6 +4,9 @@ import { LinearGradientFill } from '../../fill/linear-gradient-fill';
 import { RadialGradientFill } from '../../fill/radial-gradient-fill';
 import { DesignController } from '../design-controller';
 
+/**
+ * Base class for design surface tools
+ */
 export abstract class DesignTool {
     public model?: Model;
     public controller?: DesignController;

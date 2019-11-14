@@ -9,6 +9,9 @@ import { FillFactory } from '../fill/fill-factory';
 import { ElementBase } from './element-base';
 import { InvalidIndexException } from './invalid-index-exception';
 
+/**
+ * Renders connected, stroked and/or filled line segments between three or more points
+ */
 export class PolygonElement extends ElementBase implements IPointContainer {
     /**
      * Polygon element factory function
@@ -39,9 +42,6 @@ export class PolygonElement extends ElementBase implements IPointContainer {
      */
     private _winding?: WindingMode;
 
-    /**
-     * Renders connected, stroked and/or filled line segments between three or more points
-     */
     constructor() {
         super('polygon');
         this.addPoint = this.addPoint.bind(this);

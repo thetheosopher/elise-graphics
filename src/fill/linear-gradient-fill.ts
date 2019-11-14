@@ -1,5 +1,8 @@
 import { GradientFillStop } from './gradient-fill-stop';
 
+/**
+ * Describes  a linear gradient fill
+ */
 export class LinearGradientFill {
     /**
      * Linear gradient factory function
@@ -32,7 +35,6 @@ export class LinearGradientFill {
     public stops: GradientFillStop[];
 
     /**
-     * Represents a linear gradient fill
      * @param start - Start point serialized as a string
      * @param end - End point serialized as a string
      */

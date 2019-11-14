@@ -1,5 +1,8 @@
 import { ElementBase } from './element-base';
 
+/**
+ * Describes file upload progress
+ */
 export class UploadProgressProps {
     /**
      * Element associated with upload
@@ -12,7 +15,6 @@ export class UploadProgressProps {
     public percent: number;
 
     /**
-     * Constructs an upload progress props
      * @param element - Element associated with upload
      * @param percent - Percent of upload completed
      */

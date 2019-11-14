@@ -6,6 +6,9 @@ import { ElementBase } from '../elements/element-base';
 import { PathElement } from '../elements/path-element';
 import { Handle } from './handle';
 
+/**
+ * Creates design mode manipulation handles for supported elements
+ */
 export class HandleFactory {
     /**
      * Creates array of handles for element
@@ -195,7 +198,7 @@ export class HandleFactory {
             depth = PointDepth.Full;
         }
         let handleIndex = -1;
-        let handlePoint = Point.ORIGIN;
+        let handlePoint = Point.Origin;
         let previous: Handle | undefined;
         const commands = el.getCommands();
         if (commands) {

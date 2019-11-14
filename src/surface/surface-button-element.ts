@@ -7,6 +7,9 @@ import { Surface } from './surface';
 import { SurfaceElement } from './surface-element';
 import { SurfaceElementStates } from './surface-element-states';
 
+/**
+ * Renders a multistate image button derived from surface images
+ */
 export class SurfaceButtonElement extends SurfaceElement {
     public static BUTTON_CLICK = 'buttonClick';
 
@@ -127,7 +130,6 @@ export class SurfaceButtonElement extends SurfaceElement {
     public spriteElement?: SpriteElement;
 
     /**
-     * Renders a multistate image button derived from surface page images
      * @param id - Item id
      * @param left - Layout area x coordinate
      * @param top - Layout area y coordinate

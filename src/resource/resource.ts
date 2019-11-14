@@ -3,6 +3,9 @@ import { Model } from '../core/model';
 import { ResourceFactory } from './resource-factory';
 import { ResourceManager } from './resource-manager';
 
+/**
+ * Base class for model resources
+ */
 export abstract class Resource {
     /**
      * Resource type tag

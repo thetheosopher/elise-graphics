@@ -1,6 +1,9 @@
 import { MouseEventArgs } from '../core/mouse-event-args';
 import { ElementBase } from './element-base';
 
+/**
+ * Encapsulates an element related mouse event
+ */
 export class ElementMouseEventArgs extends MouseEventArgs {
     /**
      * Model element

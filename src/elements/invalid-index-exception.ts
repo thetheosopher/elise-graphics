@@ -1,8 +1,10 @@
+import { ErrorMessages } from '../core/error-messages';
+
+/**
+ * Encapsulates invalid point index exception
+ */
 export class InvalidIndexException extends Error {
-    /**
-     * Internal exception type
-     */
     constructor(index: number) {
-        super('Invalid point index: ' + index);
+        super(ErrorMessages.InvalidPointIndex + index);
     }
 }

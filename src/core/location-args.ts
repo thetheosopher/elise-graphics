@@ -1,13 +1,12 @@
 import { Point } from './point';
 
+/**
+ * Encapsulates a location in event parameters
+ */
 export class LocationArgs {
-    /**
-     * Location
-     */
     public location?: Point;
 
     /**
-     * Describes a location
      * @param location - Location
      */
     constructor(location?: Point) {

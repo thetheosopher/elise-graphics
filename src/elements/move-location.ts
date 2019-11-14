@@ -16,7 +16,6 @@ export class MoveLocation {
     public location: Point;
 
     /**
-     * Constructs a move location
      * @param element - Element being sized
      * @param location - Tentative location of element
      */

@@ -2,6 +2,9 @@ import { ErrorMessages } from '../core/error-messages';
 import { Surface } from './surface';
 import { SurfaceLayer } from './surface-layer';
 
+/**
+ * Renders HTML content into an IFrame element
+ */
 export class SurfaceHtmlLayer extends SurfaceLayer {
     /**
      * Creates an HTML item
@@ -44,7 +47,6 @@ export class SurfaceHtmlLayer extends SurfaceLayer {
     public element?: HTMLIFrameElement;
 
     /**
-     * Renders HTML content into an IFrame element
      * @param id - HTML layer id
      * @param left - Layout area x coordinate
      * @param top - Layout area y coordinate
@@ -128,9 +130,9 @@ export class SurfaceHtmlLayer extends SurfaceLayer {
     public destroy() {
         if (this.element && this.element.parentElement) {
             this.element.parentElement.removeChild(this.element);
-            delete this.element;
+            this.element = undefined;
         }
-        delete this.surface;
+        this.surface = undefined;
     }
 
     /**

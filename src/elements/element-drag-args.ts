@@ -1,5 +1,8 @@
 import { ElementBase } from './element-base';
 
+/**
+ * Encapsulates element drag event arguments
+ */
 export class ElementDragArgs {
     /**
      * Model element

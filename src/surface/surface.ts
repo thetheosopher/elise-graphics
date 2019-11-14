@@ -19,6 +19,9 @@ import { SurfaceTextElement } from './surface-text-element';
 import { SurfaceVideoLayer } from './surface-video-layer';
 import { SurfaceViewController } from './surface-view-controller';
 
+/**
+ * Renders elements derived from surface images and layered media elements
+ */
 export class Surface {
     /**
      * Surface factory function
@@ -98,7 +101,7 @@ export class Surface {
     public layers: SurfaceLayer[] = [];
 
     /**
-     * Loaded event called when all resources have been loaded or have failed (success: boolean)
+     * Loaded event called when all resources have been loaded or have failed
      */
     public loaded: CommonEvent<boolean> = new CommonEvent<boolean>();
 
@@ -113,7 +116,7 @@ export class Surface {
     public hostDiv?: HTMLDivElement;
 
     /**
-     * Resource state listener (rm: Elise.ResourceManager, state: Elise.ResourceState)
+     * Resource state listener
      */
     public resourceListenerEvent: ResourceManagerEvent<ResourceState> = new ResourceManagerEvent<ResourceState>();
 
@@ -148,7 +151,6 @@ export class Surface {
     public translateY: number;
 
     /**
-     * Base elements derived from surface images and layered media elements
      * @param {number} width - Surface width
      * @param {number} height - Surface height
      * @param {string} id - Surface id
@@ -363,9 +365,9 @@ export class Surface {
         this.controller.commandHandler = undefined;
         this.controller.timer.clear();
         this.controller.detach();
-        delete this.controller;
-        delete this.div;
-        delete this.hostDiv;
+        this.controller = undefined;
+        this.div = undefined;
+        this.hostDiv = undefined;
     }
 
     /**

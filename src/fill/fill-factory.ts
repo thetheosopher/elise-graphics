@@ -8,6 +8,9 @@ import { ModelResource } from '../resource/model-resource';
 import { LinearGradientFill } from './linear-gradient-fill';
 import { RadialGradientFill } from './radial-gradient-fill';
 
+/**
+ * Element fill creation methods
+ */
 export class FillFactory {
     /**
      * Returns fill for given element with inheritance

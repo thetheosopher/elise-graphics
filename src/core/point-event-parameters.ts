@@ -1,6 +1,8 @@
 import { MousePositionInfo } from './mouse-position-info';
 import { Point } from './point';
-
+/**
+ * Represents a DOM point related event
+ */
 export class PointEventParameters {
     /**
      * Point at which the event occurred adjusted to model coordinates
@@ -13,7 +15,6 @@ export class PointEventParameters {
     public event?: Event | MousePositionInfo;
 
     /**
-     * Represents a DOM point related event
      * @param event - Source DOM event
      * @param point - Model scale adjusted point at which event occurred
      */

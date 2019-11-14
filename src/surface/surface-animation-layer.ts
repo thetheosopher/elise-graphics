@@ -15,6 +15,9 @@ import { SurfaceAnimationFrame } from './surface-animation-frame';
 import { SurfaceAnimationViewController } from './surface-animation-view-controller';
 import { SurfaceLayer } from './surface-layer';
 
+/**
+ * Renders timed image frames with optional transitions
+ */
 export class SurfaceAnimationLayer extends SurfaceLayer {
     public static ANIMATION_CLICK = 'animationClick';
     public static ANIMATION_ADVANCE = 'animationAdvance';
@@ -122,7 +125,6 @@ export class SurfaceAnimationLayer extends SurfaceLayer {
     public sprite?: SpriteElement;
 
     /**
-     * Renders timed image frames with optional transitions
      * @param id - Animation id
      * @param left - Layout area x coordinate
      * @param top - Layout area y coordinate
@@ -394,9 +396,9 @@ export class SurfaceAnimationLayer extends SurfaceLayer {
             this.controller.detach();
         }
         if (this.element) {
-            delete this.element;
+            this.element = undefined;
         }
-        delete this.surface;
+        this.surface = undefined;
     }
 
     /**

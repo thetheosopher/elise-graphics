@@ -4,6 +4,9 @@ import { Size } from '../../core/size';
 import { ImageElement } from '../../elements/image-element';
 import { DesignTool } from './design-tool';
 
+/**
+ * Image element creation tool
+ */
 export class ImageElementTool extends DesignTool {
     public point1?: Point;
     public source?: string;

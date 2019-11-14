@@ -2,6 +2,9 @@ import { Resource } from './resource';
 import { IResourceCreator } from './resource-creator';
 import { ResourceCreatorRegistration } from './resource-creator-registration';
 
+/**
+ * Resource creation factory
+ */
 export class ResourceFactory {
     /**
      * Array of resource creators

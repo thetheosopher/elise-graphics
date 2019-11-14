@@ -7,6 +7,9 @@ import { ElementBase } from './element-base';
 import { SpriteFrame } from './sprite-frame';
 import { SpriteState } from './sprite-state';
 
+/**
+ * Renders one or more image frames from full or partial bitmap image source
+ */
 export class SpriteElement extends ElementBase {
     /**
      * Sprite element factory function
@@ -105,8 +108,6 @@ export class SpriteElement extends ElementBase {
 
     /**
      * Transition render function for current transition
-     *   (c: CanvasRenderingContext2D, c1: HTMLCanvasElement, c2: HTMLCanvasElement,
-     *   transitionOffset: number, x: number, y: number, width: number, height: number)
      */
     public transition?: (
         c: CanvasRenderingContext2D,
@@ -119,9 +120,6 @@ export class SpriteElement extends ElementBase {
         height: number | undefined
     ) => void;
 
-    /**
-     * Renders one or more image frames from full or partial bitmap image source
-     */
     constructor() {
         super('sprite');
         this.createSheetFrames = this.createSheetFrames.bind(this);

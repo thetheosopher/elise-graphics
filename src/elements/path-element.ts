@@ -9,6 +9,9 @@ import { FillFactory } from '../fill/fill-factory';
 import { ElementBase } from './element-base';
 import { InvalidIndexException } from './invalid-index-exception';
 
+/**
+ * Renders series of stroked and/or filled drawing commands
+ */
 export class PathElement extends ElementBase implements IPointContainer {
     /**
      * Path element factory function
@@ -39,9 +42,6 @@ export class PathElement extends ElementBase implements IPointContainer {
      */
     private _winding?: WindingMode;
 
-    /**
-     * Renders series of stroked and/or filled drawing commands
-     */
     constructor() {
         super('path');
         this.add = this.add.bind(this);

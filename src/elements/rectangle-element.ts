@@ -4,6 +4,9 @@ import { Size } from '../core/size';
 import { FillFactory } from '../fill/fill-factory';
 import { ElementBase } from './element-base';
 
+/**
+ * Renders stroked and/or filled rectangle
+ */
 export class RectangleElement extends ElementBase {
     /**
      * Rectangle element factory function
@@ -22,9 +25,6 @@ export class RectangleElement extends ElementBase {
         return e;
     }
 
-    /**
-     * Renders stroked and/or filled rectangle
-     */
     constructor() {
         super('rectangle');
     }

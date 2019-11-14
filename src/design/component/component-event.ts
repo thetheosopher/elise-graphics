@@ -1,11 +1,11 @@
 import { Component } from './component';
 
+/**
+ * Component related event
+ */
 export class ComponentEvent<T> {
     private listeners: Array<(c: Component, data: T) => void> = [];
 
-    /**
-     * Component event
-     */
     constructor() {
         this.add = this.add.bind(this);
         this.remove = this.remove.bind(this);

@@ -3,6 +3,9 @@ import { Utility } from '../core/utility';
 import { ElementBase } from '../elements/element-base';
 import { Surface } from './surface';
 
+/**
+ * Base class for surface elements
+ */
 export class SurfaceElement {
     /**
      * Element id
@@ -35,7 +38,6 @@ export class SurfaceElement {
     public surface?: Surface;
 
     /**
-     * Base class for surface elements
      * @param id - Item id
      * @param left - Layout area x coordinate
      * @param top - Layout area y coordinate

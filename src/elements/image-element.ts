@@ -5,6 +5,9 @@ import { BitmapResource } from '../resource/bitmap-resource';
 import { ResourceManager } from '../resource/resource-manager';
 import { ElementBase } from './element-base';
 
+/**
+ * Renders a bitmap based image element
+ */
 export class ImageElement extends ElementBase {
     /**
      * Image element factory function
@@ -50,9 +53,6 @@ export class ImageElement extends ElementBase {
      */
     public opacity: number;
 
-    /**
-     * Constructs a new image element
-     */
     constructor() {
         super('image');
         this.setOpacity = this.setOpacity.bind(this);

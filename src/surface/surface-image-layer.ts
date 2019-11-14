@@ -3,6 +3,9 @@ import { ErrorMessages } from '../core/error-messages';
 import { Surface } from './surface';
 import { SurfaceLayer } from './surface-layer';
 
+/**
+ * Renders a bitmap image into an HTML image element
+ */
 export class SurfaceImageLayer extends SurfaceLayer {
     /**
      * Creates an image layer
@@ -44,7 +47,6 @@ export class SurfaceImageLayer extends SurfaceLayer {
     public element?: HTMLImageElement;
 
     /**
-     * Renders an image into an HTML image element
      * @param id - Image layer id
      * @param left - Layout area x coordinate
      * @param top - Layout area y coordinate
@@ -126,9 +128,9 @@ export class SurfaceImageLayer extends SurfaceLayer {
     public destroy() {
         if (this.element && this.element.parentElement) {
             this.element.parentElement.removeChild(this.element);
-            delete this.element;
+            this.element = undefined;
         }
-        delete this.surface;
+        this.surface = undefined;
     }
 
     /**

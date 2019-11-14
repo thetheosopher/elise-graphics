@@ -3,6 +3,9 @@ import { ErrorMessages } from '../core/error-messages';
 import { Surface } from './surface';
 import { SurfaceLayer } from './surface-layer';
 
+/**
+ * Renders a video into an HTML video element
+ */
 export class SurfaceVideoLayer extends SurfaceLayer {
     /**
      * Renders a video into an HTML video element
@@ -64,7 +67,6 @@ export class SurfaceVideoLayer extends SurfaceLayer {
     public element?: HTMLVideoElement;
 
     /**
-     * Renders a video into an HTML video element
      * @param id - Video id
      * @param left - Layout area x coordinate
      * @param top - Layout area y coordinate
@@ -138,7 +140,7 @@ export class SurfaceVideoLayer extends SurfaceLayer {
             if (self.isLoaded && self.autoPlay) {
                 video.play();
             }
-            delete video.oncanplay;
+            video.oncanplay = null;
         };
         self.isPrepared = true;
         if (callback) {
@@ -152,9 +154,9 @@ export class SurfaceVideoLayer extends SurfaceLayer {
     public destroy() {
         if (this.element && this.element.parentElement) {
             this.element.parentElement.removeChild(this.element);
-            delete this.element;
+            this.element = undefined;
         }
-        delete this.surface;
+        this.surface = undefined;
     }
 
     /**

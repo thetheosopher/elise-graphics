@@ -1,3 +1,6 @@
+/**
+ * Represents sprite element frame
+ */
 export class SpriteFrame {
     /**
      * Clones a sprite frame
@@ -90,7 +93,6 @@ export class SpriteFrame {
     public opacity: number = 1;
 
     /**
-     * Sprite Frame - Represents single sprite element frame
      * @param source - Bitmap resource key
      * @param x - Bitmap resource image region X coordinate
      * @param y - Bitmap resource image region Y coordinate

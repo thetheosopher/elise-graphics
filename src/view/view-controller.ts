@@ -14,6 +14,9 @@ import { ViewRenderer } from './view-renderer';
 
 const log = Logging.log;
 
+/**
+ * Manages rendering and interaction with rendered model content
+ */
 export class ViewController implements IController {
     /**
      * Captured view controller for mouse event routing when mouse is down
@@ -282,9 +285,6 @@ export class ViewController implements IController {
      */
     public commandHandler?: ElementCommandHandler;
 
-    /**
-     * Manages rendering and interaction with rendered model content
-     */
     constructor() {
         /** Initialize animation timer function */
         // Animation.initialize();

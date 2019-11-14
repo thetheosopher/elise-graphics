@@ -1,6 +1,9 @@
 import { SurfaceRadioStrip } from './surface-radio-strip';
 import { SurfaceRadioStripItem } from './surface-radio-strip-item';
 
+/**
+ * Contains arguments for radio strip selection event
+ */
 export class SurfaceRadioStripSelectionArgs {
     /**
      * Radio strip
@@ -13,7 +16,6 @@ export class SurfaceRadioStripSelectionArgs {
     public item: SurfaceRadioStripItem;
 
     /**
-     * Contains arguments for radio strip onSelect event
      * @param strip - Radio strip
      * @param item - Radio strip item
      */

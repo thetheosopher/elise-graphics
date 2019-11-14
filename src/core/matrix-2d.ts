@@ -1,8 +1,11 @@
+/**
+ * Represents a 2D affine transformation matrix
+ */
 export class Matrix2D {
     public static IDENTITY: Matrix2D = new Matrix2D(1, 0, 0, 1, 0, 0);
 
     /**
-     * Matrix factory function
+     * Matrix factory method
      * @returns New matrix
      */
     public static create(

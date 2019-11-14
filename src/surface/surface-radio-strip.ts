@@ -17,11 +17,17 @@ import { SurfaceRadioStripItem } from './surface-radio-strip-item';
 import { SurfaceRadioStripSelectionArgs } from './surface-radio-strip-selection-args';
 import { SurfaceRadioStripViewController } from './surface-radio-strip-view-controller';
 
+/**
+ * Orientation of radio strip
+ */
 export enum RadioStripOrientation {
     Horizontal = 0,
     Vertical = 1
 }
 
+/**
+ * Scrollable list of radio button items derived from surface image templates
+ */
 export class SurfaceRadioStrip extends SurfaceLayer {
     public static RADIO_BUTTON_DOWN = 'radioButtonDown';
     public static RADIO_BUTTON_UP = 'radioButtonUp';
@@ -193,7 +199,6 @@ export class SurfaceRadioStrip extends SurfaceLayer {
     public scrollTimer?: number;
 
     /**
-     * Scrollable list of radio button items derived from surface image templates
      * @param id - Radio strip id
      * @param arealeft - Strip area x coordinate
      * @param areaTop - Strip area y coordinate
@@ -397,14 +402,14 @@ export class SurfaceRadioStrip extends SurfaceLayer {
                     self.controller.offsetX = offset;
                     if (self.scrollTimer) {
                         clearInterval(self.scrollTimer);
-                        delete self.scrollTimer;
+                        self.scrollTimer = undefined;
                     }
                 }
                 else if (increment > 0 && self.controller.offsetX >= offset) {
                     self.controller.offsetX = offset;
                     if (self.scrollTimer) {
                         clearInterval(self.scrollTimer);
-                        delete self.scrollTimer;
+                        self.scrollTimer = undefined;
                     }
                 }
             }
@@ -414,14 +419,14 @@ export class SurfaceRadioStrip extends SurfaceLayer {
                     self.controller.offsetY = offset;
                     if (self.scrollTimer) {
                         clearInterval(self.scrollTimer);
-                        delete self.scrollTimer;
+                        self.scrollTimer = undefined;
                     }
                 }
                 else if (increment > 0 && self.controller.offsetY >= offset) {
                     self.controller.offsetY = offset;
                     if (self.scrollTimer) {
                         clearInterval(self.scrollTimer);
-                        delete self.scrollTimer;
+                        self.scrollTimer = undefined;
                     }
                 }
             }
@@ -1109,9 +1114,9 @@ export class SurfaceRadioStrip extends SurfaceLayer {
             this.controller.detach();
         }
         if (this.element) {
-            delete this.element;
+            this.element = undefined;
         }
-        delete this.surface;
+        this.surface = undefined;
     }
 
     /**
@@ -1224,7 +1229,7 @@ export class SurfaceRadioStrip extends SurfaceLayer {
                 }
             }
             if (element.frameStack.length === 0) {
-                delete element.frameStack;
+                element.frameStack = undefined;
             }
         }
         this.controller.draw();

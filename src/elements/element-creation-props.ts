@@ -1,5 +1,8 @@
 import { Model } from '../core/model';
 
+/**
+ * Encapsulates properties for element creation
+ */
 export class ElementCreationProps {
     /**
      * Model to which element should be added
@@ -37,7 +40,6 @@ export class ElementCreationProps {
     public props: any;
 
     /**
-     * Provides properties for element creation
      * @param model - Model to which element should be added
      * @param id - Element id
      * @param left - X coordinate

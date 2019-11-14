@@ -1,6 +1,9 @@
 import { Point } from './point';
 import { PointDepth } from './point-depth';
 
+/**
+ * Indexed point container interface
+ */
 export interface IPointContainer {
     /**
      * Returns boolean true if in point editing mode

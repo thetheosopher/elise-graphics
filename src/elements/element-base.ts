@@ -10,6 +10,9 @@ import { LinearGradientFill } from '../fill/linear-gradient-fill';
 import { RadialGradientFill } from '../fill/radial-gradient-fill';
 import { ResourceManager } from '../resource/resource-manager';
 
+/**
+ * Base class for renderable model elements
+ */
 export class ElementBase implements IPointContainer {
     /**
      * Element type tag
@@ -136,9 +139,6 @@ export class ElementBase implements IPointContainer {
      */
     protected _location?: Point;
 
-    /**
-     * Base class for all model elements
-     */
     constructor(type: string) {
         this.type = type;
 

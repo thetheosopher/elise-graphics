@@ -3,6 +3,9 @@ import { Utility } from '../core/utility';
 import { Resource } from './resource';
 import { ResourceFactory } from './resource-factory';
 
+/**
+ * String text resource
+ */
 export class TextResource extends Resource {
     /**
      * Text resource factory function
@@ -55,9 +58,6 @@ export class TextResource extends Resource {
      */
     public text?: string;
 
-    /**
-     * String text resource
-     */
     constructor() {
         super('text');
     }

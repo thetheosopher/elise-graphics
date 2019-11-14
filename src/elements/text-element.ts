@@ -6,6 +6,9 @@ import { ResourceManager } from '../resource/resource-manager';
 import { TextResource } from '../resource/text-resource';
 import { ElementBase } from './element-base';
 
+/**
+ * Renders a stroked and filled text element
+ */
 export class TextElement extends ElementBase {
     /**
      * Text element factory function
@@ -72,9 +75,6 @@ export class TextElement extends ElementBase {
      */
     public alignment?: string;
 
-    /**
-     * Constructs a text element
-     */
     constructor() {
         super('text');
         this.setText = this.setText.bind(this);
@@ -366,7 +366,7 @@ export class TextElement extends ElementBase {
      */
     public setText(text: string) {
         this.text = text;
-        delete this.source;
+        this.source = undefined;
         return this;
     }
 
@@ -377,7 +377,7 @@ export class TextElement extends ElementBase {
      */
     public setSource(source: string) {
         this.source = source;
-        delete this.text;
+        this.text = undefined;
         return this;
     }
 

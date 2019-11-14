@@ -4,6 +4,9 @@ import { Size } from '../../core/size';
 import { TextElement } from '../../elements/text-element';
 import { DesignTool } from './design-tool';
 
+/**
+ * Text element design creation tool
+ */
 export class TextTool extends DesignTool {
     public point1?: Point;
     public textElement?: TextElement;

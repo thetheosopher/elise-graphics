@@ -3,7 +3,9 @@ import { Point } from '../../core/point';
 import { LineElement } from '../../elements/line-element';
 import { PolygonElement } from '../../elements/polygon-element';
 import { DesignTool } from './design-tool';
-
+/**
+ * Polygon element design creation tool
+ */
 export class PolygonTool extends DesignTool {
     public points?: Point[];
     public lastPoint?: Point;

@@ -1,6 +1,8 @@
+/**
+ * Represents the raw source point at which a DOM event occurred
+ */
 export class MousePositionInfo {
     /**
-     * Represents the raw source point at which a DOM event occurred
      * @param clientX - Raw x coordinate
      * @param clientY - Raw y coordinate
      */

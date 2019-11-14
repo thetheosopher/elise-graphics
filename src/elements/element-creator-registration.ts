@@ -1,5 +1,8 @@
 import { IElementCreator } from './element-creator';
 
+/**
+ * Encapsulates named element creation method
+ */
 export class ElementCreatorRegistration {
     /**
      * Element creator registration

@@ -2,9 +2,11 @@ export class ErrorMessages {
     public static BitmapResourceSourceIsUndefined = 'Bitmap resource source is undefined.';
     public static BoundsAreUndefined = 'Bounds are undefined.';
     public static CanvasContextIsNull = 'Canvas context is null.';
+    public static CanvasDrawImageError = 'Exception thrown calling canvas context drawImage.';
     public static CanvasIsUndefined = 'Canvas is undefined.';
     public static ComponentTypeNotRegistered = 'Component type is not registered.';
     public static ControllerIsUndefined = 'Controller is undefined.';
+    public static ElementAlreadyExists = 'Element already exists in collection.';
     public static ElementUndefined = 'Element is undefined';
     public static ElementIdUndefined = 'Element ID is undefined.';
     public static ErrorCreatingCanvasPattern = 'Error creating canvas pattern.';
@@ -13,6 +15,8 @@ export class ErrorMessages {
     public static InvalidColorString = 'Invalid color string.';
     public static InvalidFrameIndex = 'Invalid frame index.';
     public static InvalidResourceType = 'Invalid resource type.';
+    public static InvalidPointIndex = 'Invalid point index: ';
+    public static InvalidPointString = 'Point string is invalid.';
     public static InvalidSizeString = 'Invalid size string';
     public static LocationUndefined = 'Location is undefined.';
     public static ModelUndefined = 'Model is undefined.';

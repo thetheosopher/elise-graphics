@@ -2,6 +2,9 @@ import { Point } from '../core/point';
 import { Size } from '../core/size';
 import { SpriteElement } from '../elements/sprite-element';
 
+/**
+ * Extends [[SpriteElement]] to add strip item groupId and itemId properties
+ */
 export class SurfaceRadioItemSpriteElement extends SpriteElement {
     /**
      * Radio strip group ID
@@ -14,7 +17,6 @@ export class SurfaceRadioItemSpriteElement extends SpriteElement {
     public itemId: string;
 
     /**
-     * Extends Elise.SpriteElement to add strip item groupId and itemId properties
      * @param groupId - Radio item group id
      * @param itemId - Radio item id
      * @param left - Radio item x coordinate

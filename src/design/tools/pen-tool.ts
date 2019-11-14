@@ -3,7 +3,9 @@ import { Point } from '../../core/point';
 import { LineElement } from '../../elements/line-element';
 import { PolylineElement } from '../../elements/polyline-element';
 import { DesignTool } from './design-tool';
-
+/**
+ * Pen (polyline element) drawing tool
+ */
 export class PenTool extends DesignTool {
     public points?: Point[];
     public lastPoint?: Point;

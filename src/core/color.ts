@@ -1,6 +1,9 @@
 import { ErrorMessages } from './error-messages';
 import { NamedColor } from './named-color';
 
+/**
+ * Represents a 32-bit RGBA color
+ */
 export class Color {
     public static Transparent = new Color(0, 255, 255, 255);
     public static AliceBlue = new Color(255, 240, 248, 255);
@@ -144,6 +147,9 @@ export class Color {
     public static Yellow = new Color(255, 255, 255, 0);
     public static YellowGreen = new Color(255, 154, 205, 50);
 
+    /**
+     * Array of predefined named colors
+     */
     public static NamedColors: NamedColor[] = [];
 
     /**

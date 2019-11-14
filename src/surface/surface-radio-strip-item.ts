@@ -2,6 +2,9 @@ import { Utility } from '../core/utility';
 import { SurfaceRadioItemSpriteElement } from './surface-radio-item-sprite-element';
 import { SurfaceRadioItemTextElement } from './surface-radio-item-text-element';
 
+/**
+ * Represents an item in a radio strip
+ */
 export class SurfaceRadioStripItem {
     /**
      * Radio strip item ID
@@ -29,7 +32,6 @@ export class SurfaceRadioStripItem {
     public textElement?: SurfaceRadioItemTextElement;
 
     /**
-     * Represents an item in a radio strip
      * @param id - Strip item id
      * @param text - Strip item text
      */

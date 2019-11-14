@@ -12,6 +12,9 @@ import { RectangleElement } from './rectangle-element';
 import { SpriteElement } from './sprite-element';
 import { TextElement } from './text-element';
 
+/**
+ * Central element creator registry
+ */
 export class ElementFactory {
     /**
      * Element creators

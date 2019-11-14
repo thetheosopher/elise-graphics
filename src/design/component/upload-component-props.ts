@@ -12,7 +12,9 @@ import { Component } from '../component/component';
 import { ComponentElement } from './component-element';
 import { ImageBasedComponentProps } from './image-based-component-props';
 import { ProgressRectangle } from './progress-rectangle';
-
+/**
+ * Extends [[ImageBasedComponentProps]] to describe a component supporting uploadable attachments
+ */
 export class UploadComponentProps extends ImageBasedComponentProps {
     public fileExtensions: string[] = [ '*' ];
 

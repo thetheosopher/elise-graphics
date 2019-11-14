@@ -5,6 +5,9 @@ import { Utility } from '../core/utility';
 import { Resource } from './resource';
 import { ResourceFactory } from './resource-factory';
 
+/**
+ * Embedded or externally referenced model resource
+ */
 export class ModelResource extends Resource {
     /**
      * Creates model resource from string model URI (referenced) or exising model object (embedded)
@@ -40,9 +43,6 @@ export class ModelResource extends Resource {
      */
     public model?: Model;
 
-    /**
-     * Embedded or externally referenced model resource
-     */
     constructor() {
         super('model');
     }

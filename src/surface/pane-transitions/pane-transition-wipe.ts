@@ -5,6 +5,9 @@ import { SurfacePane } from '../surface-pane';
 import { PaneTransition } from './pane-transition';
 import { PaneTransitionDirection } from './pane-transition-direction';
 
+/**
+ * Wipe pane transition
+ */
 export class PaneTransitionWipe extends PaneTransition {
     public duration: number;
     public startTime?: number;
@@ -27,6 +30,9 @@ export class PaneTransitionWipe extends PaneTransition {
 
     public start() {
         const self = this;
+        if (!self.pane) {
+            return;
+        }
         self.source = self.pane.childSurface;
         self.onStart();
 
@@ -41,6 +47,9 @@ export class PaneTransitionWipe extends PaneTransition {
         }
 
         self.bind(surface => {
+            if (!self.pane || !self.target) {
+                return;
+            }
             if (!self.pane.surface) {
                 throw new Error(ErrorMessages.PaneSurfaceIsUndefined);
             }
@@ -86,6 +95,9 @@ export class PaneTransitionWipe extends PaneTransition {
     }
 
     public tick() {
+        if (!this.pane || !this.target) {
+            return;
+        }
         if (!this.startTime || !this.source) {
             return;
         }
@@ -121,7 +133,7 @@ export class PaneTransitionWipe extends PaneTransition {
 
             if (this.timer) {
                 clearInterval(this.timer);
-                delete this.timer;
+                this.timer = undefined;
             }
             this.source.unbind();
             this.onComplete();

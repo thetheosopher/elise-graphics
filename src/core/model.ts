@@ -7,16 +7,20 @@ import { ResourceFactory } from '../resource/resource-factory';
 import { ResourceManager } from '../resource/resource-manager';
 import { ResourceState } from '../resource/resource-state';
 import { Color } from './color';
+import { ErrorMessages } from './error-messages';
 import { ModelEvent } from './model-event';
 import { Point } from './point';
 import { ScalingInfo } from './scaling-info';
 import { Size } from './size';
 import { Utility } from './utility';
 
+/**
+ * Container for rendered drawing elements and their referenced resource collection
+ */
 export class Model extends ElementBase {
     /**
-     * Parse JSON string into model object
-     * @param json - Source JSON
+     * Parses JSON string into model object
+     * @param json - JSON source string
      */
     public static parse(json: string) {
         const o = JSON.parse(json);
@@ -45,9 +49,9 @@ export class Model extends ElementBase {
 
     /**
      * Loads serialized model from specified path
-     * @param basePath - Base path
-     * @param uri - URI
-     * @param callback - Retrieval callback accepting deserialized model (model: Model)
+     * @param basePath - Base path for model URI and resource references
+     * @param uri - Base path relative path to serialized model
+     * @param callback - Retrieval callback accepting deserialized Model instance
      */
     public static load(basePath: string, uri: string, callback: (model?: Model) => void) {
         let modelPath: string;
@@ -79,7 +83,7 @@ export class Model extends ElementBase {
      * Model factory function
      * @param width - Model width
      * @param height - Model height
-     * @returns New model
+     * @returns New model instance
      */
     public static create(width: number, height: number): Model {
         const model = new Model();
@@ -88,68 +92,66 @@ export class Model extends ElementBase {
     }
 
     /**
-     * Controller attached event
+     * Event fired when controller is attached to model
      */
     public controllerAttached: ModelEvent<IController> = new ModelEvent<IController>();
 
     /**
-     * Controller detached event
+     * Event fired when controller is detached from model
      */
     public controllerDetached: ModelEvent<IController> = new ModelEvent<IController>();
 
     /**
-     * Resource base path
+     * Base path for relative resource reference
      */
     public basePath: string;
 
     /**
-     * Model path
+     * Model source path
      */
     public modelPath?: string;
 
     /**
-     * Ordered array of elements
+     * Ordered array of element to be rendered. Elements are rendered using the 'painters model' with
+     * elements rendered in the order they exist in the element array.
      */
     public elements: ElementBase[] = [];
 
     /**
-     * Managed resource collection
+     * Collection of shared resources referenced by contained elements
      */
     public resources: Resource[] = [];
 
     /**
-     * Resource manager for resources collection
+     * Manager for referenced resource resolution
      */
     public resourceManager: ResourceManager;
 
     /**
-     * Design or view controller
+     * Controller providing rendering and user interaction services
      */
     public controller?: IController;
 
     /**
-     * Associated HTML canvas element
+     * Hosting HTML canvas element into which model is rendered
      */
     public canvas?: HTMLCanvasElement;
 
     /**
-     * Canvas 2D rendering context
+     * Canvas 2D rendering context into which model is rendered
      */
     public context?: CanvasRenderingContext2D;
 
     /**
-     * Last frame render time
+     * Time of last frame render
      */
     public lastTime: number;
 
     /**
-     * True to display debug frame rate
+     * Enables/disables display of rendering frame rate
      */
     public displayFPS: boolean;
 
-    /**
-     * Constructs a new model
-     */
     constructor() {
         super('model');
 
@@ -170,7 +172,6 @@ export class Model extends ElementBase {
         this.createCanvas = this.createCanvas.bind(this);
         this.assignCanvas = this.assignCanvas.bind(this);
         this.prepareResources = this.prepareResources.bind(this);
-        // this.setElementFill = this.setElementFill.bind(this);
         this.setElementStroke = this.setElementStroke.bind(this);
         this.setRenderTransform = this.setRenderTransform.bind(this);
         this.getFillScale = this.getFillScale.bind(this);
@@ -179,15 +180,18 @@ export class Model extends ElementBase {
         this.elementWithId = this.elementWithId.bind(this);
         this.renderToContext = this.renderToContext.bind(this);
         this.strokeForElement = this.strokeForElement.bind(this);
-        // this.fillForElement = this.fillForElement.bind(this);
         this.calculateFPS = this.calculateFPS.bind(this);
         this.formattedJSON = this.formattedJSON.bind(this);
         this.rawJSON = this.rawJSON.bind(this);
     }
 
     /**
-     * Debug resource listening function (wired as listener to resource manager)
-     *  Example: this.resourceManager.listenerEvent.add(this.listen);
+     * Debug resource listening function (optionally added as listener to resource manager)
+     *
+     * Example
+     *  ```
+     *  model.resourceManager.listenerEvent.add(model.listen);
+     *  ```
      * @param rm - Resource manager
      * @param state - Resource state
      */
@@ -196,7 +200,7 @@ export class Model extends ElementBase {
     }
 
     /**
-     * Sets resource base path
+     * Sets base path for relative pathed resources
      * @param basePath - Resources base path
      */
     public setBasePath(basePath: string): void {
@@ -227,10 +231,9 @@ export class Model extends ElementBase {
      * @returns New element index
      */
     public add(el: ElementBase): number {
-        /*
         if (this.elements.indexOf(el) !== -1) {
-            throw new EliseException("Element already exists in collection in Model.add.");
-        }*/
+            throw new Error(ErrorMessages.ElementAlreadyExists);
+        }
         el.model = this;
         this.elements.push(el);
         return this.elements.length - 1;
@@ -242,10 +245,9 @@ export class Model extends ElementBase {
      * @returns New element index
      */
     public addBottom(el: ElementBase): number {
-        /*
         if (this.elements.indexOf(el) !== -1) {
-            throw new EliseException("Element already exists in collection in Model.add.");
-        }*/
+            throw new Error(ErrorMessages.ElementAlreadyExists);
+        }
         el.model = this;
         this.elements.unshift(el);
         return 0;
@@ -259,7 +261,7 @@ export class Model extends ElementBase {
     public remove(el: ElementBase): number {
         const index = this.elements.indexOf(el);
         if (index !== -1) {
-            delete el.model;
+            el.model = undefined;
             this.elements.splice(index, 1);
         }
         return index;
@@ -273,7 +275,7 @@ export class Model extends ElementBase {
     public createCanvas(scale?: number): HTMLCanvasElement {
         const canvas = document.createElement('canvas');
         let s = 1;
-        if (scale && scale > 0) {
+        if (scale !== undefined && scale > 0) {
             s = scale;
         }
         if (this._size) {
@@ -415,121 +417,6 @@ export class Model extends ElementBase {
         // Load resources
         rm.load(callback);
     }
-
-    /**
-     * Sets rendering fill style on canvas element for given element
-     * @param c - Rendering context
-     * @param el - Element being rendered
-     * @returns True if fill was applied for element
-     */
-    /*
-    setElementFill(c: CanvasRenderingContext2D, el: ElementBase): boolean {
-
-        const fill = this.fillForElement(el);
-        if(!fill || (typeof fill === 'string' && fill === 'no')) {
-            c.fillStyle = 'rgba(0,0,0,0)';
-            return false;
-        }
-        if(fill instanceof LinearGradientFill) {
-            const lgr = fill as LinearGradientFill;
-            const start = Point.parse(lgr.start);
-            const end = Point.parse(lgr.end);
-            // let loc = el instanceof Model ? new Point(0,0) : el.getLocation();
-            // let linearGradient = c.createLinearGradient(start.x, start.y, end.x, end.y);
-            const linearGradient = c.createLinearGradient(start.x, start.y, end.x, end.y);
-            for(let i = 0; i < lgr.stops.length; i++) {
-                const stop = lgr.stops[i];
-                linearGradient.addColorStop(stop.offset, Color.parse(stop.color).toStyleString());
-            }
-            c.fillStyle = linearGradient;
-            return true;
-        }
-        if(fill instanceof RadialGradientFill) {
-            const rgr = fill as RadialGradientFill;
-            const focus = Point.parse(rgr.focus);
-            const center = Point.parse(rgr.center);
-            // let loc = el instanceof Model ? new Point(0,0) : el.getLocation();
-            // let radialGradient = c.createRadialGradient(focus.x, focus.y, 0, center.x, center.y, Math.max(rgr.radiusX, rgr.radiusY));
-            const radialGradient = c.createRadialGradient(focus.x, focus.y, 0, center.x, center.y, Math.max(rgr.radiusX, rgr.radiusY));
-            for(let i = 0; i < rgr.stops.length; i++) {
-                const stop = rgr.stops[i];
-                radialGradient.addColorStop(stop.offset, Color.parse(stop.color).toStyleString());
-            }
-            c.fillStyle = radialGradient;
-            return true;
-        }
-        if(typeof fill === 'string') {
-            if(fill.toLowerCase().substring(0, 6) === 'image(') {
-                let key = fill.substring(6, fill.length - 1);
-                if(key.indexOf(';') !== -1) {
-                    const parts = key.split(';');
-                    const opacity = parseFloat(parts[0]);
-                    c.globalAlpha = opacity;
-                    key = parts[1];
-                }
-                const res = this.resourceManager.get(key) as BitmapResource;
-                if(!res) {
-                    c.fillStyle = Color.Magenta.toStyleString();
-                    console.log('Image resource [' + key + '] not found');
-                    return false;
-                }
-                const scaling = this.getFillScale(el);
-                let pattern: CanvasPattern;
-                if(scaling.rx === 1 && scaling.ry === 1) {
-                    pattern = c.createPattern(res.image, 'repeat');
-                }
-                else {
-                    const offscreen = document.createElement('canvas');
-                    offscreen.width = res.image.width * scaling.rx;
-                    offscreen.height = res.image.height * scaling.ry;
-                    const c2 = offscreen.getContext('2d');
-                    c2.scale(scaling.rx, scaling.ry);
-                    c2.drawImage(res.image, 0, 0);
-                    pattern = c.createPattern(offscreen, 'repeat');
-                }
-                c.fillStyle = pattern;
-                return true;
-            }
-            if(fill.toLowerCase().substring(0, 6) === 'model(') {
-                let key = fill.substring(6, fill.length - 1);
-                if(key.indexOf(';') !== -1) {
-                    const parts = key.split(';');
-                    const opacity = parseFloat(parts[0]);
-                    c.globalAlpha = opacity;
-                    key = parts[1];
-                }
-                const res = this.resourceManager.get(key) as ModelResource;
-                if(!res) {
-                    c.fillStyle = Color.Magenta.toStyleString();
-                    console.log('Model resource [' + key + '] not found');
-                    return false;
-                }
-                const innerModel = res.model;
-                const offscreen = document.createElement('canvas');
-                const scaling = this.getFillScale(el);
-                if(scaling.rx === 1 && scaling.ry === 1) {
-                    offscreen.width = innerModel._size.width;
-                    offscreen.height = innerModel._size.height;
-                }
-                else {
-                    offscreen.width = innerModel._size.width * scaling.rx;
-                    offscreen.height = innerModel._size.height * scaling.ry;
-                }
-                const c2 = offscreen.getContext('2d');
-                if(scaling.rx !== 1 || scaling.ry !== 1) {
-                    c2.scale(scaling.rx, scaling.ry);
-                }
-                innerModel.renderToContext(c2);
-
-                const pattern = c.createPattern(offscreen, 'repeat');
-                c.fillStyle = pattern;
-                return true;
-            }
-            c.fillStyle = Color.parse(fill).toStyleString();
-            return true;
-        }
-    }
-    */
 
     /**
      * Sets rendering stroke style on canvas element for given element
@@ -803,23 +690,6 @@ export class Model extends ElementBase {
         }
         return undefined;
     }
-
-    /**
-     * Returns fill for given element with inheritance
-     * @param el - Element
-     * @returns Element stroke
-     */
-    /*
-    fillForElement(el: ElementBase): string | LinearGradientFill | RadialGradientFill {
-        let compare = el;
-        while(compare) {
-            if(compare.fill) {
-                return compare.fill;
-            }
-            compare = compare.parent;
-        }
-        return undefined;
-    }*/
 
     /**
      * Calculates frame rate in frames/second based on time since last frame

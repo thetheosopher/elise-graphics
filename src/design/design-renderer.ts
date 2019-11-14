@@ -20,6 +20,9 @@ import { ModelResource } from '../resource/model-resource';
 import { TextResource } from '../resource/text-resource';
 import { DesignController } from './design-controller';
 
+/**
+ * Renders elements for interactive manipulation
+ */
 export class DesignRenderer {
     /**
      * Associated design controller
@@ -182,7 +185,7 @@ export class DesignRenderer {
             try {
                 c.drawImage(resource.image, location.x, location.y, size.width, size.height);
             } catch (ignore) {
-                throw new Error('Warning: Exception thrown calling canvas context drawImage.\r\n' + ignore);
+                throw new Error(ErrorMessages.CanvasDrawImageError + ':' + ignore);
             }
         }
         if (model.setElementStroke(c, image)) {

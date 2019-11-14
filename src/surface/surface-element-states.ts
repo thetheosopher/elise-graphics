@@ -1,3 +1,6 @@
+/**
+ * Describes current state of surface element
+ */
 export class SurfaceElementStates {
     public static NORMAL = 'normal';
     public static SELECTED = 'selected';

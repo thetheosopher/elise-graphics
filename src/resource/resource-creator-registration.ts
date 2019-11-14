@@ -1,8 +1,10 @@
 import { IResourceCreator } from './resource-creator';
 
+/**
+ * Resource creator registration
+ */
 export class ResourceCreatorRegistration {
     /**
-     * Resource creator registration
      * @param name - Resource type name
      * @param creator - Resource creation function
      */

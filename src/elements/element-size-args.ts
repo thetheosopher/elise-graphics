@@ -2,6 +2,9 @@ import { Size } from '../core/size';
 import { SizeArgs } from '../core/size-args';
 import { ElementBase } from './element-base';
 
+/**
+ * Describes a temporary element size
+ */
 export class ElementSizeArgs extends SizeArgs {
     /**
      * Model element

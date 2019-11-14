@@ -2,10 +2,13 @@ import { ErrorMessages } from '../../core/error-messages';
 import { Surface } from '../surface';
 import { SurfacePane } from '../surface-pane';
 
+/**
+ * Base class for pane transitions
+ */
 export abstract class PaneTransition {
-    public pane: SurfacePane;
-    public target: Surface;
-    public callback: (pane: SurfacePane) => void;
+    public pane?: SurfacePane;
+    public target?: Surface;
+    public callback?: (pane: SurfacePane) => void;
 
     constructor(pane: SurfacePane, target: Surface, callback: (pane: SurfacePane) => void) {
         this.start = this.start.bind(this);
@@ -20,6 +23,9 @@ export abstract class PaneTransition {
     public abstract start(): void;
 
     public onStart() {
+        if (!this.pane || !this.target) {
+            return;
+        }
         if (!this.pane.surface) {
             throw new Error(ErrorMessages.PaneSurfaceIsUndefined);
         }
@@ -35,18 +41,24 @@ export abstract class PaneTransition {
 
     public onComplete() {
         const self = this;
+        if (!self.pane || !self.target) {
+            return;
+        }
         if (self.callback) {
             self.callback(self.pane);
         }
         self.pane.isPrepared = true;
         self.pane.setHostDivScrolling();
         self.target.onload();
-        delete self.pane;
-        delete self.callback;
-        delete self.target;
+        self.pane = undefined;
+        self.callback = undefined;
+        self.target = undefined;
     }
 
     public bind(callback: (surface: Surface) => void, onBottom: boolean) {
+        if (!this.pane || !this.target) {
+            return;
+        }
         const surface = this.target;
         const hostDiv = this.pane.element;
         if (!hostDiv) {

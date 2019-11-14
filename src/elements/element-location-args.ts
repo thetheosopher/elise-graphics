@@ -2,6 +2,9 @@ import { LocationArgs } from '../core/location-args';
 import { Point } from '../core/point';
 import { ElementBase } from './element-base';
 
+/**
+ * Describes a temporary element location
+ */
 export class ElementLocationArgs extends LocationArgs {
     /**
      * Model element

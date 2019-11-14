@@ -3,6 +3,9 @@ import { Component } from './component';
 import { ComponentElement } from './component-element';
 import { ComponentProps } from './component-props';
 
+/**
+ * Central design component registry
+ */
 export class ComponentRegistry {
     /**
      * Registered component array

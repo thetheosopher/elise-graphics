@@ -4,6 +4,9 @@ import { ElementBase } from '../elements/element-base';
 import { FillFactory } from '../fill/fill-factory';
 import { ViewController } from './view-controller';
 
+/**
+ * Renders model content for viewing
+ */
 export class ViewRenderer {
     /**
      * View controller
@@ -11,7 +14,6 @@ export class ViewRenderer {
     public controller: ViewController;
 
     /**
-     * Renders model content for viewing
      * @param controller - Associated view controller
      */
     constructor(controller: ViewController) {

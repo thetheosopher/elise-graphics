@@ -4,6 +4,9 @@ import { Size } from '../../core/size';
 import { EllipseElement } from '../../elements/ellipse-element';
 import { DesignTool } from './design-tool';
 
+/**
+ * Ellipse creation design tool
+ */
 export class EllipseTool extends DesignTool {
     public point1?: Point;
     public point2?: Point;

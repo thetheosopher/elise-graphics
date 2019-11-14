@@ -5,6 +5,9 @@ import { TextElement } from '../elements/text-element';
 import { Surface } from './surface';
 import { SurfaceElement } from './surface-element';
 
+/**
+ * Renders styled text with an optional background fill and border stroke
+ */
 export class SurfaceTextElement extends SurfaceElement {
     public static TEXT_CLICK = 'textClick';
 
@@ -87,7 +90,6 @@ export class SurfaceTextElement extends SurfaceElement {
     public textElement?: TextElement;
 
     /**
-     * Renders styled text with an optional background fill and border stroke
      * @param id - Item id
      * @param left - Layout area x coordinate
      * @param top - Layout area y coordinate

@@ -1,3 +1,6 @@
+/**
+ * Centralized logging support
+ */
 export class Logging {
     public static enabled = false;
 

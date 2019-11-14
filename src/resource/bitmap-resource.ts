@@ -4,6 +4,9 @@ import { Utility } from '../core/utility';
 import { Resource } from './resource';
 import { ResourceFactory } from './resource-factory';
 
+/**
+ * Bitmap image resource
+ */
 export class BitmapResource extends Resource {
     /**
      * Bitmap resource factory function
@@ -38,9 +41,6 @@ export class BitmapResource extends Resource {
      */
     public image?: HTMLImageElement;
 
-    /**
-     * Bitmap image resource
-     */
     constructor() {
         super('bitmap');
     }

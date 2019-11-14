@@ -4,6 +4,9 @@ import { Size } from '../../core/size';
 import { RectangleElement } from '../../elements/rectangle-element';
 import { DesignTool } from './design-tool';
 
+/**
+ * Rectangle element design creation tool
+ */
 export class RectangleTool extends DesignTool {
     public point1?: Point;
     public rectangle?: RectangleElement;

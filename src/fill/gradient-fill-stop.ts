@@ -1,3 +1,6 @@
+/**
+ * Represents a radial or linear gradient color fill stop
+ */
 export class GradientFillStop {
     /**
      * Clones gradient stop collection
@@ -32,7 +35,6 @@ export class GradientFillStop {
     public offset: number;
 
     /**
-     * Represents a radial or linear gradient color fill stop
      * @param color - Stop color represented as a string
      * @param offset - Stop offset in the range of 0 to 1
      */

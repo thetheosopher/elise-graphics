@@ -1,6 +1,9 @@
 import { Size } from '../core/size';
 import { ElementBase } from './element-base';
 
+/**
+ * Represents the tentative size of an element during a resizing operation
+ */
 export class ResizeSize {
     /**
      * Element being sized
@@ -13,7 +16,6 @@ export class ResizeSize {
     public size: Size;
 
     /**
-     * Represents the tentative size of an element during a resizing operation
      * @param element - Element being sized
      * @param size - Tentative size of element
      */

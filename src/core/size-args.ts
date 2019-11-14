@@ -1,5 +1,8 @@
 import { Size } from './size';
 
+/**
+ * Represents a size in event handlers
+ */
 export class SizeArgs {
     /**
      * Size property

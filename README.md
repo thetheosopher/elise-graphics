@@ -1,1 +1,1 @@
-"# Elise Graphics Library" 
+# Elise Graphics Library

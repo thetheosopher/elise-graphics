@@ -6,6 +6,9 @@ import { GradientFillStop } from './gradient-fill-stop';
 import { LinearGradientFill } from './linear-gradient-fill';
 import { RadialGradientFill } from './radial-gradient-fill';
 
+/**
+ * Describes element fill
+ */
 export class FillInfo {
     public static getNoFillInfo() {
         const fillInfo = new FillInfo('none');

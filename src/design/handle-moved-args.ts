@@ -1,3 +1,6 @@
+/**
+ * Describes design handle movement
+ */
 export class HandleMovedArgs {
     /**
      * Horizontal (x) movement

@@ -1,6 +1,9 @@
 import { Surface } from './surface';
 import { SurfaceElement } from './surface-element';
 
+/**
+ * Base class for layered surface elements
+ */
 export abstract class SurfaceLayer extends SurfaceElement {
     /**
      * True after item has been initialized
@@ -28,7 +31,6 @@ export abstract class SurfaceLayer extends SurfaceElement {
     public translateY: number;
 
     /**
-     * Base class for layered surface elements
      * @param id - Item id
      * @param left - Layout area x coordinate
      * @param top - Layout area y coordinate

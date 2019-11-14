@@ -2,6 +2,9 @@ import { Point } from '../core/point';
 import { Size } from '../core/size';
 import { TextElement } from '../elements/text-element';
 
+/**
+ * Extends [[TextElement]] to add strip item groupId and itemId properties
+ */
 export class SurfaceRadioItemTextElement extends TextElement {
     /**
      * Radio strip group ID
@@ -14,7 +17,6 @@ export class SurfaceRadioItemTextElement extends TextElement {
     public itemId: string;
 
     /**
-     * Extends Elise.TextElement to add strip item groupId and itemId properties
      * @param groupId - Radio item group id
      * @param itemId - Radio item id
      * @param text - Radio item text

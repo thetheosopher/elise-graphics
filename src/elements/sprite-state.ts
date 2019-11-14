@@ -1,3 +1,6 @@
+/**
+ * Represents the transition state of a sprite element
+ */
 export class SpriteState {
     /**
      * Visual transition in effect
@@ -20,7 +23,6 @@ export class SpriteState {
     public frame2: number;
 
     /**
-     * Represents the transition state of a sprite element
      * @param transition - Visual transition
      * @param offset - Offset into transition in the range of 0-1
      * @param frame1 - Source frame index

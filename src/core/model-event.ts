@@ -1,14 +1,11 @@
 import { Model } from './model';
 
+/**
+ * Generic, multicast model related event dispatcher
+ */
 export class ModelEvent<T> {
-    /**
-     * Listener array
-     */
     private listeners: Array<(model: Model, data?: T) => void> = [];
 
-    /**
-     * Model event type
-     */
     constructor() {
         this.add = this.add.bind(this);
         this.remove = this.remove.bind(this);
@@ -17,7 +14,7 @@ export class ModelEvent<T> {
     }
 
     /**
-     * Add a new listener
+     * Add a listener
      * @param listener - Listener function (c: Model, data?: T)
      */
     public add(listener: (c: Model, data?: T) => void) {

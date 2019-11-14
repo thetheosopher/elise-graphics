@@ -1,3 +1,6 @@
+/**
+ * Encapsulates the callback parameters for timer methods
+ */
 export class TimerParameters {
     /**
      * Timer total elapsed time in seconds
@@ -10,7 +13,6 @@ export class TimerParameters {
     public tickDelta: number;
 
     /**
-     * Timer callback parameters
      * @param elapsedTime - Total elapsed time in seconds
      * @param tickDelta - Time since last callback event in seconds
      */

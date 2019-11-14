@@ -1,6 +1,9 @@
 import { ElementBase } from '../elements/element-base';
 import { Color } from './color';
 
+/**
+ * Describes the outline stroke for strokable elements
+ */
 export class StrokeInfo {
     public static getStrokeInfo(el: ElementBase) {
         let color: Color;

@@ -1,6 +1,9 @@
 import { Point } from './point';
 import { Size } from './size';
 
+/**
+ * Represents a rectangular region in 2D space
+ */
 export class Region {
     /**
      * Region factory function
@@ -22,7 +25,6 @@ export class Region {
     private _size: Size;
 
     /**
-     * Represents a region in 2D space
      * @param x - X coordinate
      * @param y - Y coordinate
      * @param width - Width

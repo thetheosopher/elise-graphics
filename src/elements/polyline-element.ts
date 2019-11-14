@@ -7,6 +7,9 @@ import { Size } from '../core/size';
 import { ElementBase } from './element-base';
 import { InvalidIndexException } from './invalid-index-exception';
 
+/**
+ * Renders connected, stroked line segments between three or more points
+ */
 export class PolylineElement extends ElementBase implements IPointContainer {
     /**
      * Polyline element factory function
@@ -37,9 +40,6 @@ export class PolylineElement extends ElementBase implements IPointContainer {
      */
     private _points?: Point[];
 
-    /**
-     * Renders connected, stroked line segments between two or more points
-     */
     constructor() {
         super('polyline');
         this.addPoint = this.addPoint.bind(this);

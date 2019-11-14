@@ -1,3 +1,6 @@
+/**
+ * Specifies design mode surface reference grid style
+ */
 export enum GridType {
     /**
      * No grid

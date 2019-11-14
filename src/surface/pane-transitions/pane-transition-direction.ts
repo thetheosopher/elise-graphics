@@ -1,3 +1,6 @@
+/**
+ * Specifies pane transition direction
+ */
 export enum PaneTransitionDirection {
     Left = 0,
     Right = 1,

@@ -1,3 +1,6 @@
+/**
+ * Exposes shared utility methods
+ */
 export class Utility {
     /**
      * Retrieves text context via async ajax call

@@ -7,6 +7,9 @@ import { DesignController } from '../design/design-controller';
 import { ElementBase } from '../elements/element-base';
 import { HandleMovedArgs } from './handle-moved-args';
 
+/**
+ * Design mode element manipulation handle
+ */
 export class Handle {
     /**
      * Handle size

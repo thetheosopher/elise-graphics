@@ -1,5 +1,8 @@
 import { ErrorMessages } from './error-messages';
 
+/**
+ * Describes the size of a 2D rectangular object or region
+ */
 export class Size {
     /**
      * Empty size
@@ -23,12 +26,12 @@ export class Size {
     public static parse(sizeSource: string | Size): Size {
         if (typeof sizeSource === 'string') {
             const parts = sizeSource.split('x');
-            if(parts.length !== 2) {
+            if (parts.length !== 2) {
                 throw new Error(ErrorMessages.InvalidSizeString);
             }
             const width = parseFloat(parts[0]);
             const height = parseFloat(parts[1]);
-            if(isNaN(width) || isNaN(height)) {
+            if (isNaN(width) || isNaN(height)) {
                 throw new Error(ErrorMessages.InvalidSizeString);
             }
             return new Size(width, height);
@@ -46,14 +49,13 @@ export class Size {
      * @returns Scaled size
      */
     public static scale(s: Size, scaleX: number, scaleY: number): Size {
-        return new Size(s.width * scaleY, s.height * scaleY);
+        return new Size(s.width * scaleX, s.height * scaleY);
     }
 
     private _width: number;
     private _height: number;
 
     /**
-     * Describes the size of a rectangular object or region
      * @param width - Width
      * @param width - Height
      */

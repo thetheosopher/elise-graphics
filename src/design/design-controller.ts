@@ -38,6 +38,9 @@ const log = Logging.log;
 
 const EPSILON = 2e-23;
 
+/**
+ * Design controller for interactive element creation
+ */
 export class DesignController implements IController {
     /**
      * Global captured DesignController when mouse is down

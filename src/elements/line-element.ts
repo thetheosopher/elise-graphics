@@ -6,6 +6,9 @@ import { Region } from '../core/region';
 import { ElementBase } from './element-base';
 import { InvalidIndexException } from './invalid-index-exception';
 
+/**
+ * Renders a strokable line segment
+ */
 export class LineElement extends ElementBase implements IPointContainer {
     /**
      * Line element factory function

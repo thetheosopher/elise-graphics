@@ -1,6 +1,9 @@
 import { Color } from '../../core/color';
 import { ComponentProps } from './component-props';
 
+/**
+ * Encapsulates generic component creation properties
+ */
 export class GenericComponentProps extends ComponentProps {
     constructor() {
         super();

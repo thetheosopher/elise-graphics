@@ -5,6 +5,9 @@ import { SurfacePane } from '../surface-pane';
 import { PaneTransition } from './pane-transition';
 import { PaneTransitionDirection } from './pane-transition-direction';
 
+/**
+ * Slide pane transition
+ */
 export class PaneTransitionSlide extends PaneTransition {
     public duration: number;
     public startTime?: number;
@@ -27,10 +30,16 @@ export class PaneTransitionSlide extends PaneTransition {
 
     public start() {
         const self = this;
+        if (!self.pane || !self.target) {
+            return;
+        }
         self.source = self.pane.childSurface;
         self.onStart();
 
         self.bind(surface => {
+            if (!self.pane || !self.target) {
+                return;
+            }
             if (!self.source) {
                 throw new Error(ErrorMessages.SourceUndefined);
             }
@@ -97,6 +106,10 @@ export class PaneTransitionSlide extends PaneTransition {
     }
 
     public tick() {
+        if (!this.pane || !this.target) {
+            return;
+        }
+
         // Get elapsed time since start
         if (!this.startTime) {
             throw new Error(ErrorMessages.StartTimeIsUndefined);
@@ -114,7 +127,7 @@ export class PaneTransitionSlide extends PaneTransition {
             this.target.setTranslateY(0);
             if (this.timer) {
                 clearInterval(this.timer);
-                delete this.timer;
+                this.timer = undefined;
             }
             this.source.unbind();
             this.onComplete();

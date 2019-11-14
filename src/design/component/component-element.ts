@@ -3,6 +3,9 @@ import { Size } from '../../core/size';
 import { ModelElement } from '../../elements/model-element';
 import { Component } from './component';
 
+/**
+ * Extends ModelElement class to add Component property
+ */
 export class ComponentElement extends ModelElement {
     /**
      * Element component
@@ -20,7 +23,6 @@ export class ComponentElement extends ModelElement {
     public props: any;
 
     /**
-     * Extends ModelElement to add Component property
      * @param source - Model element ID used as resource key in parent model
      * @param left - Element X coordinate
      * @param top - Element Y coordinate

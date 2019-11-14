@@ -6,6 +6,9 @@ import { ModelResource } from '../resource/model-resource';
 import { ResourceManager } from '../resource/resource-manager';
 import { ElementBase } from './element-base';
 
+/**
+ * Renders embedded or externally referenced model
+ */
 export class ModelElement extends ElementBase {
     /**
      * Model element factory function
@@ -56,9 +59,6 @@ export class ModelElement extends ElementBase {
      */
     public sourceModel?: Model;
 
-    /**
-     * Renders embedded or externally referenced model
-     */
     constructor() {
         super('model');
         this.setOpacity = this.setOpacity.bind(this);

@@ -1,3 +1,6 @@
+/**
+ * Represents horizontal(rx) and vertical (ry) scaling factors
+ */
 export class ScalingInfo {
     /** Horizontal scaling factor */
     public rx: number;
@@ -5,9 +8,6 @@ export class ScalingInfo {
     /** Vertical scaling factor */
     public ry: number;
 
-    /**
-     * Represents scaling info
-     */
     constructor() {
         this.rx = 1;
         this.ry = 1;

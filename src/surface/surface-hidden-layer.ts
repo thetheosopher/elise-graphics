@@ -2,6 +2,10 @@ import { CommonEvent } from '../core/common-event';
 import { Surface } from './surface';
 import { SurfaceLayer } from './surface-layer';
 
+/**
+ * Hidden surface layer
+ * Renders a transparent HTML div element for capturing click event
+ */
 export class SurfaceHiddenLayer extends SurfaceLayer {
     /**
      * Creates a hidden div layer
@@ -37,7 +41,6 @@ export class SurfaceHiddenLayer extends SurfaceLayer {
     public element?: HTMLDivElement;
 
     /**
-     * Renders a transparent HTML div element for capturing click event
      * @param id - Layer id
      * @param left - Layout area x coordinate
      * @param top - Layout area y coordinate
@@ -101,9 +104,9 @@ export class SurfaceHiddenLayer extends SurfaceLayer {
     public destroy() {
         if (this.element && this.element.parentElement) {
             this.element.parentElement.removeChild(this.element);
-            delete this.element;
+            this.element = undefined;
         }
-        delete this.surface;
+        this.surface = undefined;
     }
 
     /**

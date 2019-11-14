@@ -1,5 +1,8 @@
 import { Utility } from '../core/utility';
 
+/**
+ * Represents a frame in a timed animation
+ */
 export class SurfaceAnimationFrame {
     /**
      * Bitmap source
@@ -52,7 +55,6 @@ export class SurfaceAnimationFrame {
     public pauseFrame: boolean;
 
     /**
-     * Represents a frame in a timed animation
      * @param id - Item id
      * @param left - Source bitmap crop x coordinate
      * @param top - Source bitmap crop y coordinate

@@ -1,3 +1,6 @@
+/**
+ * Describes resource loading state
+ */
 export enum ResourceLoaderState {
     /**
      * Loader is idle
@@ -5,7 +8,7 @@ export enum ResourceLoaderState {
     Idle = 1,
 
     /**
-     * Start loading resources
+     * Resource loading in progress
      */
     Loading = 2,
 
@@ -15,7 +18,7 @@ export enum ResourceLoaderState {
     ResourceStart = 3,
 
     /**
-     * Resource load completed
+     * Resource load completed successfully
      */
 
     ResourceComplete = 4,

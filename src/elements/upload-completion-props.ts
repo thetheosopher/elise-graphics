@@ -1,5 +1,8 @@
 import { ElementBase } from './element-base';
 
+/**
+ * Describes file upload completion results
+ */
 export class UploadCompletionProps {
     /**
      * Element for which upload has finished
@@ -12,7 +15,6 @@ export class UploadCompletionProps {
     public success: boolean;
 
     /**
-     * Constructs an upload completion props
      * @param element - Element associated with upload
      * @param success - Boolean completion result
      */

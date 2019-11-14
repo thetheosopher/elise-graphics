@@ -29,6 +29,9 @@ export interface INamedEasingFunction {
     ease: EasingFunction;
 }
 
+/**
+ * Image transition rendering functions
+ */
 export class TransitionRenderer {
     public static PUSH_FRAME_TRANSITION = 'pushFrameTransition';
     public static POP_FRAME_TRANSITION = 'popFrameTransition';
@@ -153,15 +156,15 @@ export class TransitionRenderer {
             if (offset >= 1.0) {
                 if (sprite.timerHandle !== undefined) {
                     clearInterval(sprite.timerHandle);
-                    delete sprite.timerHandle;
+                    sprite.timerHandle = undefined;
                 }
                 sprite.frameIndex = targetFrame;
-                delete sprite.transition;
-                delete sprite.transitionOffset;
-                delete sprite.c1index;
-                delete sprite.c2index;
-                delete sprite.c2;
-                delete sprite.c1;
+                sprite.transition = undefined;
+                sprite.transitionOffset = undefined;
+                sprite.c1index = undefined;
+                sprite.c2index = undefined;
+                sprite.c2 = undefined;
+                sprite.c1 = undefined;
                 controller.draw();
             }
             else {
@@ -207,7 +210,7 @@ export class TransitionRenderer {
             }
         }
         if (el.frameStack.length === 0) {
-            delete el.frameStack;
+            el.frameStack = undefined;
         }
         TransitionRenderer.transitionSprite(c, el, sourceFrame, targetFrame, 'fade');
     }
@@ -1101,12 +1104,12 @@ export class TransitionRenderer {
         if (!spriteState.transition) {
             if (sprite.transition || sprite.frameIndex !== spriteState.frame1) {
                 sprite.frameIndex = spriteState.frame1;
-                delete sprite.transition;
-                delete sprite.transitionOffset;
-                delete sprite.c1index;
-                delete sprite.c2index;
-                delete sprite.c2;
-                delete sprite.c1;
+                sprite.transition = undefined;
+                sprite.transitionOffset = undefined;
+                sprite.c1index = undefined;
+                sprite.c2index = undefined;
+                sprite.c2 = undefined;
+                sprite.c1 = undefined;
                 controller.invalidate();
                 if (sprite.onAdvance && controller.commandHandler) {
                     controller.commandHandler.onElementCommandFired(

@@ -10,6 +10,9 @@ import { ComponentElement } from '../component/component-element';
 import { Component } from './component';
 import { ComponentProps } from './component-props';
 
+/**
+ * Encapsulates image based component creation properties
+ */
 export class ImageBasedComponentProps extends ComponentProps {
     public imageTag: string;
 

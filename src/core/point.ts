@@ -1,5 +1,10 @@
+import { ErrorMessages } from './error-messages';
+
+/**
+ * Describes a point in 2D space
+ */
 export class Point {
-    public static ORIGIN: Point = new Point(0, 0);
+    public static Origin: Point = new Point(0, 0);
 
     /**
      * Point factory function
@@ -19,8 +24,14 @@ export class Point {
     public static parse(pointSource: string | Point): Point {
         if (typeof pointSource === 'string') {
             const parts = pointSource.split(',');
+            if (parts.length !== 2) {
+                throw new Error(ErrorMessages.InvalidPointString);
+            }
             const x = parseFloat(parts[0]);
             const y = parseFloat(parts[1]);
+            if (isNaN(x) || isNaN(y)) {
+                throw new Error(ErrorMessages.InvalidPointString);
+            }
             return new Point(x, y);
         }
         else {
@@ -61,7 +72,6 @@ export class Point {
     private _y: number;
 
     /**
-     * Describes a point in 2D space
      * @param x - X Coordinate
      * @param y - Y Coordinate
      */

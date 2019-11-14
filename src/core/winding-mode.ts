@@ -1,3 +1,6 @@
+/**
+ * Polygon fill winding mode enumeration
+ */
 export enum WindingMode {
     /**
      * Non-zero winding mode

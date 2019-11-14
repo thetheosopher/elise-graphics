@@ -11,6 +11,9 @@ import { Component } from './component';
 import { ComponentElement } from './component-element';
 import { ComponentEvent } from './component-event';
 
+/**
+ * Describes element component creation properties
+ */
 export class ComponentProps {
     /**
      * Base image path for image based components
@@ -68,22 +71,22 @@ export class ComponentProps {
     public initialized: boolean = false;
 
     /**
-     * Component element initialization (callback:(success: boolean)=>void)=>void
+     * Component element initialization
      */
     public initialize?: (callback: (success: boolean) => void) => void;
 
     /**
-     * Component element creation handler (props: ElementCreationProps)=>ComponentElement
+     * Component element creation handler
      */
     public create?: (props: ElementCreationProps) => ComponentElement;
 
     /**
-     * Component element set canvas creation fill function (controller: DesignController, c: CanvasRenderingContext2D)
+     * Component element set canvas creation fill function
      */
     public setCreationFill?: (c: CanvasRenderingContext2D) => void;
 
     /**
-     * Component element fill image provider function (callback:(image: HTMLImageElement)=>void)=>void
+     * Component element fill image provider function
      */
     public getFillImage?: (callback: (image: HTMLImageElement) => void) => void;
 
@@ -127,9 +130,6 @@ export class ComponentProps {
      */
     public uploadProgress: ComponentEvent<UploadProgressProps> = new ComponentEvent<UploadProgressProps>();
 
-    /**
-     * Describes element component design template
-     */
     constructor() {
         this.defaultCreate = this.defaultCreate.bind(this);
         this.defaultResize = this.defaultResize.bind(this);

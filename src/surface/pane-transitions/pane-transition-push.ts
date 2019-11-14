@@ -4,6 +4,9 @@ import { SurfacePane } from '../surface-pane';
 import { PaneTransition } from './pane-transition';
 import { PaneTransitionDirection } from './pane-transition-direction';
 
+/**
+ * Push pane transition
+ */
 export class PaneTransitionPush extends PaneTransition {
     public duration: number;
     public startTime?: number;
@@ -26,6 +29,9 @@ export class PaneTransitionPush extends PaneTransition {
 
     public start() {
         const self = this;
+        if (!self.pane || !self.target) {
+            return;
+        }
         self.source = self.pane.childSurface;
         self.onStart();
 
@@ -56,6 +62,10 @@ export class PaneTransitionPush extends PaneTransition {
     }
 
     public tick() {
+        if (!this.pane || !this.target) {
+            return;
+        }
+
         // Get elapsed time since start
         let elapsed = 0;
         if (!this.source) {
@@ -73,7 +83,7 @@ export class PaneTransitionPush extends PaneTransition {
             this.target.setTranslateY(0);
             if (this.timer) {
                 clearInterval(this.timer);
-                delete this.timer;
+                this.timer = undefined;
             }
             this.source.unbind();
             this.onComplete();
