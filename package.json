@@ -50,8 +50,7 @@
     "files": [
         "lib/**/*",
         "lib-esm/**/*",
-        "_bundles/**/*",
-        "docs/**/*"
+        "_bundles/**/*"
     ],
     "dependencies": {}
 }
