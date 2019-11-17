@@ -6,20 +6,20 @@ test('model size', () => {
     const model = Model.create(10, 20);
     expect(model.size).toBe('10x20');
     const size = model.getSize();
-    if(size !== undefined) {
+    if (size !== undefined) {
         expect(size.width).toBe(10);
         expect(size.height).toBe(20);
     }
     else {
-        throw new Error(ErrorMessages.SizeUndefined)
+        throw new Error(ErrorMessages.SizeUndefined);
     }
 });
 
 test('add model elements', () => {
     const model = Model.create(100, 100);
     const rect1 = RectangleElement.create(0, 0, 50, 50);
-    const index1 =  model.add(rect1);
-    expect(model.elements.length).toBe(1)
+    const index1 = model.add(rect1);
+    expect(model.elements.length).toBe(1);
     expect(index1).toBe(0);
     const rect2 = RectangleElement.create(10, 10, 50, 50);
     let index2 = model.add(rect2);

@@ -88,7 +88,7 @@ test('toStyleString unnamed color 1', () => {
 
 test('toStyleString unnamed color 2', () => {
     const colorString = new Color(128, 254, 253, 252).toStyleString();
-    expect(colorString).toBe(`rgba(254,253,252,${128/255})`);
+    expect(colorString).toBe(`rgba(254,253,252,${128 / 255})`);
 });
 
 test('equals true', () => {
@@ -133,7 +133,7 @@ test('clone', () => {
 });
 
 test('named colors', () => {
-    for(const namedColor of Color.NamedColors) {
+    for (const namedColor of Color.NamedColors) {
         const color1 = Color.parse(namedColor.name);
         expect(color1.equals(namedColor.color)).toBe(true);
     }

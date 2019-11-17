@@ -25,7 +25,7 @@ export class Logging {
 
     public static log(message: string) {
         if (Logging.enabled && Logging.hasListeners) {
-            for(const handler of Logging.handlers) {
+            for (const handler of Logging.handlers) {
                 handler(message);
             }
             console.log(message);
