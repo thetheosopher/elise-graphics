@@ -48,7 +48,10 @@
         "webpack-cli": "^3.3.10"
     },
     "files": [
-        "lib/**/*"
+        "lib/**/*",
+        "lib-esm/**/*",
+        "_bundles/**/*",
+        "docs/**/*"
     ],
     "dependencies": {}
 }

@@ -4,6 +4,14 @@
 export class CommonEvent<T> {
     private handlers: Array<(data?: T) => void> = [];
 
+    constructor() {
+        this.add = this.add.bind(this);
+        this.remove = this.remove.bind(this);
+        this.hasListeners = this.hasListeners.bind(this);
+        this.clear = this.clear.bind(this);
+        this.trigger = this.trigger.bind(this);
+    }
+
     public add(handler: (data?: T) => void) {
         this.handlers.push(handler);
     }

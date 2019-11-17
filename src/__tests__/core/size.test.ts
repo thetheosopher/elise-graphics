@@ -1,4 +1,4 @@
-import { Size } from '../core/size';
+import { Size } from '../../core/size';
 
 test('empty size', () => {
     expect(Size.Empty.equals(new Size(0, 0))).toBe(true);

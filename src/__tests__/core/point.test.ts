@@ -1,4 +1,4 @@
-import { Point } from '../core/point';
+import { Point } from '../../core/point';
 
 test('origin point', () => {
     expect(Point.Origin.equals(new Point(0, 0))).toBe(true);

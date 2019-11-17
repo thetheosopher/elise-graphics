@@ -350,7 +350,6 @@ export class Color {
      * @returns True if this is a named color hue
      */
     public isNamedColor(): boolean {
-        const l = Color.NamedColors.length;
         for (const namedColor of Color.NamedColors) {
             if (this.equalsHue(namedColor.color)) {
                 return true;

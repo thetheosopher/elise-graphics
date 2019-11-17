@@ -21,8 +21,8 @@ var config = {
     },
     // The output defines how and where we want the bundles. The special
     // value `[name]` in `filename` tell Webpack to use the name we defined above.
-    // We target a UMD and name it Elise. When including the bundle in the browser
-    // it will be accessible at `window.Elise`
+    // We target a UMD and name it elise. When including the bundle in the browser
+    // it will be accessible at `window.elise`
     output: {
         path: PATHS.bundles,
         filename: '[name].js',
