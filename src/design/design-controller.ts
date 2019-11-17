@@ -77,7 +77,7 @@ export class DesignController implements IController {
      * @param scale - Rendering scale
      * @returns New design controller
      */
-    public static initializeTarget(hostDiv: HTMLDivElement, model: Model, scale: number): DesignController {
+    public static initializeTarget(hostDiv: HTMLDivElement, model: Model, scale?: number): DesignController {
         log('Initializing view controller target');
         if (!hostDiv) {
             throw new Error(ErrorMessages.HostElementUndefined);
@@ -104,7 +104,8 @@ export class DesignController implements IController {
         };
 
         const controller = new DesignController();
-        controller.setScale(scale);
+        const designScale = scale === undefined ? 1 : scale;
+        controller.setScale(designScale);
         controller.setModel(model);
         const canvas = controller.getCanvas();
         if (canvas) {
@@ -113,8 +114,8 @@ export class DesignController implements IController {
         }
         const size = model.getSize();
         if (size) {
-            hostDiv.style.width = size.width * scale + 'px';
-            hostDiv.style.height = size.height * scale + 'px';
+            hostDiv.style.width = size.width * designScale + 'px';
+            hostDiv.style.height = size.height * designScale + 'px';
         }
         controller.draw();
         model.controllerAttached.trigger(model, controller);

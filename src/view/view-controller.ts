@@ -30,7 +30,7 @@ export class ViewController implements IController {
      * @param scale - Rendering scale
      * @returns New view controller
      */
-    public static initializeTarget(hostDiv: HTMLDivElement, model: Model, scale: number) {
+    public static initializeTarget(hostDiv: HTMLDivElement, model: Model, scale?: number) {
         log('Initializing view controller target');
         if (!hostDiv) {
             throw new Error(ErrorMessages.HostElementUndefined);
@@ -42,14 +42,15 @@ export class ViewController implements IController {
         if (!size) {
             throw new Error(ErrorMessages.SizeUndefined);
         }
+        const viewScale = scale === undefined ? 1 : scale;
         hostDiv.innerHTML = '';
         const controller = new ViewController();
-        controller.setScale(scale);
+        controller.setScale(viewScale);
         controller.setModel(model);
         const canvas = controller.getCanvas();
         hostDiv.appendChild(canvas);
-        hostDiv.style.width = size.width * scale + 'px';
-        hostDiv.style.height = size.height * scale + 'px';
+        hostDiv.style.width = size.width * viewScale + 'px';
+        hostDiv.style.height = size.height * viewScale + 'px';
         controller.draw();
         model.controllerAttached.trigger(model, controller);
         return controller;
