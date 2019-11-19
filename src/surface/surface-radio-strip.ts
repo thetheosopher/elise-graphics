@@ -194,7 +194,7 @@ export class SurfaceRadioStrip extends SurfaceLayer {
     /**
      * Radio strip host canvas element
      */
-    public element?: HTMLCanvasElement;
+    public element?: HTMLCanvasElement = undefined;
 
     public scrollTimer?: number;
 

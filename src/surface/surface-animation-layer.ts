@@ -117,7 +117,7 @@ export class SurfaceAnimationLayer extends SurfaceLayer {
     /**
      * Animation host canvas element
      */
-    public element?: HTMLCanvasElement;
+    public element?: HTMLCanvasElement = undefined;
 
     /**
      * Animation sprite element

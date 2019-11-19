@@ -37,7 +37,7 @@ export class SurfacePane extends SurfaceLayer {
     /**
      * Host HTML div element
      */
-    public element?: HTMLDivElement;
+    public element?: HTMLDivElement = undefined;
 
     /**
      * @param id - Pane id

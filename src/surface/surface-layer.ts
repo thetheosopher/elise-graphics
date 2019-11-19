@@ -13,7 +13,7 @@ export abstract class SurfaceLayer extends SurfaceElement {
     /**
      * DOM Element
      */
-    public element?: HTMLElement;
+    public element?: HTMLElement = undefined;
 
     /**
      * Layer opacity

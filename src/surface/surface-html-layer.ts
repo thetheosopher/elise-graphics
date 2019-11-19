@@ -44,7 +44,7 @@ export class SurfaceHtmlLayer extends SurfaceLayer {
     /**
      * Host HTML IFrame element
      */
-    public element?: HTMLIFrameElement;
+    public element?: HTMLIFrameElement = undefined;
 
     /**
      * @param id - HTML layer id

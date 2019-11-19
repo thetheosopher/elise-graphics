@@ -17,12 +17,12 @@ export class Region {
         return new Region(x, y, width, height);
     }
 
-    private _x: number;
-    private _y: number;
-    private _width: number;
-    private _height: number;
-    private _location: Point;
-    private _size: Size;
+    public readonly x: number;
+    public readonly y: number;
+    public readonly width: number;
+    public readonly height: number;
+    public readonly size: Size;
+    public readonly location: Point;
 
     /**
      * @param x - X coordinate
@@ -31,12 +31,12 @@ export class Region {
      * @param height - Height
      */
     constructor(x: number, y: number, width: number, height: number) {
-        this._x = x;
-        this._y = y;
-        this._width = width;
-        this._height = height;
-        this._size = new Size(width, height);
-        this._location = new Point(x, y);
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.size = new Size(width, height);
+        this.location = new Point(x, y);
 
         this.clone = this.clone.bind(this);
         this.containsPoint = this.containsPoint.bind(this);
@@ -50,55 +50,7 @@ export class Region {
      * @returns Cloned region
      */
     public clone(): Region {
-        return new Region(this._x, this._y, this._width, this._height);
-    }
-
-    /**
-     * Returns X coordinate
-     * @returns X coordinate
-     */
-    get x(): number {
-        return this._x;
-    }
-
-    /**
-     * Returns Y coordinate
-     * @returns Y coordinate
-     */
-    get y(): number {
-        return this._y;
-    }
-
-    /**
-     * Returns width
-     * @returns Width
-     */
-    get width(): number {
-        return this._width;
-    }
-
-    /**
-     * Returns height
-     * @returns Height
-     */
-    get height(): number {
-        return this._height;
-    }
-
-    /**
-     * Returns location
-     * @returns Location
-     */
-    get location(): Point {
-        return this._location;
-    }
-
-    /**
-     * Returns size
-     * @returns Size
-     */
-    get size(): Size {
-        return this._size;
+        return new Region(this.x, this.y, this.width, this.height);
     }
 
     /**

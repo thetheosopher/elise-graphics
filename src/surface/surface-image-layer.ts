@@ -44,7 +44,7 @@ export class SurfaceImageLayer extends SurfaceLayer {
     /**
      * HTML image element
      */
-    public element?: HTMLImageElement;
+    public element?: HTMLImageElement = undefined;
 
     /**
      * @param id - Image layer id

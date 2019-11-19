@@ -64,7 +64,7 @@ export class SurfaceVideoLayer extends SurfaceLayer {
     /**
      * HTML video element
      */
-    public element?: HTMLVideoElement;
+    public element?: HTMLVideoElement = undefined;
 
     /**
      * @param id - Video id

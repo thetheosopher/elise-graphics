@@ -38,7 +38,7 @@ export class SurfaceHiddenLayer extends SurfaceLayer {
     /**
      * HTML div element
      */
-    public element?: HTMLDivElement;
+    public element?: HTMLDivElement = undefined;
 
     /**
      * @param id - Layer id

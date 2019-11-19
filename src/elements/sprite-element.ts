@@ -62,19 +62,9 @@ export class SpriteElement extends ElementBase {
     public frameStack?: number[];
 
     /**
-     * Click event command handler tag
-     */
-    public click?: string;
-
-    /**
      * Frame advance command handler tag
      */
     public onAdvance?: string;
-
-    /**
-     * Animation timer command handler tag
-     */
-    public timer?: string;
 
     /**
      * Offset into current transition when transitioning

@@ -68,16 +68,16 @@ export class Point {
         return new Point(point.x + offsetX, point.y + offsetY);
     }
 
-    private _x: number;
-    private _y: number;
+    public x: number;
+    public y: number;
 
     /**
      * @param x - X Coordinate
      * @param y - Y Coordinate
      */
     constructor(x: number, y: number) {
-        this._x = x;
-        this._y = y;
+        this.x = x;
+        this.y = y;
         this.clone = this.clone.bind(this);
         this.equals = this.equals.bind(this);
         this.toString = this.toString.bind(this);
@@ -89,38 +89,6 @@ export class Point {
      */
     public clone(): Point {
         return new Point(this.x, this.y);
-    }
-
-    /**
-     * Returns x coordinate
-     * @returns X coordinate
-     */
-    get x(): number {
-        return this._x;
-    }
-
-    /**
-     * Sets x coordinate
-     * @param value - X coordinate
-     */
-    set x(value: number) {
-        this._x = value;
-    }
-
-    /**
-     * Returns y coordinate
-     * @returns Y coordinate
-     */
-    get y(): number {
-        return this._y;
-    }
-
-    /**
-     * Sets y coordinate
-     * @param value - Y coordinate
-     */
-    set y(value: number) {
-        this._y = value;
     }
 
     /**
