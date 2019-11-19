@@ -297,7 +297,7 @@ export class SurfaceButtonElement extends SurfaceElement {
             throw new Error(ErrorMessages.SurfaceIsUndefined);
         }
         if (self.isToggle) {
-            if (self.groupId !== null) {
+            if (self.groupId !== undefined) {
                 if (!self.isSelected) {
                     self.surface.elements.forEach(sel => {
                         if (sel instanceof SurfaceButtonElement && sel.spriteElement) {

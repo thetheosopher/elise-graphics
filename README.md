@@ -40,7 +40,6 @@ require statement after installation.
 ```javascript
     var elise = require('elise-graphics');
 ```
-
 ## Browser Use (UMD bundle)
 
 Alternatively, one of the bundled UMB scripts can be included in an HTML script tag to import Elise into the global JavaScript
@@ -72,7 +71,7 @@ The snippet below assumes the 'elise/' path is mapped to the node_modules/elise-
 
     </html>
 ```
-## Hello World Example
+## Simple Example
 Given a host div with an id of 'elise-host' as shown in the HTML example above, an Elise model can be created,
 populated with elements and bound to the designated element.
 ```javascript
@@ -93,6 +92,10 @@ The example above does the following:
 **Result**
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;![](images/blue_model_red_ellipse.png)
+
+## Example Projects
+* [Simple Example Project](https://github.com/thetheosopher/elise-simple-demo)
+* [Browserify Example Project](https://github.com/thetheosopher/elise-browserify-demo)
 
 ## Core Elements and Concepts
 Graphics primitives include:
