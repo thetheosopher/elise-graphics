@@ -150,7 +150,7 @@ export class Sketcher {
         ) {
             return;
         }
-        if(sketcher.scale !== undefined && sketcher.scale !== 1) {
+        if (sketcher.scale !== undefined && sketcher.scale !== 1) {
             sketcher.context.resetTransform();
             sketcher.context.scale(sketcher.scale, sketcher.scale);
         }

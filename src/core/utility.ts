@@ -11,7 +11,7 @@ export class Utility {
     public static getRemoteText(url: string, callback: (result: string | undefined) => void): void {
         const request = new XMLHttpRequest();
         request.open('GET', url, true);
-        request.overrideMimeType('text\/plain; charset=x-user-defined');
+        request.overrideMimeType('text/plain; charset=x-user-defined');
         request.onreadystatechange = status => {
             if (request.readyState === 4) {
                 if (request.status === 200) {
