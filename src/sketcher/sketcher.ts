@@ -150,6 +150,10 @@ export class Sketcher {
         ) {
             return;
         }
+        if(sketcher.scale !== undefined && sketcher.scale !== 1) {
+            sketcher.context.resetTransform();
+            sketcher.context.scale(sketcher.scale, sketcher.scale);
+        }
         if (sketcher.elementIndex >= sketcher.elementCount || sketcher.elementIndex < 0) {
             if (sketcher.passIndex === 1) {
                 if (sketcher.repeat) {
