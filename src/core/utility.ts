@@ -11,10 +11,74 @@ export class Utility {
     public static getRemoteText(url: string, callback: (result: string | undefined) => void): void {
         const request = new XMLHttpRequest();
         request.open('GET', url, true);
+        request.overrideMimeType('text\/plain; charset=x-user-defined');
         request.onreadystatechange = status => {
             if (request.readyState === 4) {
                 if (request.status === 200) {
                     callback(request.responseText);
+                }
+                else {
+                    callback(undefined);
+                }
+            }
+        };
+        request.onabort = () => {
+            console.log('Request Aborted: ' + url);
+            callback(undefined);
+        };
+        request.onerror = () => {
+            console.log('Request Error: ' + url + '\r' + request.responseText);
+            callback(undefined);
+        };
+        request.send(null);
+    }
+
+    /**
+     * Retrieves binary content via async ajax call
+     * @param url - URL to be retrieved
+     * @param callback - Result callback
+     * @returns void
+     */
+    public static getRemoteBytes(url: string, callback: (result: Uint8Array | undefined) => void): void {
+        const request = new XMLHttpRequest();
+        request.open('GET', url, true);
+        request.responseType = 'arraybuffer';
+        request.onreadystatechange = status => {
+            if (request.readyState === 4) {
+                if (request.status === 200) {
+                    const byteArray = new Uint8Array(request.response);
+                    callback(byteArray);
+                }
+                else {
+                    callback(undefined);
+                }
+            }
+        };
+        request.onabort = () => {
+            console.log('Request Aborted: ' + url);
+            callback(undefined);
+        };
+        request.onerror = () => {
+            console.log('Request Error: ' + url + '\r' + request.responseText);
+            callback(undefined);
+        };
+        request.send(null);
+    }
+
+    /**
+     * Retrieves binary content as blob via async ajax call
+     * @param url - URL to be retrieved
+     * @param callback - Result callback
+     * @returns void
+     */
+    public static getRemoteBlob(url: string, callback: (result: Blob | undefined) => void): void {
+        const request = new XMLHttpRequest();
+        request.open('GET', url, true);
+        request.responseType = 'blob';
+        request.onreadystatechange = status => {
+            if (request.readyState === 4) {
+                if (request.status === 200) {
+                    callback(request.response);
                 }
                 else {
                     callback(undefined);
