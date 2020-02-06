@@ -677,15 +677,14 @@ export class ViewController implements IController {
         if (!this.enabled) {
             return;
         }
-        if (!this.lastClientX) {
-            return;
-        }
         if (!this.model) {
             return;
         }
-        const deltaX = this.lastClientX - e.clientX;
-        if (Math.abs(deltaX) > 8) {
-            this.clickCancelled = true;
+        if(this.lastClientX) {
+            const deltaX = this.lastClientX - e.clientX;
+            if (Math.abs(deltaX) > 8) {
+                this.clickCancelled = true;
+            }
         }
         const p = this.windowToCanvas(e.clientX, e.clientY);
         if (p.x === this.currentX && this.currentY === p.y) {
