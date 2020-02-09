@@ -38,7 +38,15 @@ export class ImageBasedComponentProps extends ComponentProps {
 
     protected onCreate(props: ElementCreationProps) {
         const m = Model.create(props.width, props.height);
-        BitmapResource.create('navigate', Component.baseImagePath + this.imageTag + '.png').addTo(m);
+        let imageSource: string;
+        if (Component.baseImagePath.substr(0, 1) === ':') {
+            imageSource = Component.baseImagePath.substr(1) + this.imageTag + '.png';
+        }
+        else {
+            imageSource = Component.baseImagePath + this.imageTag + '.png';
+        }
+        const resource = BitmapResource.create('navigate', imageSource).addTo(m);
+        resource.image = this.fillImage;
         m.stroke = 'Black';
         const rect = RectangleElement.create(0, 0, props.width, props.height)
             .setFill('image(0.75;' + this.imageTag + ')')
