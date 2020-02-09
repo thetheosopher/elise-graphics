@@ -46,7 +46,15 @@ export class UploadComponentProps extends ImageBasedComponentProps {
      */
     protected onCreate(props: ElementCreationProps) {
         const m = Model.create(props.width, props.height);
-        BitmapResource.create(this.imageTag, Component.baseImagePath + this.imageTag + '.png').addTo(m);
+        let imageSource: string;
+        if (Component.baseImagePath.substr(0, 1) === ':') {
+            imageSource = Component.baseImagePath.substr(1) + this.imageTag + '.png';
+        }
+        else {
+            imageSource = Component.baseImagePath + this.imageTag + '.png';
+        }
+        const resource = BitmapResource.create(this.imageTag, imageSource).addTo(m);
+        resource.image = this.fillImage;
         m.stroke = 'Black';
         // m.fill = '#c0ffffff';
         const rect = RectangleElement.create(0, 0, props.width, props.height)
