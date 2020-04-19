@@ -136,8 +136,17 @@ export abstract class Resource {
      * @param callback - Retrieval callback (result: boolean)
      */
     public load(url: string, callback?: (result: boolean) => void): void {
-        if (callback) {
-            callback(true);
+        if(this.resourceManager && this.resourceManager.urlProxy) {
+            this.resourceManager.urlProxy.getUrl(url, (success, proxyUrl) => {
+                if(callback) {
+                    callback(success);
+                }
+            })
+        }
+        else {
+            if (callback) {
+                callback(true);
+            }
         }
     }
 

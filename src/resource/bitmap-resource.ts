@@ -106,22 +106,51 @@ export class BitmapResource extends Resource {
     public load(url: string, callback: (result: boolean) => void): void {
         const image = new Image();
         this.image = image;
-        image.src = url;
-        image.onload = e => {
-            if (callback) {
-                callback(true);
-            }
-        };
-        image.onabort = e => {
-            if (callback) {
-                callback(false);
-            }
-        };
-        image.onerror = e => {
-            if (callback) {
-                callback(false);
-            }
-        };
+        if(this.resourceManager && this.resourceManager.urlProxy) {
+            this.resourceManager.urlProxy.getUrl(url, (success, proxyUrl) => {
+                if(success) {
+                    image.src = proxyUrl;
+                    image.onload = e => {
+                        if (callback) {
+                            callback(true);
+                        }
+                    };
+                    image.onabort = e => {
+                        if (callback) {
+                            callback(false);
+                        }
+                    };
+                    image.onerror = e => {
+                        if (callback) {
+                            callback(false);
+                        }
+                    };
+                }
+                else {
+                    if(callback) {
+                        callback(false);
+                    }
+                }
+            })
+        }
+        else {
+            image.src = url;
+            image.onload = e => {
+                if (callback) {
+                    callback(true);
+                }
+            };
+            image.onabort = e => {
+                if (callback) {
+                    callback(false);
+                }
+            };
+            image.onerror = e => {
+                if (callback) {
+                    callback(false);
+                }
+            };
+        }
     }
 
     public initialize() {

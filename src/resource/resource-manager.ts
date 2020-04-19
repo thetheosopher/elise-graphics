@@ -4,6 +4,7 @@ import { Resource } from './resource';
 import { ResourceLoaderState } from './resource-loader-state';
 import { ResourceManagerEvent } from './resource-manager-event';
 import { ResourceState } from './resource-state';
+import { UrlProxy } from './url-proxy';
 
 /**
  * Manages model resource loading and resolution
@@ -63,6 +64,11 @@ export class ResourceManager {
      * Reference to model containing resources to manage
      */
     public model?: Model;
+
+    /*
+     * Proxy for getting authorized Urls from saved Url
+     */
+    public urlProxy?: UrlProxy;
 
     /**
      * @param model - Model with resources to manage

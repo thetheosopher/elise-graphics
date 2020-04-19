@@ -102,6 +102,7 @@ import { ResourceManager } from './resource/resource-manager';
 import { ResourceManagerEvent } from './resource/resource-manager-event';
 import { ResourceState } from './resource/resource-state';
 import { TextResource } from './resource/text-resource';
+import { UrlProxy } from './resource/url-proxy';
 
 import { Sketcher } from './sketcher/sketcher';
 
@@ -246,6 +247,7 @@ export { ResourceManager } from './resource/resource-manager';
 export { ResourceManagerEvent } from './resource/resource-manager-event';
 export { ResourceState } from './resource/resource-state';
 export { TextResource } from './resource/text-resource';
+export { UrlProxy } from './resource/url-proxy';
 
 export { Sketcher } from './sketcher/sketcher';
 
@@ -500,6 +502,7 @@ export default {
     UploadCompletionProps: UploadCompletionProps,
     UploadComponentProps: UploadComponentProps,
     UploadProgressProps: UploadProgressProps,
+    UrlProxy: UrlProxy,
     Utility: Utility,
     ViewController: ViewController,
     ViewDragArgs: ViewDragArgs,
