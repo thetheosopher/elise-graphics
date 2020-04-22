@@ -4,6 +4,7 @@ import { Size } from '../core/size';
 import { Utility } from '../core/utility';
 import { Resource } from './resource';
 import { ResourceFactory } from './resource-factory';
+import { UrlProxy } from './url-proxy';
 
 /**
  * Embedded or externally referenced model resource
@@ -119,9 +120,14 @@ export class ModelResource extends Resource {
         }
         const basePath = res.resourceManager.model.basePath;
         const relUrl = url.substring(basePath.length, url.length);
+        let urlProxy: UrlProxy | undefined;
+        if(this.resourceManager) {
+            urlProxy = this.resourceManager.urlProxy;
+        }
         Model.load(basePath, relUrl, model => {
             if (model && res.resourceManager) {
                 res.model = model;
+                res.model.resourceManager.urlProxy = urlProxy;
                 res.model.prepareResources(res.resourceManager.currentLocaleId, () => {
                     callback(true);
                 });
