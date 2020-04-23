@@ -146,9 +146,9 @@ export class ModelResource extends Resource {
         }
 
         // If embedded model, no need to retrieve, but init resources
-        if (this.model && self.resourceManager.model) {
-            this.model.basePath = self.resourceManager.model.basePath;
-            this.model.prepareResources(self.resourceManager.currentLocaleId, success => {
+        if (self.model && self.resourceManager.model) {
+            self.model.basePath = self.resourceManager.model.basePath;
+            self.model.prepareResources(self.resourceManager.currentLocaleId, success => {
                 if (self.resourceManager) {
                     self.resourceManager.unregister(self, success);
                 }
@@ -162,10 +162,28 @@ export class ModelResource extends Resource {
                 throw new Error(ErrorMessages.ModelPathUndefined);
             }
 
+            // If Url Proxy is set, use it to get signed url
+            if(self.resourceManager.urlProxy) {
+                self.resourceManager.urlProxy.getUrl(modelPath, (success, url) => {
+                    if(success) {
+                        self.load(url, (result) => {
+                            if(self.resourceManager) {
+                                self.resourceManager.unregister(self, result);
+                            }
+                        });
+                    }
+                    else {
+                        if(self.resourceManager) {
+                            self.resourceManager.unregister(self, false);
+                        }
+                    }
+                })
+            }
+
             // Local (Server) Model
-            if (modelPath.charAt(0) === ':') {
+            else if (modelPath.charAt(0) === ':') {
                 const url = modelPath.substring(1, modelPath.length);
-                this.load(url, success => {
+                self.load(url, success => {
                     if (self.resourceManager) {
                         self.resourceManager.unregister(self, success);
                     }
@@ -174,7 +192,7 @@ export class ModelResource extends Resource {
             else if (modelPath.charAt(0) === '/') {
                 // Shared model resource relative to model base path
                 if (self.resourceManager && self.resourceManager.model && self.resourceManager.model.basePath) {
-                    this.load(Utility.joinPaths(self.resourceManager.model.basePath, modelPath), success => {
+                    self.load(Utility.joinPaths(self.resourceManager.model.basePath, modelPath), success => {
                         if (self.resourceManager) {
                             self.resourceManager.unregister(self, success);
                         }
