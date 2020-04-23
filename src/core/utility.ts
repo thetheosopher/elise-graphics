@@ -107,6 +107,16 @@ export class Utility {
     }
 
     /**
+     * Determines if a string starts with a different string
+     * @param string String to be searched
+     * @param prefix Prefix
+     * @returns True if string starts with prefix
+     */
+    public static startsWith(string: string, prefix: string): boolean {
+        return string.lastIndexOf(prefix, 0) === 0
+    }
+
+    /**
      * Joins two path segments, ensuring they are separated by a single path separator character ('/')
      * @param path1 - First path segment
      * @param path2 - Second path segment

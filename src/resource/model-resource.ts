@@ -118,24 +118,40 @@ export class ModelResource extends Resource {
         if (!res.resourceManager.model.basePath) {
             throw new Error(ErrorMessages.ModelBasePathUndefined);
         }
-        const basePath = res.resourceManager.model.basePath;
-        const relUrl = url.substring(basePath.length, url.length);
         let urlProxy: UrlProxy | undefined;
         if(this.resourceManager) {
             urlProxy = this.resourceManager.urlProxy;
         }
-        Model.load(basePath, relUrl, model => {
-            if (model && res.resourceManager) {
-                res.model = model;
-                res.model.resourceManager.urlProxy = urlProxy;
-                res.model.prepareResources(res.resourceManager.currentLocaleId, () => {
-                    callback(true);
-                });
-            }
-            else {
-                callback(false);
-            }
-        });
+        if(Utility.startsWith(url.toLowerCase(), 'http://') || Utility.startsWith(url.toLowerCase(), 'https://')) {
+            Model.load('', url, model => {
+                if (model && res.resourceManager) {
+                    res.model = model;
+                    res.model.resourceManager.urlProxy = urlProxy;
+                    res.model.prepareResources(res.resourceManager.currentLocaleId, () => {
+                        callback(true);
+                    });
+                }
+                else {
+                    callback(false);
+                }
+            });
+        }
+        else {
+            const basePath = res.resourceManager.model.basePath;
+            const relUrl = url.substring(basePath.length, url.length);
+            Model.load(basePath, relUrl, model => {
+                if (model && res.resourceManager) {
+                    res.model = model;
+                    res.model.resourceManager.urlProxy = urlProxy;
+                    res.model.prepareResources(res.resourceManager.currentLocaleId, () => {
+                        callback(true);
+                    });
+                }
+                else {
+                    callback(false);
+                }
+            });
+        }
     }
 
     public initialize() {
