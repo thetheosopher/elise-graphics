@@ -763,7 +763,7 @@ export class DesignRenderer {
         let center = ellipse.getCenter();
         let radiusX = ellipse.radiusX;
         let radiusY = ellipse.radiusY;
-        if (!radiusX || !radiusY || !center) {
+        if (radiusX === undefined || radiusY === undefined || center === undefined) {
             throw new Error(ErrorMessages.PointsAreInvalid);
         }
         if ((this.controller.isMoving || this.controller.isResizing) && this.controller.isSelected(ellipse)) {
