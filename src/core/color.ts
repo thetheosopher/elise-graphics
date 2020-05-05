@@ -5,7 +5,6 @@ import { NamedColor } from './named-color';
  * Represents a 32-bit RGBA color
  */
 export class Color {
-    public static Transparent = new Color(0, 255, 255, 255);
     public static AliceBlue = new Color(255, 240, 248, 255);
     public static AntiqueWhite = new Color(255, 250, 235, 215);
     public static Aqua = new Color(255, 0, 255, 255);
@@ -146,6 +145,7 @@ export class Color {
     public static WhiteSmoke = new Color(255, 245, 245, 245);
     public static Yellow = new Color(255, 255, 255, 0);
     public static YellowGreen = new Color(255, 154, 205, 50);
+    public static Transparent = new Color(0, 255, 255, 255);
 
     /**
      * Array of predefined named colors
@@ -296,7 +296,7 @@ export class Color {
                     return namedColor.name;
                 }
                 else {
-                    return this.a / 255 + ';' + namedColor.name;
+                    return (this.a / 255).toFixed(4) + ';' + namedColor.name;
                 }
             }
         }
@@ -375,7 +375,6 @@ export class Color {
     }
 }
 
-Color.NamedColors.push(new NamedColor('Transparent', Color.Transparent));
 Color.NamedColors.push(new NamedColor('AliceBlue', Color.AliceBlue));
 Color.NamedColors.push(new NamedColor('AntiqueWhite', Color.AntiqueWhite));
 Color.NamedColors.push(new NamedColor('Aqua', Color.Aqua));
@@ -516,3 +515,4 @@ Color.NamedColors.push(new NamedColor('White', Color.White));
 Color.NamedColors.push(new NamedColor('WhiteSmoke', Color.WhiteSmoke));
 Color.NamedColors.push(new NamedColor('Yellow', Color.Yellow));
 Color.NamedColors.push(new NamedColor('YellowGreen', Color.Yellow));
+Color.NamedColors.push(new NamedColor('Transparent', Color.Transparent));
