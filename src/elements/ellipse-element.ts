@@ -344,6 +344,16 @@ export class EllipseElement extends ElementBase {
     }
 
     /**
+     * Returns upper left shape coordinate
+     */
+    public getLocation(): Point {
+        if(this.radiusX !== undefined && this.radiusY !== undefined && this._center !== undefined) {
+            return new Point(this._center.x - this.radiusX, this._center.y - this.radiusY);
+        }
+        throw new Error(ErrorMessages.PointsAreInvalid);
+    }
+
+    /**
      * Resizes ellipse element
      * @param size - New size
      * @returns This ellipse element
