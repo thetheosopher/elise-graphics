@@ -131,6 +131,8 @@ export class EllipseElement extends ElementBase {
         if (this.radiusY !== undefined) {
             o.radiusY = this.radiusY;
         }
+        o.location = undefined;
+        o.size = undefined;
         return o;
     }
 
@@ -141,6 +143,8 @@ export class EllipseElement extends ElementBase {
     public clone() {
         const e = EllipseElement.create();
         super.cloneTo(e);
+        e.location = undefined;
+        e.size = undefined;
         if (this._center) {
             e.center = this._center.toString();
         }
