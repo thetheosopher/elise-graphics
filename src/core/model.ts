@@ -765,4 +765,19 @@ export class Model extends ElementBase {
         const o = this.serialize();
         return JSON.stringify(o);
     }
+    /**
+     * Can model be stroked
+     * @returns Can stroke
+     */
+    public canStroke(): boolean {
+        return true;
+    }
+
+    /**
+     * Can model be filled
+     * @returns Can fill
+     */
+    public canFill(): boolean {
+        return true;
+    }
 }
