@@ -115,9 +115,6 @@ export class ModelResource extends Resource {
         if (!res.resourceManager.model) {
             throw new Error(ErrorMessages.ModelUndefined);
         }
-        if (!res.resourceManager.model.basePath) {
-            throw new Error(ErrorMessages.ModelBasePathUndefined);
-        }
         let urlProxy: UrlProxy | undefined;
         if(this.resourceManager) {
             urlProxy = this.resourceManager.urlProxy;
@@ -137,6 +134,9 @@ export class ModelResource extends Resource {
             });
         }
         else {
+            if (!res.resourceManager.model.basePath) {
+                throw new Error(ErrorMessages.ModelBasePathUndefined);
+            }
             const basePath = res.resourceManager.model.basePath;
             const relUrl = url.substring(basePath.length, url.length);
             Model.load(basePath, relUrl, model => {
