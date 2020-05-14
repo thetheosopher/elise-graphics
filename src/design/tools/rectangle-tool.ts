@@ -12,10 +12,16 @@ export class RectangleTool extends DesignTool {
     public rectangle?: RectangleElement;
     public cancelled: boolean = false;
 
+    constructor() {
+        super();
+        this.aspectLocked = false;
+    }
+
     public mouseDown(args: MouseLocationArgs): void {
         this.cancelled = false;
         this.point1 = Point.create(args.location.x, args.location.y);
         this.rectangle = RectangleElement.create(args.location.x, args.location.y, 0, 0);
+        this.rectangle.aspectLocked = this.aspectLocked;
         if (this.stroke) {
             this.rectangle.setStroke(this.stroke);
         }

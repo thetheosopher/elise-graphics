@@ -13,10 +13,16 @@ export class EllipseTool extends DesignTool {
     public ellipse?: EllipseElement;
     public cancelled: boolean = false;
 
+    constructor() {
+        super();
+        this.aspectLocked = false;
+    }
+
     public mouseDown(args: MouseLocationArgs): void {
         this.cancelled = false;
         this.point1 = Point.create(args.location.x, args.location.y);
         this.ellipse = EllipseElement.create(args.location.x, args.location.y, 0, 0);
+        this.ellipse.aspectLocked = this.aspectLocked;
         this.ellipse.setStroke(this.stroke);
         this.ellipse.setFill(this.fill);
         if (this.fillScale !== 1) {

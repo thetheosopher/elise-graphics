@@ -16,6 +16,7 @@ export abstract class DesignTool {
     public fillScale: number;
     public fillOffsetX: number;
     public fillOffsetY: number;
+    public aspectLocked: boolean = true;
     public isCreating: boolean = false;
 
     constructor() {

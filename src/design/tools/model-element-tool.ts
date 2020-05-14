@@ -22,6 +22,7 @@ export class ModelElementTool extends DesignTool {
         this.cancelled = false;
         this.point1 = Point.create(args.location.x, args.location.y);
         this.modelElement = ModelElement.create(this.source, args.location.x, args.location.y, 0, 0);
+        this.modelElement.aspectLocked = this.aspectLocked;
         if (this.opacity !== 255) {
             this.modelElement.setOpacity(this.opacity / 255.0);
         }

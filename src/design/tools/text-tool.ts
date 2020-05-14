@@ -21,12 +21,14 @@ export class TextTool extends DesignTool {
     constructor() {
         super();
         this.typesize = 10;
+        this.aspectLocked = false;
     }
 
     public mouseDown(args: MouseLocationArgs): void {
         this.cancelled = false;
         this.point1 = Point.create(args.location.x, args.location.y);
         this.textElement = TextElement.create(this.text, args.location.x, args.location.y, 0, 0);
+        this.textElement.aspectLocked = this.aspectLocked;
         if (this.stroke) {
             this.textElement.setStroke(this.stroke);
         }

@@ -23,6 +23,7 @@ export class ImageElementTool extends DesignTool {
         this.cancelled = false;
         this.point1 = Point.create(args.location.x, args.location.y);
         this.imageElement = ImageElement.create(this.source, args.location.x, args.location.y, 0, 0);
+        this.imageElement.aspectLocked = this.aspectLocked;
         if (this.opacity !== 255) {
             this.imageElement.setOpacity(this.opacity / 255.0);
         }
