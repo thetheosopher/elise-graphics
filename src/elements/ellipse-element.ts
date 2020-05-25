@@ -362,6 +362,7 @@ export class EllipseElement extends ElementBase {
         if (this.radiusX === undefined || this.radiusY === undefined || this._center === undefined) {
             throw new Error(ErrorMessages.PointsAreInvalid);
         }
+        this._size = size;
         const x = this._center.x - this.radiusX;
         const y = this._center.y - this.radiusY;
         this.radiusX = size.width / 2;
