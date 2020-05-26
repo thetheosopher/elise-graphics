@@ -3,6 +3,7 @@ import { Point } from '../../core/point';
 import { LineElement } from '../../elements/line-element';
 import { PolylineElement } from '../../elements/polyline-element';
 import { DesignTool } from './design-tool';
+
 /**
  * Pen (polyline element) drawing tool
  */
@@ -71,6 +72,30 @@ export class PenTool extends DesignTool {
     }
 
     public mouseUp(args: MouseLocationArgs) {
+        if(!this.model) {
+            return;
+        }
+        if(this.line) {
+            const p1 = this.line.getP1();
+            const p2 = this.line.getP2();
+            if(p1 && p2) {
+                if(Math.abs(p1.x - p2.x) < this.minSize &&
+                   Math.abs(p1.y - p2.y) < this.minSize) {
+                     this.model.remove(this.line);
+                     this.line == undefined;
+                 }
+            }
+        }
+        else if(this.polyline) {
+            const size = this.polyline.getSize();
+            if(size) {
+                if(size.width < this.minSize ||
+                    size.height < this.minSize)
+                {
+                    this.model.remove(this.polyline);
+                }
+            }
+        }
         this.line = undefined;
         this.polyline = undefined;
         this.points = undefined;

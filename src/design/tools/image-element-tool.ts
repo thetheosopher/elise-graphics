@@ -19,6 +19,7 @@ export class ImageElementTool extends DesignTool {
 
     constructor() {
         super();
+        this.minSize = 4;
         this.setImageSource = this.setImageSource.bind(this);
     }
 
@@ -69,16 +70,17 @@ export class ImageElementTool extends DesignTool {
         if (args.location.x < this.point1.x || args.location.y < this.point1.y) {
             return;
         }
-        this.imageElement.setSize(this.getNewSize(args.location.x - this.point1.x, args.location.y - this.point1.y));
+        const newSize = this.getNewSize(args.location.x - this.point1.x, args.location.y - this.point1.y);
+        if(newSize.width < this.minSize || newSize.height < this.minSize) {
+            return;
+        }
+        this.imageElement.setSize(newSize);
         if (this.controller) {
             this.controller.invalidate();
         }
     }
 
     public mouseUp(args: MouseLocationArgs) {
-        if (this.cancelled) {
-            return;
-        }
         if (!this.imageElement) {
             return;
         }
@@ -88,7 +90,14 @@ export class ImageElementTool extends DesignTool {
         if (args.location.x < this.point1.x || args.location.y < this.point1.y) {
             return;
         }
-        this.imageElement.setSize(this.getNewSize(args.location.x - this.point1.x, args.location.y - this.point1.y));
+        const newSize = this.getNewSize(args.location.x - this.point1.x, args.location.y - this.point1.y);
+        if(newSize.width < this.minSize || newSize.height < this.minSize) {
+            this.cancel();
+        }
+        if (this.cancelled) {
+            return;
+        }
+        this.imageElement.setSize(newSize);
         if (this.controller) {
             this.controller.invalidate();
         }

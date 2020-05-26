@@ -18,6 +18,7 @@ export abstract class DesignTool {
     public fillOffsetY: number;
     public aspectLocked: boolean = true;
     public isCreating: boolean = false;
+    public minSize: number = 2;
 
     constructor() {
         this.cancel = this.cancel.bind(this);

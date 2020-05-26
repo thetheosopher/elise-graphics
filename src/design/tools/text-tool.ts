@@ -71,9 +71,6 @@ export class TextTool extends DesignTool {
     }
 
     public mouseUp(args: MouseLocationArgs) {
-        if (this.cancelled) {
-            return;
-        }
         if (!this.textElement) {
             return;
         }
@@ -83,7 +80,14 @@ export class TextTool extends DesignTool {
         if (args.location.x < this.point1.x || args.location.y < this.point1.y) {
             return;
         }
-        this.textElement.setSize(new Size(args.location.x - this.point1.x, args.location.y - this.point1.y));
+        const newSize = new Size(args.location.x - this.point1.x, args.location.y - this.point1.y);
+        if(newSize.width < this.minSize || newSize.height < this.minSize) {
+            this.cancel();
+        }
+        if (this.cancelled) {
+            return;
+        }
+        this.textElement.setSize(newSize);
         if (this.controller) {
             this.controller.invalidate();
         }

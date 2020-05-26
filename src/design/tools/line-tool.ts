@@ -2,12 +2,11 @@ import { MouseLocationArgs } from '../../core/mouse-location-args';
 import { Point } from '../../core/point';
 import { LineElement } from '../../elements/line-element';
 import { DesignTool } from './design-tool';
+
 /**
  * Line element creation tool
  */
 export class LineTool extends DesignTool {
-    public point1?: Point;
-    public point2?: Point;
     public line?: LineElement;
     public cancelled: boolean = false;
 
@@ -38,10 +37,18 @@ export class LineTool extends DesignTool {
     }
 
     public mouseUp(args: MouseLocationArgs) {
-        if (this.cancelled) {
+        if (!this.line) {
             return;
         }
-        if (!this.line) {
+        const p1 = this.line.getP1();
+        if(!p1) {
+            return;
+        }
+        if(Math.abs(args.location.x - p1.x) < this.minSize &&
+          (Math.abs(args.location.y - p1.y) < this.minSize)) {
+            this.cancel();
+        }
+        if (this.cancelled) {
             return;
         }
         this.line.setP2(args.location);

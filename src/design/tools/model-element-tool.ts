@@ -3,6 +3,7 @@ import { Point } from '../../core/point';
 import { Size } from '../../core/size';
 import { ModelElement } from '../../elements/model-element';
 import { DesignTool } from './design-tool';
+
 /**
  * Model element creation tool
  */
@@ -10,6 +11,8 @@ export class ModelElementTool extends DesignTool {
     public point1?: Point;
     public source?: string;
     public modelElement?: ModelElement;
+
+    public nativeAspect?: number;
 
     public cancelled: boolean = false;
 
@@ -38,6 +41,20 @@ export class ModelElementTool extends DesignTool {
         this.isCreating = true;
     }
 
+    private getNewSize(deltaX: number, deltaY: number) {
+        if(this.nativeAspect != null && this.aspectLocked) {
+            if(deltaX > deltaY) {
+                return new Size(deltaX, deltaX / this.nativeAspect);
+            }
+            else {
+                return new Size(deltaY * this.nativeAspect, deltaY);
+            }
+        }
+        else {
+            return new Size(deltaX, deltaY);
+        }
+    }
+
     public mouseMove(args: MouseLocationArgs) {
         if (this.cancelled) {
             return;
@@ -51,16 +68,17 @@ export class ModelElementTool extends DesignTool {
         if (args.location.x < this.point1.x || args.location.y < this.point1.y) {
             return;
         }
-        this.modelElement.setSize(new Size(args.location.x - this.point1.x, args.location.y - this.point1.y));
+        const newSize = this.getNewSize(args.location.x - this.point1.x, args.location.y - this.point1.y);
+        if(newSize.width < this.minSize || newSize.height < this.minSize) {
+            return;
+        }
+        this.modelElement.setSize(newSize);
         if (this.controller) {
             this.controller.invalidate();
         }
     }
 
     public mouseUp(args: MouseLocationArgs) {
-        if (this.cancelled) {
-            return;
-        }
         if (!this.modelElement) {
             return;
         }
@@ -68,9 +86,16 @@ export class ModelElementTool extends DesignTool {
             return;
         }
         if (args.location.x < this.point1.x || args.location.y < this.point1.y) {
+            this.cancel();
+        }
+        const newSize = this.getNewSize(args.location.x - this.point1.x, args.location.y - this.point1.y);
+        if(newSize.width < this.minSize || newSize.height < this.minSize) {
+            this.cancel();
+        }
+        if (this.cancelled) {
             return;
         }
-        this.modelElement.setSize(new Size(args.location.x - this.point1.x, args.location.y - this.point1.y));
+        this.modelElement.setSize(newSize);
         if (this.controller) {
             this.controller.invalidate();
         }

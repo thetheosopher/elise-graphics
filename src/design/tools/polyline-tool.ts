@@ -33,6 +33,8 @@ export class PolylineTool extends DesignTool {
                 this.polyline = PolylineElement.create();
                 this.polyline.setStroke(this.stroke);
                 this.polyline.setInteractive(true).addTo(this.model);
+                this.points[1].x = args.location.x;
+                this.points[1].y = args.location.y;
                 this.lastPoint = new Point(args.location.x, args.location.y);
                 for (const pnt of this.points) {
                     this.polyline.addPoint(pnt.clone());
@@ -82,7 +84,7 @@ export class PolylineTool extends DesignTool {
             this.line = undefined;
         }
         else if (this.polyline && this.points) {
-            this.points.splice(this.points.length - 1);
+            // this.points.splice(this.points.length - 1);
             if (this.points.length < 3) {
                 if (this.model) {
                     this.model.remove(this.polyline);

@@ -3,6 +3,7 @@ import { Point } from '../../core/point';
 import { LineElement } from '../../elements/line-element';
 import { PolygonElement } from '../../elements/polygon-element';
 import { DesignTool } from './design-tool';
+
 /**
  * Polygon element design creation tool
  */
@@ -36,6 +37,8 @@ export class PolygonTool extends DesignTool {
                     this.polygon.setFillScale(this.fillScale);
                 }
                 this.polygon.setInteractive(true).addTo(this.model);
+                this.points[1].x = args.location.x;
+                this.points[1].y = args.location.y;
                 this.lastPoint = new Point(args.location.x, args.location.y);
                 for (const pnt of this.points) {
                     this.polygon.addPoint(pnt);
@@ -85,7 +88,7 @@ export class PolygonTool extends DesignTool {
             this.line = undefined;
         }
         else if (this.polygon && this.points && this.model) {
-            this.points.splice(this.points.length - 1);
+            // this.points.splice(this.points.length - 1);
             if (this.points.length < 3) {
                 this.model.remove(this.polygon);
             }

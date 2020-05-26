@@ -60,9 +60,6 @@ export class RectangleTool extends DesignTool {
     }
 
     public mouseUp(args: MouseLocationArgs) {
-        if (this.cancelled) {
-            return;
-        }
         if (!this.rectangle) {
             return;
         }
@@ -72,10 +69,18 @@ export class RectangleTool extends DesignTool {
         if (args.location.x < this.point1.x || args.location.y < this.point1.y) {
             return;
         }
-        this.rectangle.setSize(new Size(args.location.x - this.point1.x, args.location.y - this.point1.y));
+        const newSize = (new Size(args.location.x - this.point1.x, args.location.y - this.point1.y));
+        if(newSize.width < this.minSize || newSize.height < this.minSize) {
+            this.cancel();
+        }
+        if (this.cancelled) {
+            return;
+        }
+        this.rectangle.setSize(newSize);
         if (this.controller) {
             this.controller.invalidate();
         }
+        this.point1 = undefined;
         this.rectangle = undefined;
         this.isCreating = false;
     }
@@ -88,6 +93,7 @@ export class RectangleTool extends DesignTool {
         if (this.controller) {
             this.controller.invalidate();
         }
+        this.point1 = undefined;
         this.rectangle = undefined;
         this.isCreating = false;
     }
