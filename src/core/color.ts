@@ -188,10 +188,10 @@ export class Color {
 
                 // Eight digits - with alpha
                 case 9:
-                    a = parseInt(color.substring(1, 3), 16);
-                    r = parseInt(color.substring(3, 5), 16);
-                    g = parseInt(color.substring(5, 7), 16);
-                    b = parseInt(color.substring(7, 9), 16);
+                    r = parseInt(color.substring(1, 3), 16);
+                    g = parseInt(color.substring(3, 5), 16);
+                    b = parseInt(color.substring(5, 7), 16);
+                    a = parseInt(color.substring(7, 9), 16);
                     return new Color(a, r, g, b);
 
                 default:
@@ -313,7 +313,7 @@ export class Color {
         if (this.a === 255) {
             return '#' + this.hexPart(this.r) + this.hexPart(this.g) + this.hexPart(this.b);
         }
-        return '#' + this.hexPart(this.a) + this.hexPart(this.r) + this.hexPart(this.g) + this.hexPart(this.b);
+        return '#' + this.hexPart(this.r) + this.hexPart(this.g) + this.hexPart(this.b) + this.hexPart(this.a);
     }
 
     /**
