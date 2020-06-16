@@ -193,4 +193,22 @@ export class ImageElement extends ElementBase {
     public canStroke(): boolean {
         return true;
     }
+
+    /**
+     * Returns string description of image
+     * @returns Element description
+     */
+    public toString(): string {
+        let description = this.type;
+        if(this.source) {
+            description += `(${this.source})`;
+        }
+        if (this._location) {
+            description += ` - (${this._location.x},${this._location.y})`;
+        }
+        if (this._size) {
+            description += ` [${this._size.width}x${this._size.height}]`;
+        }
+        return description;
+    }
 }

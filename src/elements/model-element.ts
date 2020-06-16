@@ -234,4 +234,22 @@ export class ModelElement extends ElementBase {
         // Restore from clip
         // c.restore();
     }
+
+    /**
+     * Returns string description of element
+     * @returns Element description
+     */
+    public toString(): string {
+        let description = this.type;
+        if(this.source) {
+            description += `(${this.source})`;
+        }
+        if (this._location) {
+            description += ` - (${this._location.x},${this._location.y})`;
+        }
+        if (this._size) {
+            description += ` [${this._size.width}x${this._size.height}]`;
+        }
+        return description;
+    }
 }

@@ -44,6 +44,7 @@ export class LinearGradientFill {
         this.end = end;
         this.stops = [];
         this.type = 'linearGradient';
+        this.toString = this.toString.bind(this);
     }
 
     public clone(): LinearGradientFill {
@@ -61,5 +62,9 @@ export class LinearGradientFill {
      */
     public addFillStop(color: string, offset: number) {
         this.stops.push(new GradientFillStop(color, offset));
+    }
+
+    public toString(): string {
+        return "linear gradient"
     }
 }

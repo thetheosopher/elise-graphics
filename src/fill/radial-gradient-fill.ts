@@ -60,6 +60,7 @@ export class RadialGradientFill {
         this.radiusY = radiusY;
         this.stops = [];
         this.type = 'radialGradient';
+        this.toString = this.toString.bind(this);
     }
 
     /**
@@ -77,5 +78,9 @@ export class RadialGradientFill {
             rgf.addFillStop(stop.color, stop.offset);
         }
         return rgf;
+    }
+
+    public toString(): string {
+        return "radial gradient"
     }
 }

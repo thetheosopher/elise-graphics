@@ -284,10 +284,10 @@ export class PathElement extends ElementBase implements IPointContainer {
      */
     public toString(): string {
         if (this._commands) {
-            return this.type + ' -  ' + this._commands.length + ' Commands';
+            return this.type + ' -  ' + this._commands.length + ' commands';
         }
         else {
-            return this.type + ' -  0 Commands';
+            return this.type + ' -  0 commands';
         }
     }
 

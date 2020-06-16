@@ -265,10 +265,10 @@ export class PolylineElement extends ElementBase implements IPointContainer {
      */
     public toString(): string {
         if (this._points) {
-            return this.type + ' -  ' + this._points.length + ' Points';
+            return this.type + ' -  ' + this._points.length + ' points';
         }
         else {
-            return this.type + ' -  0 Points';
+            return this.type + ' -  0 points';
         }
     }
 
