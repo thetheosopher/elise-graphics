@@ -72,26 +72,23 @@ export class PenTool extends DesignTool {
     }
 
     public mouseUp(args: MouseLocationArgs) {
-        if(!this.model) {
+        if (!this.model) {
             return;
         }
-        if(this.line) {
+        if (this.line) {
             const p1 = this.line.getP1();
             const p2 = this.line.getP2();
-            if(p1 && p2) {
-                if(Math.abs(p1.x - p2.x) < this.minSize &&
-                   Math.abs(p1.y - p2.y) < this.minSize) {
-                     this.model.remove(this.line);
-                     this.line = undefined;
-                 }
+            if (p1 && p2) {
+                if (Math.abs(p1.x - p2.x) < this.minSize && Math.abs(p1.y - p2.y) < this.minSize) {
+                    this.model.remove(this.line);
+                    this.line = undefined;
+                }
             }
         }
-        else if(this.polyline) {
+        else if (this.polyline) {
             const size = this.polyline.getSize();
-            if(size) {
-                if(size.width < this.minSize ||
-                    size.height < this.minSize)
-                {
+            if (size) {
+                if (size.width < this.minSize || size.height < this.minSize) {
                     this.model.remove(this.polyline);
                 }
             }

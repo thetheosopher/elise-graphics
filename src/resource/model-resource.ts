@@ -116,10 +116,10 @@ export class ModelResource extends Resource {
             throw new Error(ErrorMessages.ModelUndefined);
         }
         let urlProxy: UrlProxy | undefined;
-        if(this.resourceManager) {
+        if (this.resourceManager) {
             urlProxy = this.resourceManager.urlProxy;
         }
-        if(Utility.startsWith(url.toLowerCase(), 'http://') || Utility.startsWith(url.toLowerCase(), 'https://')) {
+        if (Utility.startsWith(url.toLowerCase(), 'http://') || Utility.startsWith(url.toLowerCase(), 'https://')) {
             Model.load('', url, model => {
                 if (model && res.resourceManager) {
                     res.model = model;
@@ -179,25 +179,24 @@ export class ModelResource extends Resource {
             }
 
             // If Url Proxy is set, use it to get signed url
-            if(self.resourceManager.urlProxy) {
+            if (self.resourceManager.urlProxy) {
                 self.resourceManager.urlProxy.getUrl(modelPath, (success, url) => {
-                    if(success) {
-                        self.load(url, (result) => {
-                            if(self.resourceManager) {
+                    if (success) {
+                        self.load(url, result => {
+                            if (self.resourceManager) {
                                 self.resourceManager.unregister(self, result);
                             }
                         });
                     }
                     else {
-                        if(self.resourceManager) {
+                        if (self.resourceManager) {
                             self.resourceManager.unregister(self, false);
                         }
                     }
-                })
+                });
             }
-
-            // Local (Server) Model
             else if (modelPath.charAt(0) === ':') {
+                // Local (Server) Model
                 const url = modelPath.substring(1, modelPath.length);
                 self.load(url, success => {
                     if (self.resourceManager) {

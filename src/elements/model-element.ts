@@ -241,7 +241,7 @@ export class ModelElement extends ElementBase {
      */
     public toString(): string {
         let description = this.type;
-        if(this.source) {
+        if (this.source) {
             description += `(${this.source})`;
         }
         if (this._location) {

@@ -55,7 +55,7 @@ export class ModelElementTool extends DesignTool {
             return;
         }
         const newSize = this.getNewSize(args.location.x - this.point1.x, args.location.y - this.point1.y);
-        if(newSize.width < this.minSize || newSize.height < this.minSize) {
+        if (newSize.width < this.minSize || newSize.height < this.minSize) {
             return;
         }
         this.modelElement.setSize(newSize);
@@ -75,7 +75,7 @@ export class ModelElementTool extends DesignTool {
             this.cancel();
         }
         const newSize = this.getNewSize(args.location.x - this.point1.x, args.location.y - this.point1.y);
-        if(newSize.width < this.minSize || newSize.height < this.minSize) {
+        if (newSize.width < this.minSize || newSize.height < this.minSize) {
             this.cancel();
         }
         if (this.cancelled) {
@@ -113,8 +113,8 @@ export class ModelElementTool extends DesignTool {
     }
 
     private getNewSize(deltaX: number, deltaY: number) {
-        if(this.nativeAspect != null && this.aspectLocked) {
-            if(deltaX > deltaY) {
+        if (this.nativeAspect != null && this.aspectLocked) {
+            if (deltaX > deltaY) {
                 return new Size(deltaX, deltaX / this.nativeAspect);
             }
             else {

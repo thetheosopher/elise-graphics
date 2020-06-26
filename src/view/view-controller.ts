@@ -680,7 +680,7 @@ export class ViewController implements IController {
         if (!this.model) {
             return;
         }
-        if(this.lastClientX) {
+        if (this.lastClientX) {
             const deltaX = this.lastClientX - e.clientX;
             if (Math.abs(deltaX) > 8) {
                 this.clickCancelled = true;

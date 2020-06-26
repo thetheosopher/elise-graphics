@@ -51,7 +51,7 @@ export class EllipseTool extends DesignTool {
             return;
         }
         const newSize = new Size(args.location.x - this.point1.x, args.location.y - this.point1.y);
-        if(newSize.width < this.minSize || newSize.height < this.minSize) {
+        if (newSize.width < this.minSize || newSize.height < this.minSize) {
             return;
         }
         this.ellipse.setLocation(this.point1);
@@ -71,8 +71,8 @@ export class EllipseTool extends DesignTool {
         if (args.location.x < this.point1.x || args.location.y < this.point1.y) {
             this.cancel();
         }
-        const newSize = new Size(args.location.x - this.point1.x, args.location.y - this.point1.y)
-        if(newSize.height < this.minSize || newSize.width < this.minSize) {
+        const newSize = new Size(args.location.x - this.point1.x, args.location.y - this.point1.y);
+        if (newSize.height < this.minSize || newSize.width < this.minSize) {
             this.cancel();
         }
         if (this.cancelled) {

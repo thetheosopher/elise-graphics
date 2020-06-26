@@ -106,9 +106,9 @@ export class BitmapResource extends Resource {
     public load(url: string, callback: (result: boolean) => void): void {
         const image = new Image();
         this.image = image;
-        if(this.resourceManager && this.resourceManager.urlProxy) {
+        if (this.resourceManager && this.resourceManager.urlProxy) {
             this.resourceManager.urlProxy.getUrl(url, (success, proxyUrl) => {
-                if(success) {
+                if (success) {
                     image.src = proxyUrl;
                     image.onload = e => {
                         if (callback) {
@@ -127,11 +127,11 @@ export class BitmapResource extends Resource {
                     };
                 }
                 else {
-                    if(callback) {
+                    if (callback) {
                         callback(false);
                     }
                 }
-            })
+            });
         }
         else {
             image.src = url;

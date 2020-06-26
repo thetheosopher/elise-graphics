@@ -81,7 +81,7 @@ export class TextTool extends DesignTool {
             return;
         }
         const newSize = new Size(args.location.x - this.point1.x, args.location.y - this.point1.y);
-        if(newSize.width < this.minSize || newSize.height < this.minSize) {
+        if (newSize.width < this.minSize || newSize.height < this.minSize) {
             this.cancel();
         }
         if (this.cancelled) {

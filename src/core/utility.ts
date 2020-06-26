@@ -113,7 +113,7 @@ export class Utility {
      * @returns True if string starts with prefix
      */
     public static startsWith(string: string, prefix: string): boolean {
-        return string.lastIndexOf(prefix, 0) === 0
+        return string.lastIndexOf(prefix, 0) === 0;
     }
 
     /**

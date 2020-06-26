@@ -69,8 +69,8 @@ export class RectangleTool extends DesignTool {
         if (args.location.x < this.point1.x || args.location.y < this.point1.y) {
             return;
         }
-        const newSize = (new Size(args.location.x - this.point1.x, args.location.y - this.point1.y));
-        if(newSize.width < this.minSize || newSize.height < this.minSize) {
+        const newSize = new Size(args.location.x - this.point1.x, args.location.y - this.point1.y);
+        if (newSize.width < this.minSize || newSize.height < this.minSize) {
             this.cancel();
         }
         if (this.cancelled) {

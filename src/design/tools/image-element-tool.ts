@@ -57,7 +57,7 @@ export class ImageElementTool extends DesignTool {
             return;
         }
         const newSize = this.getNewSize(args.location.x - this.point1.x, args.location.y - this.point1.y);
-        if(newSize.width < this.minSize || newSize.height < this.minSize) {
+        if (newSize.width < this.minSize || newSize.height < this.minSize) {
             return;
         }
         this.imageElement.setSize(newSize);
@@ -77,7 +77,7 @@ export class ImageElementTool extends DesignTool {
             return;
         }
         const newSize = this.getNewSize(args.location.x - this.point1.x, args.location.y - this.point1.y);
-        if(newSize.width < this.minSize || newSize.height < this.minSize) {
+        if (newSize.width < this.minSize || newSize.height < this.minSize) {
             this.cancel();
         }
         if (this.cancelled) {
@@ -106,24 +106,24 @@ export class ImageElementTool extends DesignTool {
     public setImageSource(source: string) {
         this.source = source;
         if (this.model) {
-            const resource:BitmapResource | undefined = this.model.resourceManager.get(this.source);
+            const resource: BitmapResource | undefined = this.model.resourceManager.get(this.source);
             if (resource && !resource.available) {
                 this.model.resourceManager.register(this.source);
-                this.model.resourceManager.load((result) => {
-                    if(result && resource.image) {
+                this.model.resourceManager.load(result => {
+                    if (result && resource.image) {
                         this.nativeAspect = resource.image.naturalWidth / resource.image.naturalHeight;
                     }
                 });
             }
-            else if(resource !== undefined && resource.image) {
+            else if (resource !== undefined && resource.image) {
                 this.nativeAspect = resource.image.naturalWidth / resource.image.naturalHeight;
             }
         }
     }
 
     private getNewSize(deltaX: number, deltaY: number) {
-        if(this.nativeAspect != null && this.aspectLocked) {
-            if(deltaX > deltaY) {
+        if (this.nativeAspect != null && this.aspectLocked) {
+            if (deltaX > deltaY) {
                 return new Size(deltaX, deltaX / this.nativeAspect);
             }
             else {

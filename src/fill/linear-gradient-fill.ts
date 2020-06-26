@@ -65,6 +65,6 @@ export class LinearGradientFill {
     }
 
     public toString(): string {
-        return "linear gradient"
+        return 'linear gradient';
     }
 }

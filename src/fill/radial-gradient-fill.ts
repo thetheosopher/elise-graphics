@@ -81,6 +81,6 @@ export class RadialGradientFill {
     }
 
     public toString(): string {
-        return "radial gradient"
+        return 'radial gradient';
     }
 }

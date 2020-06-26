@@ -41,11 +41,10 @@ export class LineTool extends DesignTool {
             return;
         }
         const p1 = this.line.getP1();
-        if(!p1) {
+        if (!p1) {
             return;
         }
-        if(Math.abs(args.location.x - p1.x) < this.minSize &&
-          (Math.abs(args.location.y - p1.y) < this.minSize)) {
+        if (Math.abs(args.location.x - p1.x) < this.minSize && Math.abs(args.location.y - p1.y) < this.minSize) {
             this.cancel();
         }
         if (this.cancelled) {
