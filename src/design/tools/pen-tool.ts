@@ -82,7 +82,7 @@ export class PenTool extends DesignTool {
                 if(Math.abs(p1.x - p2.x) < this.minSize &&
                    Math.abs(p1.y - p2.y) < this.minSize) {
                      this.model.remove(this.line);
-                     this.line == undefined;
+                     this.line = undefined;
                  }
             }
         }

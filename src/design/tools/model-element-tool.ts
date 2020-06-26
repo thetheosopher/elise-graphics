@@ -41,20 +41,6 @@ export class ModelElementTool extends DesignTool {
         this.isCreating = true;
     }
 
-    private getNewSize(deltaX: number, deltaY: number) {
-        if(this.nativeAspect != null && this.aspectLocked) {
-            if(deltaX > deltaY) {
-                return new Size(deltaX, deltaX / this.nativeAspect);
-            }
-            else {
-                return new Size(deltaY * this.nativeAspect, deltaY);
-            }
-        }
-        else {
-            return new Size(deltaX, deltaY);
-        }
-    }
-
     public mouseMove(args: MouseLocationArgs) {
         if (this.cancelled) {
             return;
@@ -123,6 +109,20 @@ export class ModelElementTool extends DesignTool {
                 this.model.resourceManager.register(this.source);
                 this.model.resourceManager.load();
             }
+        }
+    }
+
+    private getNewSize(deltaX: number, deltaY: number) {
+        if(this.nativeAspect != null && this.aspectLocked) {
+            if(deltaX > deltaY) {
+                return new Size(deltaX, deltaX / this.nativeAspect);
+            }
+            else {
+                return new Size(deltaY * this.nativeAspect, deltaY);
+            }
+        }
+        else {
+            return new Size(deltaX, deltaY);
         }
     }
 }

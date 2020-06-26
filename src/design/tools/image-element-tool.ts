@@ -2,8 +2,8 @@ import { MouseLocationArgs } from '../../core/mouse-location-args';
 import { Point } from '../../core/point';
 import { Size } from '../../core/size';
 import { ImageElement } from '../../elements/image-element';
-import { DesignTool } from './design-tool';
 import { BitmapResource } from '../../resource/bitmap-resource';
+import { DesignTool } from './design-tool';
 
 /**
  * Image element creation tool
@@ -41,20 +41,6 @@ export class ImageElementTool extends DesignTool {
             this.controller.invalidate();
         }
         this.isCreating = true;
-    }
-
-    private getNewSize(deltaX: number, deltaY: number) {
-        if(this.nativeAspect != null && this.aspectLocked) {
-            if(deltaX > deltaY) {
-                return new Size(deltaX, deltaX / this.nativeAspect);
-            }
-            else {
-                return new Size(deltaY * this.nativeAspect, deltaY);
-            }
-        }
-        else {
-            return new Size(deltaX, deltaY);
-        }
     }
 
     public mouseMove(args: MouseLocationArgs) {
@@ -132,6 +118,20 @@ export class ImageElementTool extends DesignTool {
             else if(resource !== undefined && resource.image) {
                 this.nativeAspect = resource.image.naturalWidth / resource.image.naturalHeight;
             }
+        }
+    }
+
+    private getNewSize(deltaX: number, deltaY: number) {
+        if(this.nativeAspect != null && this.aspectLocked) {
+            if(deltaX > deltaY) {
+                return new Size(deltaX, deltaX / this.nativeAspect);
+            }
+            else {
+                return new Size(deltaY * this.nativeAspect, deltaY);
+            }
+        }
+        else {
+            return new Size(deltaX, deltaY);
         }
     }
 }
