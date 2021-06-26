@@ -1,6 +1,6 @@
 {
     "name": "elise-graphics",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "description": "\"Elise Graphics Library\"",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
