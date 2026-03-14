@@ -1103,7 +1103,6 @@ export class DesignController implements IController {
 
     /**
      * Handles canvas mouse down event
-     * @param c - Design controller
      * @param e - Mouse event
      */
     public onCanvasMouseDown(e: MouseEvent): void {
@@ -1366,7 +1365,6 @@ export class DesignController implements IController {
 
     /**
      * Handles canvas mouse move event
-     * @param this - Design controller
      * @param e - Mouse event
      */
     public onCanvasMouseMove(e: MouseEvent): void {
@@ -1692,7 +1690,6 @@ export class DesignController implements IController {
 
     /**
      * Handles canvas mouse up
-     * @param this - Design controller
      * @param e - Mouse event info
      */
     public onCanvasMouseUp(e: MouseEvent | IMouseEvent): void {
@@ -1919,7 +1916,6 @@ export class DesignController implements IController {
 
     /**
      * Handles canvas key down
-     * @param this - Design controller
      * @param e - DOM Keyboard event
      */
     public onCanvasKeyDown(e: KeyboardEvent): boolean {
@@ -2036,7 +2032,6 @@ export class DesignController implements IController {
 
     /**
      * Fired when drag begins over canvas
-     * @param this - Design controller
      * @param e - Mouse drag event
      */
     public onCanvasDragEnter(e: DragEvent): void {
@@ -2055,7 +2050,6 @@ export class DesignController implements IController {
 
     /**
      * Fired while drag is occurring over canvas
-     * @param this - Design controller
      * @param e - Mouse drag event
      */
     public onCanvasDragOver(e: DragEvent): void {
@@ -2365,7 +2359,6 @@ export class DesignController implements IController {
 
     /**
      * Called when the model is updated
-     * @param model - Model updated
      */
     public onModelUpdated(): void {
         if (this.model) {

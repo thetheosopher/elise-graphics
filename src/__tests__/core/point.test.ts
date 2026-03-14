@@ -17,15 +17,15 @@ test('point parse point', () => {
 });
 
 test('point parse invalid 1', () => {
-    expect(() => Point.parse('abc')).toThrowError(Error);
+    expect(() => Point.parse('abc')).toThrow(Error);
 });
 
 test('point parse invalid 2', () => {
-    expect(() => Point.parse('1,2,3')).toThrowError(Error);
+    expect(() => Point.parse('1,2,3')).toThrow(Error);
 });
 
 test('size parse invalid 3', () => {
-    expect(() => Point.parse(',2')).toThrowError(Error);
+    expect(() => Point.parse(',2')).toThrow(Error);
 });
 
 test('point scale', () => {

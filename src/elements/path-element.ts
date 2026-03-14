@@ -593,7 +593,7 @@ export class PathElement extends ElementBase implements IPointContainer {
 
     /**
      * Resizes path element
-     * @param size - New size
+     * @param sizeSource - New size
      * @returns This path element
      */
     public setSize(sizeSource: Size | string) {

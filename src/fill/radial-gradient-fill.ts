@@ -50,7 +50,7 @@ export class RadialGradientFill {
      * @param center - Gradient center point serialized as string
      * @param focus - Gradient focal point serialized as string
      * @param radiusX - Horizontal radius
-     * @param radiuxY - Vertical radius
+     * @param radiusY - Vertical radius
      */
     constructor(center: string, focus: string, radiusX: number, radiusY: number) {
         this.addFillStop = this.addFillStop.bind(this);

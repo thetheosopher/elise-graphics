@@ -33,7 +33,7 @@ export class Sketcher {
     public elementIndex: number = 0;
     public elementCount: number = 0;
     public passIndex: number = 0;
-    public timerHandle?: number;
+    public timerHandle?: NodeJS.Timeout;
     public controller?: ViewController;
     public scale: number = 1;
 

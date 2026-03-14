@@ -36,7 +36,7 @@ export class SurfaceRadioStrip extends SurfaceLayer {
     /**
      * Creates a radio button strip
      * @param id - Radio strip id
-     * @param arealeft - Strip area x coordinate
+     * @param areaLeft - Strip area x coordinate
      * @param areaTop - Strip area y coordinate
      * @param areaWidth - Strip area width
      * @param areaHeight - Strip area height
@@ -196,11 +196,11 @@ export class SurfaceRadioStrip extends SurfaceLayer {
      */
     public element?: HTMLCanvasElement = undefined;
 
-    public scrollTimer?: number;
+    public scrollTimer?: NodeJS.Timeout;
 
     /**
      * @param id - Radio strip id
-     * @param arealeft - Strip area x coordinate
+     * @param areaLeft - Strip area x coordinate
      * @param areaTop - Strip area y coordinate
      * @param areaWidth - Strip area width
      * @param areaHeight - Strip area height
@@ -883,7 +883,7 @@ export class SurfaceRadioStrip extends SurfaceLayer {
 
     /**
      * Handles radio strip mouse down event
-     * @param c - Strip view controller
+     * @param controller - Strip view controller
      * @param args - Strip mouse down point info
      */
     public stripDown(controller: IController, args: PointEventParameters) {
@@ -903,7 +903,7 @@ export class SurfaceRadioStrip extends SurfaceLayer {
 
     /**
      * Handles radio strip mouse move event
-     * @param c - Strip view controller
+     * @param controller - Strip view controller
      * @param args - Strip mouse move point info
      */
     public stripMoved(controller: IController, args: PointEventParameters) {

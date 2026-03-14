@@ -1,16 +1,17 @@
 {
     "name": "elise-graphics",
-    "version": "1.0.8",
+    "version": "1.0.9",
     "description": "\"Elise Graphics Library\"",
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
+    "module": "lib-esm/index.js",
     "scripts": {
-        "clean": "shx rm -rf _bundles docs lib lib-esm",
+        "clean": "shx rm -rf _bundles lib lib-esm",
         "doc": "npx typedoc",
         "test": "jest",
-        "build": "npm run clean && tsc && tsc -m es6 --outDir lib-esm && webpack && typedoc",
+        "build": "npm run clean && tsc && tsc -m es6 --outDir lib-esm && webpack",
         "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
-        "lint": "tslint -p tsconfig.json",
+        "lint": "eslint src/",
         "prepare": "npm run build",
         "prepublishOnly": "npm run lint",
         "preversion": "npm run lint",
@@ -33,24 +34,24 @@
     },
     "homepage": "https://github.com/thetheosopher/elise-graphics#readme",
     "devDependencies": {
-        "@types/jest": "^24.0.22",
-        "awesome-typescript-loader": "^5.2.1",
-        "jest": "^24.9.0",
-        "prettier-miscellaneous": "^1.5.3",
-        "shx": "^0.3.2",
-        "ts-jest": "^24.1.0",
-        "tslint": "^5.20.0",
-        "tslint-config-prettier": "^1.18.0",
-        "typedoc": "^0.15.2",
-        "typescript": "^3.6.4",
-        "uglifyjs-webpack-plugin": "^2.2.0",
-        "webpack": "^4.41.2",
-        "webpack-cli": "^3.3.10"
+        "@types/jest": "^30.0.0",
+        "@typescript-eslint/eslint-plugin": "^8.57.0",
+        "@typescript-eslint/parser": "^8.57.0",
+        "eslint": "^10.0.3",
+        "eslint-config-prettier": "^10.1.8",
+        "jest": "^30.3.0",
+        "prettier": "^3.8.1",
+        "shx": "^0.4.0",
+        "ts-jest": "^29.4.6",
+        "ts-loader": "^9.5.4",
+        "typedoc": "^0.28.17",
+        "typescript": "^5.9.3",
+        "webpack": "^5.105.4",
+        "webpack-cli": "^7.0.0"
     },
     "files": [
         "lib/**/*",
         "lib-esm/**/*",
         "_bundles/**/*"
-    ],
-    "dependencies": {}
+    ]
 }

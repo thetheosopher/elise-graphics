@@ -94,7 +94,7 @@ export class SpriteElement extends ElementBase {
     /**
      * Animation timer handle
      */
-    public timerHandle?: number;
+    public timerHandle?: NodeJS.Timeout;
 
     /**
      * Transition render function for current transition

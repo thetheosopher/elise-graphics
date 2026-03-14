@@ -1,6 +1,5 @@
 var path = require('path');
 var webpack = require('webpack');
-const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 
 var PATHS = {
     entryPoint: path.resolve(__dirname, 'src/index.ts'),
@@ -46,32 +45,13 @@ var config = {
         rules: [
             {
                 test: /\.tsx?$/,
-                loader: 'awesome-typescript-loader',
-                exclude: /node_modules/,
-                query: {
-                    // we don't want any declaration file in the bundles
-                    // folder since it wouldn't be of any use and the source
-                    // map already include everything for debugging
-                    declaration: false
-                }
+                loader: 'ts-loader',
+                exclude: /node_modules/
             }
         ]
     },
     optimization: {
-        minimizer: [
-            // We specify a custom UglifyJsPlugin here to get source maps in production
-            new UglifyJsPlugin({
-                cache: true,
-                parallel: true,
-                uglifyOptions: {
-                    compress: false,
-                    ecma: 6,
-                    mangle: true
-                },
-                sourceMap: true,
-                include: /\.min\.js$/
-            })
-        ]
+        minimizer: []
     }
 };
 

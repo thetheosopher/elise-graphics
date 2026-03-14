@@ -211,7 +211,7 @@ export class ResourceManager {
      * Returns to closest matching localized resource for a
      * given key using fallback rules
      * @param key - Resource key
-     * @param localeID - Desired resource locale (e.g. en-US)
+     * @param localeId - Desired resource locale (e.g. en-US)
      * @returns Best available resource
      */
     public get(key: string, localeId?: string): Resource | undefined {

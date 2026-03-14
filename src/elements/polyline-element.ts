@@ -484,7 +484,7 @@ export class PolylineElement extends ElementBase implements IPointContainer {
 
     /**
      * Resizes polyline
-     * @param size - New size
+     * @param sizeSource - New size
      * @returns This polyline
      */
     public setSize(sizeSource: string | Size) {

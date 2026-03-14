@@ -234,7 +234,7 @@ export class ViewController implements IController {
     /**
      * Event delay timer handle
      */
-    public eventTimer?: number;
+    public eventTimer?: NodeJS.Timeout;
 
     /**
      * Animation timer start time
@@ -593,7 +593,7 @@ export class ViewController implements IController {
         if (!this.enabled) {
             return;
         }
-        if (this.mouseEnteredView.hasListeners) {
+        if (this.mouseEnteredView.hasListeners()) {
             this.mouseEnteredView.trigger(this, new MouseEventArgs(e));
         }
         this.drawIfNeeded();
@@ -609,7 +609,7 @@ export class ViewController implements IController {
         if (!this.enabled) {
             return;
         }
-        if (this.mouseLeftView.hasListeners) {
+        if (this.mouseLeftView.hasListeners()) {
             this.mouseLeftView.trigger(this, new MouseEventArgs(e));
         }
         this.drawIfNeeded();
@@ -792,7 +792,7 @@ export class ViewController implements IController {
 
     /**
      * Sets rendering scale.  Recreates or sizes target canvas.
-     * @param Render scale
+     * @param scale scale
      */
     public setScale(scale: number) {
         if (scale === this.scale) {

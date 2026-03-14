@@ -42,7 +42,7 @@ export class ModelEvent<T> {
     /**
      * Trigger event
      *  @param model - Event model
-     *  @param Event data
+     *  @param data data
      */
     public trigger(model: Model, data?: T) {
         this.listeners.slice(0).forEach(h => h(model, data));

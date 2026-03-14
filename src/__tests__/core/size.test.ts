@@ -17,15 +17,15 @@ test('size parse size', () => {
 });
 
 test('size parse invalid 1', () => {
-    expect(() => Size.parse('abc')).toThrowError(Error);
+    expect(() => Size.parse('abc')).toThrow(Error);
 });
 
 test('size parse invalid 2', () => {
-    expect(() => Size.parse('1x2x3')).toThrowError(Error);
+    expect(() => Size.parse('1x2x3')).toThrow(Error);
 });
 
 test('size parse invalid 3', () => {
-    expect(() => Size.parse('x2')).toThrowError(Error);
+    expect(() => Size.parse('x2')).toThrow(Error);
 });
 
 test('size scale', () => {

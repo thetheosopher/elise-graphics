@@ -1,13 +1,16 @@
 {
     "compilerOptions": {
-      "target": "es5",
+      "target": "es2020",
       "module": "commonjs",
-      "lib": [ "es2015", "dom" ],
+      "lib": [ "es2020", "dom" ],
       "sourceMap": true,
       "declaration": true,
       "outDir": "./lib",
       "strict": true,
-      "moduleResolution": "node"
+      "moduleResolution": "node",
+      "esModuleInterop": true,
+      "skipLibCheck": true,
+      "forceConsistentCasingInFileNames": true
     },
     "include": ["src"],
     "exclude": ["node_modules", "**/__tests__/*"]

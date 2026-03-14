@@ -14,7 +14,6 @@ export class SurfaceHiddenLayer extends SurfaceLayer {
      * @param top - Layout area y coordinate
      * @param width - Layout area width
      * @param height - Layout area height
-     * @param source - Image source URL
      * @param clickListener - Click event listener
      * @returns New hidden layer
      */

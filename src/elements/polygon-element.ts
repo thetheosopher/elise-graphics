@@ -502,7 +502,7 @@ export class PolygonElement extends ElementBase implements IPointContainer {
 
     /**
      * Resizes polygon
-     * @param size - New size
+     * @param sizeSource - New size
      * @returns This polygon
      */
     public setSize(sizeSource: string | Size) {

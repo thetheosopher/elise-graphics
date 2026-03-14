@@ -11,7 +11,7 @@ export class PaneTransitionFade extends PaneTransition {
     public duration: number;
     public startTime?: number;
     public source?: Surface;
-    public timer?: number;
+    public timer?: NodeJS.Timeout;
 
     constructor(pane: SurfacePane, target: Surface, callback: (pane: SurfacePane) => void, duration: number) {
         super(pane, target, callback);

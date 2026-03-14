@@ -234,7 +234,7 @@ export class ElementBase implements IPointContainer {
 
     /**
      * Copies properies of another element instance to this instance
-     * @param Source element
+     * @param o element
      */
     public parse(o: any): void {
         if (o.type) {
@@ -593,7 +593,7 @@ export class ElementBase implements IPointContainer {
 
     /**
      * Determines if given x/y coordinate is contained within element
-     * @param Rendering context
+     * @param c context
      * @param tx - X coordinate
      * @param ty - Y coordinate
      * @returns True if coordinate is contained within element

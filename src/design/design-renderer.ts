@@ -817,7 +817,7 @@ export class DesignRenderer {
     /**
      * Renders a text element to canvas 2d context
      * @param c - Rendering context
-     * @param rectangle - Text element to render
+     * @param textElement - Text element to render
      */
     public renderTextElement(c: CanvasRenderingContext2D, textElement: TextElement) {
         const model = textElement.model;

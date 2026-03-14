@@ -11,7 +11,7 @@ export class PaneTransitionPush extends PaneTransition {
     public duration: number;
     public startTime?: number;
     public source?: Surface;
-    public timer?: number;
+    public timer?: NodeJS.Timeout;
     public direction: PaneTransitionDirection;
 
     constructor(

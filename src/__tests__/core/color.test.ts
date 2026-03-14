@@ -25,11 +25,11 @@ test('parse six digit color', () => {
 });
 
 test('parse eight digit color', () => {
-    const color = Color.parse('#fffefdfc');
-    expect(color.a).toBe(255);
+    const color = Color.parse('#fefdfcff');
     expect(color.r).toBe(254);
     expect(color.g).toBe(253);
     expect(color.b).toBe(252);
+    expect(color.a).toBe(255);
 });
 
 test('parse named color transparent', () => {
@@ -67,8 +67,8 @@ test('toString unnamed color 1', () => {
 });
 
 test('toString unnamed color 2', () => {
-    const colorString = new Color(254, 254, 253, 252).toString();
-    expect(colorString).toBe('#fefefdfc');
+    const colorString = new Color(251, 254, 253, 252).toString();
+    expect(colorString).toBe('#fefdfcfb');
 });
 
 test('toHexString unnamed color 1', () => {
@@ -77,8 +77,8 @@ test('toHexString unnamed color 1', () => {
 });
 
 test('toHexString unnamed color 2', () => {
-    const colorString = new Color(254, 254, 253, 252).toHexString();
-    expect(colorString).toBe('#fefefdfc');
+    const colorString = new Color(251, 254, 253, 252).toHexString();
+    expect(colorString).toBe('#fefdfcfb');
 });
 
 test('toStyleString unnamed color 1', () => {

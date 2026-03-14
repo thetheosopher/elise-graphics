@@ -164,7 +164,7 @@ export class ComponentProps {
 
     /**
      * Default element resizing function for elements with simple properties
-     * @param component - Component
+     * @param c - Component
      * @param props - Element resizing properties
      */
     public defaultResize(c: Component, props: ElementSizeProps) {
