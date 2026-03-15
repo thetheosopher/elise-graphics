@@ -7,13 +7,13 @@ test('model event', () => {
     testmodel.id = 'test';
     let output1: number | undefined = 0;
     let output2: number | undefined = 0;
-    let model1: Model | undefined;
-    let model2: Model | undefined;
-    const handler1 = (model: Model, value: number | undefined) => {
+    let model1: unknown;
+    let model2: unknown;
+    const handler1 = (model: unknown, value?: number) => {
         output1 = value;
         model1 = model;
     };
-    const handler2 = (model: Model, value: number | undefined) => {
+    const handler2 = (model: unknown, value?: number) => {
         output2 = value;
         model2 = model;
     };

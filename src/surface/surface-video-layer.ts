@@ -1,6 +1,6 @@
 import { CommonEvent } from '../core/common-event';
 import { ErrorMessages } from '../core/error-messages';
-import { Surface } from './surface';
+import type { SurfaceLike } from './surface-element';
 import { SurfaceLayer } from './surface-layer';
 
 /**
@@ -87,7 +87,7 @@ export class SurfaceVideoLayer extends SurfaceLayer {
      * Adds video to parent surface
      * @param surface - Parent surface
      */
-    public addToSurface(surface: Surface) {
+    public addToSurface(surface: SurfaceLike) {
         this.surface = surface;
 
         // If no source
@@ -229,7 +229,7 @@ export class SurfaceVideoLayer extends SurfaceLayer {
         return this;
     }
 
-    public addTo(surface: Surface) {
+    public addTo(surface: SurfaceLike) {
         surface.layers.push(this);
         return this;
     }

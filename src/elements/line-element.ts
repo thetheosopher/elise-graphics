@@ -1,4 +1,5 @@
 import { ErrorMessages } from '../core/error-messages';
+import type { SerializedData } from '../core/serialization';
 import { Point } from '../core/point';
 import { IPointContainer } from '../core/point-container';
 import { PointDepth } from '../core/point-depth';
@@ -52,13 +53,13 @@ export class LineElement extends ElementBase implements IPointContainer {
      * Copies properties of another object to this instance
      * @param o - Source element
      */
-    public parse(o: any): void {
+    public parse(o: SerializedData): void {
         super.parse(o);
         if (o.p1) {
-            this._p1 = Point.parse(o.p1);
+            this._p1 = Point.parse(o.p1 as string);
         }
         if (o.p2) {
-            this._p2 = Point.parse(o.p2);
+            this._p2 = Point.parse(o.p2 as string);
         }
     }
 
@@ -66,7 +67,7 @@ export class LineElement extends ElementBase implements IPointContainer {
      * Serializes persistent properties to new object instance
      * @returns Serialized element
      */
-    public serialize(): any {
+    public serialize(): SerializedData {
         const o = super.serialize();
         if (this.p1) {
             o.p1 = this.p1.toString();

@@ -1,4 +1,5 @@
 import { ErrorMessages } from '../core/error-messages';
+import type { SerializedData } from '../core/serialization';
 import { Point } from '../core/point';
 import { Size } from '../core/size';
 import { FillFactory } from '../fill/fill-factory';
@@ -90,25 +91,25 @@ export class TextElement extends ElementBase {
      * Copies properties of another object to this instance
      * @param o - Source object
      */
-    public parse(o: any): void {
+    public parse(o: SerializedData): void {
         super.parse(o);
         if (o.text) {
-            this.text = o.text;
+            this.text = o.text as string;
         }
         if (o.source) {
-            this.source = o.source;
+            this.source = o.source as string;
         }
         if (o.typeface) {
-            this.typeface = o.typeface;
+            this.typeface = o.typeface as string;
         }
         if (o.typesize) {
-            this.typesize = o.typesize;
+            this.typesize = o.typesize as number;
         }
         if (o.typestyle) {
-            this.typestyle = o.typestyle;
+            this.typestyle = o.typestyle as string;
         }
         if (o.alignment) {
-            this.alignment = o.alignment;
+            this.alignment = o.alignment as string;
         }
         if (!this.location) {
             this._location = new Point(0, 0);
@@ -119,7 +120,7 @@ export class TextElement extends ElementBase {
      * Serializes persistent properties to new object instance
      * @returns Serialized element
      */
-    public serialize(): any {
+    public serialize(): SerializedData {
         const o = super.serialize();
         if (this.text) {
             o.text = this.text;

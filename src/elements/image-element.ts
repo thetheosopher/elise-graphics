@@ -1,4 +1,5 @@
 import { ErrorMessages } from '../core/error-messages';
+import type { SerializedData } from '../core/serialization';
 import { Point } from '../core/point';
 import { Size } from '../core/size';
 import { BitmapResource } from '../resource/bitmap-resource';
@@ -63,13 +64,13 @@ export class ImageElement extends ElementBase {
      * Copies properties of another object to this instance
      * @param o - Source element
      */
-    public parse(o: any): void {
+    public parse(o: SerializedData): void {
         super.parse(o);
         if (o.source) {
-            this.source = o.source;
+            this.source = o.source as string;
         }
         if (o.opacity !== undefined) {
-            this.opacity = o.opacity;
+            this.opacity = o.opacity as number;
         }
         if (!this._location) {
             this._location = new Point(0, 0);
@@ -80,7 +81,7 @@ export class ImageElement extends ElementBase {
      * Serializes persistent properties to new object instance
      * @returns Serialized element
      */
-    public serialize(): any {
+    public serialize(): SerializedData {
         const o = super.serialize();
         if (this.source) {
             o.source = this.source;

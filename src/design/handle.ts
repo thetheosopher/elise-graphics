@@ -3,9 +3,9 @@ import { Point } from '../core/point';
 import { PointDepth } from '../core/point-depth';
 import { Region } from '../core/region';
 import { Size } from '../core/size';
-import { DesignController } from '../design/design-controller';
 import { ElementBase } from '../elements/element-base';
 import { HandleMovedArgs } from './handle-moved-args';
+import type { IDesignController } from './design-controller-interface';
 
 /**
  * Design mode element manipulation handle
@@ -400,7 +400,7 @@ export class Handle {
             newY = h.controller.getNearestSnapY(newY);
         }
         h.controller.movingPointLocation = new Point(newX, newY);
-        const dc: DesignController = h.controller as DesignController;
+        const dc: IDesignController = h.controller as IDesignController;
         dc.clearElementMoveLocations();
         dc.clearElementResizeSizes();
         el.clearBounds();
@@ -440,7 +440,7 @@ export class Handle {
     /**
      * Design controller
      */
-    public controller: DesignController;
+    public controller: IDesignController;
 
     /**
      * Handle region
@@ -455,7 +455,7 @@ export class Handle {
     /**
      * Handle ID
      */
-    public handleId: any;
+    public handleId: string | number = '';
 
     /**
      * Handle index
@@ -487,7 +487,7 @@ export class Handle {
      * @param x - X coordinate
      * @param y - Y coordinate
      */
-    constructor(x: number, y: number, element: ElementBase, controller: DesignController) {
+    constructor(x: number, y: number, element: ElementBase, controller: IDesignController) {
         this.getBounds = this.getBounds.bind(this);
         this.draw = this.draw.bind(this);
 

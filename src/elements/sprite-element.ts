@@ -1,4 +1,5 @@
 import { ErrorMessages } from '../core/error-messages';
+import type { SerializedData } from '../core/serialization';
 import { Point } from '../core/point';
 import { Size } from '../core/size';
 import { BitmapResource } from '../resource/bitmap-resource';
@@ -125,10 +126,10 @@ export class SpriteElement extends ElementBase {
      * Copies properies of another element instance to this instance
      * @param o - Source element
      */
-    public parse(o: any): void {
+    public parse(o: SerializedData): void {
         super.parse(o);
         if (o.frames) {
-            this.frames = o.frames;
+            this.frames = o.frames as SpriteFrame[];
         }
         if (!this.location) {
             this._location = new Point(0, 0);
@@ -139,7 +140,7 @@ export class SpriteElement extends ElementBase {
      * Serializes persistent properties to new object instance
      * @returns Serialized element
      */
-    public serialize(): any {
+    public serialize(): SerializedData {
         const o = super.serialize();
         if (this.frames) {
             o.frames = JSON.parse(JSON.stringify(this.frames));

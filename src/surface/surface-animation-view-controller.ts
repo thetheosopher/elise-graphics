@@ -1,5 +1,12 @@
-import { SurfaceAnimationLayer } from './surface-animation-layer';
+import type { SpriteElement } from '../elements/sprite-element';
 import { SurfaceViewController } from './surface-view-controller';
+
+interface SurfaceAnimationLayer {
+    frameIndex: number;
+    sprite?: SpriteElement;
+    onAnimationClick(): void;
+    onAnimationAdvance(): void;
+}
 
 /**
  * Extends SurfaceViewController to add animation property

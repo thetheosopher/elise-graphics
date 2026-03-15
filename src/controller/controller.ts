@@ -1,16 +1,26 @@
-import { ElementCommandHandler } from '../command/element-command-handler';
-import { Model } from '../core/model';
-import { TimerParameters } from '../core/timer-parameters';
-import { ElementBase } from '../elements/element-base';
-import { IControllerEvent } from './controller-event';
+import type { ElementBase } from '../elements/element-base';
+import type { IModel } from '../core/model-interface';
+import type { TimerParameters } from '../core/timer-parameters';
+import type { CommandParameters } from '../command/command-parameters';
+import type { IControllerEvent } from './controller-event';
+
+interface ControllerCommandHandler {
+    onElementCommandFired(
+        controller: IController,
+        element: ElementBase,
+        command: string,
+        trigger: string,
+        parameters?: CommandParameters
+    ): boolean;
+}
 
 export interface IController {
-    model?: Model;
+    model?: IModel;
     canvas?: HTMLCanvasElement;
 
-    modelUpdated: IControllerEvent<Model>;
+    modelUpdated: IControllerEvent<IModel>;
     enabledChanged: IControllerEvent<boolean>;
-    commandHandler?: ElementCommandHandler;
+    commandHandler?: ControllerCommandHandler;
 
     mouseEnteredElement: IControllerEvent<ElementBase>;
     mouseLeftElement: IControllerEvent<ElementBase>;

@@ -1,4 +1,5 @@
 import { ErrorMessages } from '../core/error-messages';
+import type { SerializedData } from '../core/serialization';
 import { Point } from '../core/point';
 import { IPointContainer } from '../core/point-container';
 import { PointDepth } from '../core/point-depth';
@@ -100,14 +101,14 @@ export class PathElement extends ElementBase implements IPointContainer {
      * Copies properties of another object to this instance
      * @param o - Source object
      */
-    public parse(o: any): void {
+    public parse(o: SerializedData): void {
         super.parse(o);
         if (o.commands) {
-            const commandString: string = o.commands;
+            const commandString: string = o.commands as string;
             this._commands = commandString.split(' ');
         }
         if (o.winding) {
-            this.winding = o.winding;
+            this.winding = o.winding as WindingMode;
         }
         this.bounds = undefined;
     }
@@ -116,7 +117,7 @@ export class PathElement extends ElementBase implements IPointContainer {
      * Serializes persistent properties to new object instance
      * @returns Serialized element
      */
-    public serialize(): any {
+    public serialize(): SerializedData {
         const o = super.serialize();
         o.size = undefined;
         o.location = undefined;

@@ -3,8 +3,7 @@ import { ErrorMessages } from '../core/error-messages';
 import { Model } from '../core/model';
 import { SpriteElement } from '../elements/sprite-element';
 import { SpriteFrame } from '../elements/sprite-frame';
-import { Surface } from './surface';
-import { SurfaceElement } from './surface-element';
+import { SurfaceElement, type SurfaceLike } from './surface-element';
 import { SurfaceElementStates } from './surface-element-states';
 
 /**
@@ -161,7 +160,7 @@ export class SurfaceButtonElement extends SurfaceElement {
         }
     }
 
-    public addTo(surface: Surface): SurfaceElement {
+    public addTo(surface: SurfaceLike): SurfaceElement {
         surface.elements.push(this);
         return this;
     }
@@ -299,7 +298,7 @@ export class SurfaceButtonElement extends SurfaceElement {
         if (self.isToggle) {
             if (self.groupId !== undefined) {
                 if (!self.isSelected) {
-                    self.surface.elements.forEach(sel => {
+                    self.surface.elements.forEach((sel) => {
                         if (sel instanceof SurfaceButtonElement && sel.spriteElement) {
                             if (sel.id === self.id) {
                                 sel.isSelected = true;
@@ -318,7 +317,7 @@ export class SurfaceButtonElement extends SurfaceElement {
                     });
                 }
                 else {
-                    self.surface.elements.forEach(sel => {
+                    self.surface.elements.forEach((sel) => {
                         if (sel instanceof SurfaceButtonElement && sel.spriteElement) {
                             if (self.groupId === sel.groupId) {
                                 sel.isSelected = false;

@@ -4,7 +4,7 @@ test('controller event add and trigger', () => {
     const event = new ControllerEvent<string>();
     let received = '';
     event.add((_controller, data) => {
-        received = data;
+        received = data ?? '';
     });
     event.trigger(undefined as any, 'test-data');
     expect(received).toBe('test-data');
@@ -13,8 +13,8 @@ test('controller event add and trigger', () => {
 test('controller event multiple handlers', () => {
     const event = new ControllerEvent<number>();
     let sum = 0;
-    event.add((_c, data) => { sum += data; });
-    event.add((_c, data) => { sum += data * 2; });
+    event.add((_c, data) => { sum += data ?? 0; });
+    event.add((_c, data) => { sum += (data ?? 0) * 2; });
     event.trigger(undefined as any, 5);
     expect(sum).toBe(15); // 5 + 10
 });

@@ -1,16 +1,45 @@
 import { ErrorMessages } from '../../core/error-messages';
-import { Surface } from '../surface';
-import { SurfacePane } from '../surface-pane';
+
+export interface PaneSurfaceLike {
+    scale: number;
+    width: number;
+    height: number;
+    isChild: boolean;
+    controller?: unknown;
+    hostDiv?: HTMLDivElement;
+    model?: unknown;
+    div?: HTMLDivElement;
+    resourceListenerEvent: { clear(): void };
+    createDiv(onBottom?: boolean): void;
+    createModel(callback: () => void): void;
+    initializeController(): void;
+    onload(): void;
+    onErrorInternal(message: string): void;
+    unbind(): void;
+    setOpacity(opacity: number): void;
+    setTranslateX(translateX: number): void;
+    setTranslateY(translateY: number): void;
+}
+
+export interface PaneContainerLike {
+    width: number;
+    height: number;
+    surface?: { scale: number };
+    childSurface: PaneSurfaceLike;
+    element?: HTMLDivElement;
+    isPrepared: boolean;
+    setHostDivScrolling(): void;
+}
 
 /**
  * Base class for pane transitions
  */
 export abstract class PaneTransition {
-    public pane?: SurfacePane;
-    public target?: Surface;
-    public callback?: (pane: SurfacePane) => void;
+    public pane?: PaneContainerLike;
+    public target?: PaneSurfaceLike;
+    public callback?: (pane: PaneContainerLike) => void;
 
-    constructor(pane: SurfacePane, target: Surface, callback: (pane: SurfacePane) => void) {
+    constructor(pane: PaneContainerLike, target: PaneSurfaceLike, callback: (pane: PaneContainerLike) => void) {
         this.start = this.start.bind(this);
         this.onStart = this.onStart.bind(this);
         this.onComplete = this.onComplete.bind(this);
@@ -55,7 +84,7 @@ export abstract class PaneTransition {
         self.target = undefined;
     }
 
-    public bind(callback: (surface: Surface) => void, onBottom: boolean) {
+    public bind(callback: (surface: PaneSurfaceLike) => void, onBottom: boolean) {
         if (!this.pane || !this.target) {
             return;
         }

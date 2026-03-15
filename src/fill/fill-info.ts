@@ -1,5 +1,5 @@
 import { Color } from '../core/color';
-import { Model } from '../core/model';
+import type { IModel } from '../core/model-interface';
 import { ScalingInfo } from '../core/scaling-info';
 import { ElementBase } from '../elements/element-base';
 import { GradientFillStop } from './gradient-fill-stop';
@@ -62,6 +62,11 @@ export class FillInfo {
         return fillInfo;
     }
 
+    private static isModelLike(el: ElementBase): el is ElementBase & IModel {
+        const candidate = el as Partial<IModel>;
+        return candidate !== undefined && candidate.resourceManager !== undefined && candidate.getFillScale !== undefined;
+    }
+
     public static getFillInfo(el: ElementBase) {
         if (el.fill) {
             const fill = el.fill;
@@ -90,7 +95,7 @@ export class FillInfo {
                     if (el.model) {
                         scaling = el.model.getFillScale(el);
                     }
-                    else if (el instanceof Model) {
+                    else if (FillInfo.isModelLike(el)) {
                         scaling = el.getFillScale(el);
                     }
                     let fillScale = 1.0;
@@ -114,7 +119,7 @@ export class FillInfo {
                     if (el.model) {
                         scaling = el.model.getFillScale(el);
                     }
-                    else if (el instanceof Model) {
+                    else if (FillInfo.isModelLike(el)) {
                         scaling = el.getFillScale(el);
                     }
                     let fillScale = 1.0;

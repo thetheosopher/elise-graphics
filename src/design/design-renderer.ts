@@ -18,7 +18,7 @@ import { FillFactory } from '../fill/fill-factory';
 import { BitmapResource } from '../resource/bitmap-resource';
 import { ModelResource } from '../resource/model-resource';
 import { TextResource } from '../resource/text-resource';
-import { DesignController } from './design-controller';
+import type { IDesignController } from './design-controller-interface';
 
 /**
  * Renders elements for interactive manipulation
@@ -27,13 +27,13 @@ export class DesignRenderer {
     /**
      * Associated design controller
      */
-    public controller: DesignController;
+    public controller: IDesignController;
 
     /**
      * Renders model elements for design controller
      * @param controller - Design controller
      */
-    constructor(controller: DesignController) {
+    constructor(controller: IDesignController) {
         this.renderToContext = this.renderToContext.bind(this);
         this.renderElement = this.renderElement.bind(this);
         this.renderImageElement = this.renderImageElement.bind(this);

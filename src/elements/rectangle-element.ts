@@ -1,4 +1,5 @@
 import { ErrorMessages } from '../core/error-messages';
+import type { SerializedData } from '../core/serialization';
 import { Point } from '../core/point';
 import { Size } from '../core/size';
 import { FillFactory } from '../fill/fill-factory';
@@ -33,7 +34,7 @@ export class RectangleElement extends ElementBase {
      * Copies properties of another object to this instance
      * @param o - Source element
      */
-    public parse(o: any): void {
+    public parse(o: SerializedData): void {
         super.parse(o);
         if (!this._location) {
             this._location = new Point(0, 0);
@@ -44,7 +45,7 @@ export class RectangleElement extends ElementBase {
      * Serializes persistent properties to new object instance
      * @returns Serialized element
      */
-    public serialize(): any {
+    public serialize(): SerializedData {
         const o = super.serialize();
         return o;
     }

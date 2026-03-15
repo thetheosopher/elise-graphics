@@ -1,7 +1,7 @@
 import { Point } from '../../core/point';
 import { Size } from '../../core/size';
 import { ModelElement } from '../../elements/model-element';
-import { Component } from './component';
+import type { Component } from './component';
 
 /**
  * Extends ModelElement class to add Component property
@@ -20,7 +20,7 @@ export class ComponentElement extends ModelElement {
     /**
      * Extra, arbitrary component properties
      */
-    public props: any;
+    public props: Record<string, unknown> = {};
 
     /**
      * @param source - Model element ID used as resource key in parent model

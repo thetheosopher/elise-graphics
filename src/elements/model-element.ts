@@ -1,10 +1,19 @@
 import { ErrorMessages } from '../core/error-messages';
-import { Model } from '../core/model';
+import type { SerializedData } from '../core/serialization';
 import { Point } from '../core/point';
 import { Size } from '../core/size';
-import { ModelResource } from '../resource/model-resource';
 import { ResourceManager } from '../resource/resource-manager';
 import { ElementBase } from './element-base';
+
+interface EmbeddedModel {
+    getSize(): Size | undefined;
+    renderToContext(c: CanvasRenderingContext2D): void;
+}
+
+interface SourceModelResourceLike {
+    key?: string;
+    model?: EmbeddedModel;
+}
 
 /**
  * Renders embedded or externally referenced model
@@ -20,7 +29,7 @@ export class ModelElement extends ElementBase {
      * @returns New model element
      */
     public static create(
-        source?: string | ModelResource,
+        source?: string | SourceModelResourceLike,
         x?: number,
         y?: number,
         width?: number,
@@ -57,7 +66,7 @@ export class ModelElement extends ElementBase {
     /**
      * Directly embedded source model
      */
-    public sourceModel?: Model;
+    public sourceModel?: EmbeddedModel;
 
     constructor() {
         super('model');
@@ -69,13 +78,13 @@ export class ModelElement extends ElementBase {
      * Copies properties of another object to this instance
      * @param o - Source object
      */
-    public parse(o: any): void {
+    public parse(o: SerializedData): void {
         super.parse(o);
         if (o.source) {
-            this.source = o.source;
+            this.source = o.source as string;
         }
         if (o.opacity !== undefined) {
-            this.opacity = o.opacity;
+            this.opacity = o.opacity as number;
         }
         if (!this._location) {
             this._location = new Point(0, 0);
@@ -86,7 +95,7 @@ export class ModelElement extends ElementBase {
      * Serializes persistent properties to new object instance
      * @returns Serialized element
      */
-    public serialize(): any {
+    public serialize(): SerializedData {
         const o = super.serialize();
         if (this.source) {
             o.source = this.source;
@@ -150,7 +159,7 @@ export class ModelElement extends ElementBase {
      */
     public draw(c: CanvasRenderingContext2D): void {
         const model = this.model;
-        let innerModel: Model | undefined;
+        let innerModel: EmbeddedModel | undefined;
         innerModel = undefined;
         if (!model) {
             throw new Error(ErrorMessages.ModelUndefined);
@@ -159,7 +168,7 @@ export class ModelElement extends ElementBase {
             throw new Error(ErrorMessages.LocationUndefined);
         }
         if (!this.sourceModel && this.source) {
-            const res = model.resourceManager.get(this.source) as ModelResource;
+            const res = model.resourceManager.get(this.source) as SourceModelResourceLike;
             innerModel = res.model;
         }
         else if (this.sourceModel) {

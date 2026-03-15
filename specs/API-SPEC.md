@@ -1,12 +1,17 @@
 # Elise Graphics Library API Specification
 
-**Version:** 1.0  
-**Language:** TypeScript  
+**Version:** 1.0
+**Language:** TypeScript
 **Target:** HTML5 Canvas 2D
 
 ## Overview
 
 Elise is a retained-mode 2D graphics library built on the HTML5 Canvas API. It provides a scene-graph model of elements and resources that can be rendered, interacted with, designed, and animated. The library is structured into the following major subsystems:
+
+## Related Specifications
+
+- [Model Format Specification](MODEL-FORMAT-SPEC.md)
+- [Modernization Recommendations](MODERNIZATION-RECOMMENDATIONS.md)
 
 | Module | Purpose |
 |--------|---------|
@@ -169,10 +174,10 @@ Generic event emitter for general-purpose events.
 
 ```typescript
 class CommonEvent<T> {
-  add(handler: (value: T) => void): void;
-  remove(handler: (value: T) => void): void;
+  add(handler: (value?: T) => void): void;
+  remove(handler: any): void;
   clear(): void;
-  trigger(value: T): void;
+  trigger(value?: T): void;
   hasListeners(): boolean;
 }
 ```
@@ -183,11 +188,10 @@ Event emitter scoped to a Model context.
 
 ```typescript
 class ModelEvent<T> {
-  add(handler: (model: Model, value: T) => void): void;
-  remove(handler: (model: Model, value: T) => void): void;
+  add(handler: (model: Model, value?: T) => void): void;
+  remove(handler: any): void;
   clear(): void;
-  trigger(model: Model, value: T): void;
-  hasListeners(): boolean;
+  trigger(model: Model, value?: T): void;
 }
 ```
 
@@ -198,7 +202,7 @@ Event emitter scoped to a controller context.
 ```typescript
 class ControllerEvent<T> {
   add(handler: (controller: IController, data: T) => void): void;
-  remove(handler: (controller: IController, data: T) => void): void;
+  remove(handler: any): void;
   clear(): void;
   trigger(controller: IController, data: T): void;
   hasListeners(): boolean;
@@ -290,7 +294,7 @@ abstract class ElementBase {
   model?: Model;
   parent?: ElementBase;
   tag?: any;
-  
+
   // Command handler tags
   mouseDown?: string;
   mouseUp?: string;
@@ -304,11 +308,11 @@ abstract class ElementBase {
   strokeStack: Array<string | undefined>;
 
   // Positioning
-  getLocation(): Point;
+  getLocation(): Point | undefined;
   setLocation(location: Point): void;
-  getSize(): Size;
+  getSize(): Size | undefined;
   setSize(size: Size): void;
-  getBounds(): Region;
+  getBounds(): Region | undefined;
   translate(offsetX: number, offsetY: number): void;
   scale(scaleX: number, scaleY: number): void;
   nudgeSize(outX: number, outY: number): void;
@@ -334,7 +338,7 @@ abstract class ElementBase {
   // Point Editing
   pointCount(): number;
   getPointAt(index: number, depth?: PointDepth): Point;
-  setPointAt(index: number, value: Point, depth?: PointDepth): void;
+  setPointAt(index: number, value: Point, depth: PointDepth): void;
 
   // Rendering
   draw(c: CanvasRenderingContext2D): void;
@@ -369,7 +373,7 @@ class EllipseElement extends ElementBase {
   // Type: "ellipse"
   radiusX: number;
   radiusY: number;
-  center: Point;                                           // getter/setter
+  center?: string;                                         // getter/setter, serialized as "x,y"
 
   static create(x?: number, y?: number, rx?: number, ry?: number): EllipseElement;
   // If ry omitted, defaults to rx (circle)
@@ -382,8 +386,8 @@ class EllipseElement extends ElementBase {
 ```typescript
 class LineElement extends ElementBase {
   // Type: "line"
-  p1: Point;                                               // getter/setter
-  p2: Point;                                               // getter/setter
+  p1?: string;                                             // getter/setter, serialized as "x,y"
+  p2?: string;                                             // getter/setter, serialized as "x,y"
 
   static create(x1?: number, y1?: number, x2?: number, y2?: number): LineElement;
   // Capabilities: canStroke=true, canFill=false, canResize=false, canMovePoint=true
@@ -413,14 +417,14 @@ class PathElement extends ElementBase {
 ```typescript
 class PolygonElement extends ElementBase {
   // Type: "polygon"
-  points: Point[];                                         // getter/setter
+  points?: string;                                         // getter/setter, serialized as "x,y x,y x,y"
   bounds?: Region;
 
   static create(): PolygonElement;
 
   addPoint(point: Point): PolygonElement;
-  setPoints(source: string | Point[]): void;
-  getPoints(): Point[];
+  setPoints(source: string | Point[]): PolygonElement;    // String format: "x,y x,y x,y"
+  getPoints(): Point[] | undefined;
 
   // Capabilities: canStroke=true, canFill=true, canEditPoints=true
   // Automatically closed during rendering
@@ -432,15 +436,15 @@ class PolygonElement extends ElementBase {
 ```typescript
 class PolylineElement extends ElementBase {
   // Type: "polyline"
-  points: Point[];                                         // getter/setter
+  points?: string;                                         // getter/setter, serialized as "x,y x,y x,y"
   bounds?: Region;
   smoothPoints: boolean;                                   // Catmull-Rom interpolation
 
   static create(): PolylineElement;
 
   addPoint(point: Point): PolylineElement;
-  setPoints(source: string | Point[]): void;
-  getPoints(): Point[];
+  setPoints(source: string | Point[]): PolylineElement;   // String format: "x,y x,y x,y"
+  getPoints(): Point[] | undefined;
 
   // Capabilities: canStroke=true, canFill=false, canEditPoints=true
 }
@@ -509,7 +513,7 @@ class ModelElement extends ElementBase {
 ```typescript
 class SpriteElement extends ElementBase {
   // Type: "sprite"
-  frames: SpriteFrame[];
+  frames?: SpriteFrame[];
   frameIndex: number;
   loop: boolean;
   onAdvance?: string;                                      // Command handler tag for frame advance
@@ -973,7 +977,7 @@ class ElementCommandHandler {
   removeHandler(command: string): void;
   clearHandlers(): void;
   onElementCommandFired(controller: IController, element: ElementBase,
-                        command: string, trigger: CommandEventTrigger,
+                        command: string, trigger: string,
                         parameters?: PointEventParameters): boolean;
 }
 ```
@@ -981,13 +985,14 @@ class ElementCommandHandler {
 ### CommandEventTrigger
 
 ```typescript
-enum CommandEventTrigger {
-  MouseEnter,
-  MouseLeave,
-  MouseDown,
-  MouseUp,
-  Click,
-  Timer
+class CommandEventTrigger {
+  static None: string;                                    // "none"
+  static MouseEnter: string;                              // "mouseEnter"
+  static MouseLeave: string;                              // "mouseLeave"
+  static MouseDown: string;                               // "mouseDown"
+  static MouseUp: string;                                 // "mouseUp"
+  static Click: string;                                   // "click"
+  static Timer: string;                                   // "timer"
 }
 ```
 
@@ -1192,7 +1197,7 @@ class TransitionRenderer {
                           sourceFrame: number, targetFrame: number,
                           transition: string): void;
   static spriteIncrementHandler(c: IController, el: ElementBase,
-                                command: string, trigger: CommandEventTrigger,
+                                command: string, trigger: string,
                                 parameters?: PointEventParameters): void;
 }
 ```
@@ -1256,7 +1261,7 @@ const newId: () => string;
 | `WindingMode` | `NonZero = 1`, `EvenOdd = 2` |
 | `PointDepth` | `Simple = 1`, `Full = 2` |
 | `GridType` | `None = 0`, `Dots = 1`, `Lines = 2` |
-| `CommandEventTrigger` | `MouseEnter`, `MouseLeave`, `MouseDown`, `MouseUp`, `Click`, `Timer` |
-| `ResourceState` | Loading states for resource manager |
+| `CommandEventTrigger` | Class constants: `None`, `MouseEnter`, `MouseLeave`, `MouseDown`, `MouseUp`, `Click`, `Timer` |
+| `ResourceState` | Class (`loaded`, `target`, `index`, `total`, `resource`) used in resource manager events |
 | `ResourceLoaderState` | Loader state tracking |
 | `PaneTransitionDirection` | Pane transition directions |

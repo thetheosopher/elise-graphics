@@ -1,14 +1,29 @@
 import { Color } from '../core/color';
 import { ErrorMessages } from '../core/error-messages';
-import { Model } from '../core/model';
 import { Point } from '../core/point';
 import { IPointContainer } from '../core/point-container';
 import { PointDepth } from '../core/point-depth';
 import { Region } from '../core/region';
+import type { ISerializable, SerializedData } from '../core/serialization';
+import type { ScalingInfo } from '../core/scaling-info';
 import { Size } from '../core/size';
 import { LinearGradientFill } from '../fill/linear-gradient-fill';
 import { RadialGradientFill } from '../fill/radial-gradient-fill';
-import { ResourceManager } from '../resource/resource-manager';
+
+export interface ElementModel {
+    resourceManager: {
+        get(key: string, localeId?: string): unknown;
+    };
+    add(el: ElementBase): number;
+    getSize(): Size | undefined;
+    getFillScale(el: ElementBase): ScalingInfo;
+    setElementStroke(c: CanvasRenderingContext2D, el: ElementBase): boolean;
+    setRenderTransform(c: CanvasRenderingContext2D, transform: string, location: Point): void;
+}
+
+interface ElementResourceManager {
+    register(key: string): void;
+}
 
 /**
  * Base class for renderable model elements
@@ -107,7 +122,7 @@ export class ElementBase implements IPointContainer {
     /**
      * Owner model
      */
-    public model?: Model;
+    public model?: ElementModel;
 
     /**
      * Parent element
@@ -127,7 +142,7 @@ export class ElementBase implements IPointContainer {
     /**
      * Associated object
      */
-    public tag: any;
+    public tag: unknown;
 
     /**
      * Size
@@ -236,7 +251,7 @@ export class ElementBase implements IPointContainer {
      * Copies properies of another element instance to this instance
      * @param o element
      */
-    public parse(o: any): void {
+    public parse(o: SerializedData): void {
         if (o.type) {
             this.type = String(o.type);
         }
@@ -244,19 +259,19 @@ export class ElementBase implements IPointContainer {
             this.id = String(o.id);
         }
         if (o.size) {
-            this._size = Size.parse(o.size);
+            this._size = Size.parse(o.size as string);
         }
         if (o.location) {
-            this._location = Point.parse(o.location);
+            this._location = Point.parse(o.location as string);
         }
         if (o.locked) {
-            this.locked = o.locked;
+            this.locked = o.locked as boolean;
         }
         else {
             this.locked = false;
         }
         if (o.aspectLocked) {
-            this.aspectLocked = o.aspectLocked;
+            this.aspectLocked = o.aspectLocked as boolean;
         }
         else {
             this.aspectLocked = false;
@@ -265,7 +280,7 @@ export class ElementBase implements IPointContainer {
             if (typeof o.fill === 'string') {
                 this.fill = o.fill;
             }
-            else if (o.fill.type === 'linearGradient') {
+            else if ((o.fill as { type?: string }).type === 'linearGradient') {
                 const lgr1 = o.fill as LinearGradientFill;
                 const lgr2 = new LinearGradientFill(lgr1.start, lgr1.end);
                 for (const stop of lgr1.stops) {
@@ -273,7 +288,7 @@ export class ElementBase implements IPointContainer {
                 }
                 this.fill = lgr2;
             }
-            else if (o.fill.type === 'radialGradient') {
+            else if ((o.fill as { type?: string }).type === 'radialGradient') {
                 const rgr1 = o.fill as RadialGradientFill;
                 const rgr2 = new RadialGradientFill(rgr1.center, rgr1.focus, rgr1.radiusX, rgr1.radiusY);
                 for (const stop of rgr1.stops) {
@@ -282,42 +297,42 @@ export class ElementBase implements IPointContainer {
                 this.fill = rgr2;
             }
             else {
-                this.fill = o.fill;
+                this.fill = o.fill as string;
             }
         }
         if (o.fillScale) {
-            this.fillScale = o.fillScale;
+            this.fillScale = o.fillScale as number;
         }
         if (o.fillOffsetX) {
-            this.fillOffsetX = o.fillOffsetX;
+            this.fillOffsetX = o.fillOffsetX as number;
         }
         if (o.fillOffsetY) {
-            this.fillOffsetY = o.fillOffsetY;
+            this.fillOffsetY = o.fillOffsetY as number;
         }
         if (o.stroke) {
-            this.stroke = o.stroke;
+            this.stroke = o.stroke as string;
         }
         if (o.transform) {
-            this.transform = o.transform;
+            this.transform = o.transform as string;
         }
         if (o.mouseDown) {
-            this.mouseDown = o.mouseDown;
+            this.mouseDown = o.mouseDown as string;
             this.interactive = true;
         }
         if (o.mouseUp) {
-            this.mouseUp = o.mouseUp;
+            this.mouseUp = o.mouseUp as string;
             this.interactive = true;
         }
         if (o.mouseEnter) {
-            this.mouseEnter = o.mouseEnter;
+            this.mouseEnter = o.mouseEnter as string;
             this.interactive = true;
         }
         if (o.mouseLeave) {
-            this.mouseLeave = o.mouseLeave;
+            this.mouseLeave = o.mouseLeave as string;
             this.interactive = true;
         }
         if (o.click) {
-            this.click = o.click;
+            this.click = o.click as string;
             this.interactive = true;
         }
     }
@@ -326,9 +341,8 @@ export class ElementBase implements IPointContainer {
      * Serializes persistent properties to new object instance
      * @returns Serialized element
      */
-    public serialize(): any {
-        const o: any = {};
-        o.type = this.type;
+    public serialize(): SerializedData {
+        const o: SerializedData = { type: this.type };
         if (this.id) {
             o.id = String(this.id);
         }
@@ -394,7 +408,7 @@ export class ElementBase implements IPointContainer {
      * Copies properties of this instance to another instance
      * @param e - Target element instance
      */
-    public cloneTo(e: any): void {
+    public cloneTo(e: ElementBase): void {
         if (this.type) {
             e.type = this.type;
         }
@@ -538,7 +552,7 @@ export class ElementBase implements IPointContainer {
      * Register any required resources with the provided resource manager
      * @param rm - Resource manager
      */
-    public registerResources(rm: ResourceManager): void {
+    public registerResources(rm: ElementResourceManager): void {
         let key: string;
 
         // If an image or model fill, then register referenced resource
@@ -863,7 +877,7 @@ export class ElementBase implements IPointContainer {
      * @param model - Parent model
      * @returns This element
      */
-    public addTo(model: Model) {
+    public addTo(model: ElementModel) {
         model.add(this);
         return this;
     }

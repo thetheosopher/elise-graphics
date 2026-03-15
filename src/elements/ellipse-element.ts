@@ -1,4 +1,5 @@
 import { ErrorMessages } from '../core/error-messages';
+import type { SerializedData } from '../core/serialization';
 import { Point } from '../core/point';
 import { Region } from '../core/region';
 import { Size } from '../core/size';
@@ -103,16 +104,16 @@ export class EllipseElement extends ElementBase {
      * Copies properties of another object to this instance
      * @param o - Source object
      */
-    public parse(o: any): void {
+    public parse(o: SerializedData): void {
         super.parse(o);
         if (o.center) {
-            this._center = Point.parse(o.center);
+            this._center = Point.parse(o.center as string);
         }
         if (o.radiusX !== undefined) {
-            this.radiusX = o.radiusX;
+            this.radiusX = o.radiusX as number;
         }
         if (o.radiusY !== undefined) {
-            this.radiusY = o.radiusY;
+            this.radiusY = o.radiusY as number;
         }
     }
 
@@ -120,7 +121,7 @@ export class EllipseElement extends ElementBase {
      * Serializes persistent properties to new object instance
      * @returns Serialized element
      */
-    public serialize(): any {
+    public serialize(): SerializedData {
         const o = super.serialize();
         if (this._center) {
             o.center = this._center.toString();

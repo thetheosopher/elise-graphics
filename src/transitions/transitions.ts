@@ -1,4 +1,5 @@
 import { ElementCommand } from '../command/element-command';
+import type { CommandParameters } from '../command/command-parameters';
 import { IController } from '../controller/controller';
 import { ErrorMessages } from '../core/error-messages';
 import { TimerParameters } from '../core/timer-parameters';
@@ -179,7 +180,7 @@ export class TransitionRenderer {
         el: SpriteElement,
         command: string,
         trigger: string,
-        parameters: any
+        parameters?: CommandParameters
     ) {
         if (!el.frameStack) {
             el.frameStack = [];
@@ -196,7 +197,7 @@ export class TransitionRenderer {
         el: SpriteElement,
         command: string,
         trigger: string,
-        parameters: any
+        parameters?: CommandParameters
     ) {
         if (!el.frameStack) {
             return;
@@ -1087,13 +1088,13 @@ export class TransitionRenderer {
         element: ElementBase,
         command: string,
         trigger: string,
-        parameters: any
+        parameters?: CommandParameters
     ) {
         const sprite = element as SpriteElement;
-        if (!sprite) {
+        if (!sprite || !parameters) {
             return;
         }
-        const time = parameters.elapsedTime;
+        const time = (parameters as { elapsedTime: number }).elapsedTime;
 
         const spriteState = sprite.getStateForTime(time);
         if (!spriteState) {

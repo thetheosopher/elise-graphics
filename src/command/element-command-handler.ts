@@ -1,13 +1,14 @@
-import { IController } from '../controller/controller';
-import { Model } from '../core/model';
-import { TimerParameters } from '../core/timer-parameters';
-import { ElementBase } from '../elements/element-base';
-import { ModelElement } from '../elements/model-element';
-import { SpriteElement } from '../elements/sprite-element';
-import { ModelResource } from '../resource/model-resource';
+import type { IController } from '../controller/controller';
+import type { Model } from '../core/model';
+import type { TimerParameters } from '../core/timer-parameters';
+import type { ElementBase } from '../elements/element-base';
+import type { ModelElement } from '../elements/model-element';
+import type { SpriteElement } from '../elements/sprite-element';
+import type { ModelResource } from '../resource/model-resource';
 import { CommandEventTrigger } from './command-event-trigger';
-import { ICommandHandlerMethod } from './command-handler';
-import { ICommandHandler } from './command-handler';
+import type { ICommandHandlerMethod } from './command-handler';
+import type { ICommandHandler } from './command-handler';
+import type { CommandParameters } from './command-parameters';
 import { ElementCommand } from './element-command';
 import { ElementCommandHandlerRegistration } from './element-command-handler-registration';
 
@@ -62,7 +63,7 @@ export class ElementCommandHandler implements ICommandHandler<ElementBase> {
         c.draw();
     }
 
-    public static popStroke(c: IController, el: ElementBase, command: string, trigger: string, parameters: any) {
+    public static popStroke(c: IController, el: ElementBase, command: string, trigger: string, parameters?: CommandParameters) {
         if (!el.strokeStack) {
             return;
         }
@@ -75,7 +76,7 @@ export class ElementCommandHandler implements ICommandHandler<ElementBase> {
         c.draw();
     }
 
-    public static pushFrame(c: IController, element: ElementBase, command: string, trigger: string, parameters: any) {
+    public static pushFrame(c: IController, element: ElementBase, command: string, trigger: string, parameters?: CommandParameters) {
         const el = element as SpriteElement;
         if (!el.frameStack) {
             el.frameStack = [];
@@ -86,7 +87,7 @@ export class ElementCommandHandler implements ICommandHandler<ElementBase> {
         c.draw();
     }
 
-    public static popFrame(c: IController, element: ElementBase, command: string, trigger: string, parameters: any) {
+    public static popFrame(c: IController, element: ElementBase, command: string, trigger: string, parameters?: CommandParameters) {
         const el = element as SpriteElement;
         if (!el.frameStack) {
             return;
@@ -128,33 +129,33 @@ export class ElementCommandHandler implements ICommandHandler<ElementBase> {
         controller.timer.add(this.timer);
     }
 
-    public elementMouseEntered(c: IController, el: ElementBase) {
-        if (c.commandHandler && el.mouseEnter) {
-            c.commandHandler.onElementCommandFired(c, el, el.mouseEnter, CommandEventTrigger.MouseEnter, null);
+    public elementMouseEntered(c: IController, el?: ElementBase) {
+        if (c.commandHandler && el && el.mouseEnter) {
+            c.commandHandler.onElementCommandFired(c, el, el.mouseEnter, CommandEventTrigger.MouseEnter, undefined);
         }
     }
 
-    public elementMouseLeft(c: IController, el: ElementBase) {
-        if (c.commandHandler && el.mouseLeave) {
-            c.commandHandler.onElementCommandFired(c, el, el.mouseLeave, CommandEventTrigger.MouseLeave, null);
+    public elementMouseLeft(c: IController, el?: ElementBase) {
+        if (c.commandHandler && el && el.mouseLeave) {
+            c.commandHandler.onElementCommandFired(c, el, el.mouseLeave, CommandEventTrigger.MouseLeave, undefined);
         }
     }
 
-    public elementMouseDown(c: IController, el: ElementBase) {
-        if (c.commandHandler && el.mouseDown) {
-            c.commandHandler.onElementCommandFired(c, el, el.mouseDown, CommandEventTrigger.MouseDown, null);
+    public elementMouseDown(c: IController, el?: ElementBase) {
+        if (c.commandHandler && el && el.mouseDown) {
+            c.commandHandler.onElementCommandFired(c, el, el.mouseDown, CommandEventTrigger.MouseDown, undefined);
         }
     }
 
-    public elementMouseUp(c: IController, el: ElementBase) {
-        if (c.commandHandler && el.mouseUp) {
-            c.commandHandler.onElementCommandFired(c, el, el.mouseUp, CommandEventTrigger.MouseUp, null);
+    public elementMouseUp(c: IController, el?: ElementBase) {
+        if (c.commandHandler && el && el.mouseUp) {
+            c.commandHandler.onElementCommandFired(c, el, el.mouseUp, CommandEventTrigger.MouseUp, undefined);
         }
     }
 
-    public elementClicked(c: IController, el: ElementBase) {
-        if (c.commandHandler && el.click) {
-            c.commandHandler.onElementCommandFired(c, el, el.click, CommandEventTrigger.Click, null);
+    public elementClicked(c: IController, el?: ElementBase) {
+        if (c.commandHandler && el && el.click) {
+            c.commandHandler.onElementCommandFired(c, el, el.click, CommandEventTrigger.Click, undefined);
         }
     }
 
@@ -178,8 +179,8 @@ export class ElementCommandHandler implements ICommandHandler<ElementBase> {
                         innerModel = res.model;
                     }
                 }
-                else {
-                    innerModel = modelElement.sourceModel;
+                else if (modelElement.sourceModel) {
+                    innerModel = modelElement.sourceModel as unknown as Model;
                 }
                 if (innerModel) {
                     this.callElementTimers(innerModel, controller, params);
@@ -196,10 +197,10 @@ export class ElementCommandHandler implements ICommandHandler<ElementBase> {
         }
     }
 
-    public timer(controller: IController, params: TimerParameters) {
+    public timer(controller: IController, params?: TimerParameters) {
         const m = controller.model;
-        if (m) {
-            this.callElementTimers(m, controller, params);
+        if (m && params) {
+            this.callElementTimers(m as Model, controller, params);
         }
     }
 
@@ -208,7 +209,7 @@ export class ElementCommandHandler implements ICommandHandler<ElementBase> {
         el: ElementBase,
         command: string,
         trigger: string,
-        parameters: any
+        parameters?: CommandParameters
     ) {
         const ec = ElementCommand.parse(command);
         const reg = this.getRegistration(ec.name);

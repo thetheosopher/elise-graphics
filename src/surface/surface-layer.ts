@@ -1,5 +1,4 @@
-import { Surface } from './surface';
-import { SurfaceElement } from './surface-element';
+import { SurfaceElement, type SurfaceLike } from './surface-element';
 
 /**
  * Base class for layered surface elements
@@ -58,7 +57,7 @@ export abstract class SurfaceLayer extends SurfaceElement {
      * Adds layer to parent surface
      * @param surface - Parent surface
      */
-    public abstract addToSurface(surface: Surface): void;
+    public abstract addToSurface(surface: SurfaceLike): void;
 
     /**
      * Loads required requires and calls completion callback

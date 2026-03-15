@@ -1,4 +1,5 @@
 import { ErrorMessages } from '../core/error-messages';
+import type { SerializedData } from '../core/serialization';
 import { Size } from '../core/size';
 import { Utility } from '../core/utility';
 import { Resource } from './resource';
@@ -79,10 +80,10 @@ export class BitmapResource extends Resource {
      * Copies properties of another bitmap resource
      * @param o - Source bitmap resource
      */
-    public parse(o: any): void {
+    public parse(o: SerializedData): void {
         super.parse(o);
         if (o.size) {
-            this.size = Size.parse(o.size);
+            this.size = Size.parse(o.size as string);
         }
     }
 
@@ -90,7 +91,7 @@ export class BitmapResource extends Resource {
      * Serializes resource to a new instance
      * @returns Serialized resource instance
      */
-    public serialize(): any {
+    public serialize(): SerializedData {
         const o = super.serialize();
         if (this.size) {
             o.size = this.size.toString();

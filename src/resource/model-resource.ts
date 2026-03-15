@@ -1,4 +1,5 @@
 import { ErrorMessages } from '../core/error-messages';
+import type { SerializedData } from '../core/serialization';
 import { Model } from '../core/model';
 import { Size } from '../core/size';
 import { Utility } from '../core/utility';
@@ -77,13 +78,13 @@ export class ModelResource extends Resource {
      * Copies properties of another model resource
      * @param o - Source model resource
      */
-    public parse(o: any): void {
+    public parse(o: SerializedData): void {
         super.parse(o);
         if (o.model) {
             this.model = Model.parse(JSON.stringify(o.model));
         }
         if (o.size) {
-            this.size = Size.parse(o.size);
+            this.size = Size.parse(o.size as string);
         }
     }
 
@@ -91,7 +92,7 @@ export class ModelResource extends Resource {
      * Serializes resource to a new instance
      * @returns Serialized resource instance
      */
-    public serialize(): any {
+    public serialize(): SerializedData {
         const o = super.serialize();
         if (this.model && !this.uri) {
             o.model = JSON.parse(JSON.stringify(this.model.serialize()));

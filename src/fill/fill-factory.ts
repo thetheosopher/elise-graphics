@@ -1,17 +1,28 @@
 import { Color } from '../core/color';
 import { ErrorMessages } from '../core/error-messages';
-import { Model } from '../core/model';
+import type { IModel } from '../core/model-interface';
 import { Point } from '../core/point';
-import { ElementBase } from '../elements/element-base';
+import { ElementBase, ElementModel } from '../elements/element-base';
 import { BitmapResource } from '../resource/bitmap-resource';
-import { ModelResource } from '../resource/model-resource';
 import { LinearGradientFill } from './linear-gradient-fill';
 import { RadialGradientFill } from './radial-gradient-fill';
+
+interface ModelFillResource {
+    model?: {
+        getSize(): { width: number; height: number } | undefined;
+        renderToContext(c: CanvasRenderingContext2D): void;
+    };
+}
 
 /**
  * Element fill creation methods
  */
 export class FillFactory {
+    private static isModelElement(el: ElementBase): el is ElementBase & IModel {
+        const candidate = el as Partial<IModel>;
+        return candidate !== undefined && candidate.resourceManager !== undefined && Array.isArray(candidate.elements);
+    }
+
     /**
      * Returns fill for given element with inheritance
      * @param el - Element
@@ -35,8 +46,8 @@ export class FillFactory {
      * @returns True if fill was applied for element
      */
     public static setElementFill(c: CanvasRenderingContext2D, el: ElementBase): boolean {
-        let model = el.model;
-        if (!model && el instanceof Model) {
+        let model: ElementModel | undefined = el.model;
+        if (!model && FillFactory.isModelElement(el)) {
             model = el;
         }
         if (!model) {
@@ -126,7 +137,7 @@ export class FillFactory {
                     c.globalAlpha = opacity;
                     key = parts[1];
                 }
-                const res = model.resourceManager.get(key) as ModelResource;
+                const res = model.resourceManager.get(key) as ModelFillResource;
                 if (!res) {
                     c.fillStyle = Color.Magenta.toStyleString();
                     throw new Error(ErrorMessages.ModelResourceUndefined + ': ' + key);

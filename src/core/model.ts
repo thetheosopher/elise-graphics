@@ -11,6 +11,7 @@ import { ErrorMessages } from './error-messages';
 import { ModelEvent } from './model-event';
 import { Point } from './point';
 import { ScalingInfo } from './scaling-info';
+import type { SerializedData } from './serialization';
 import { Size } from './size';
 import { Utility } from './utility';
 
@@ -27,7 +28,7 @@ export class Model extends ElementBase {
         const model = new Model();
         model.parse(o);
         if (o.resources) {
-            o.resources.forEach((value: Resource) => {
+            (o.resources as SerializedData[]).forEach((value: SerializedData) => {
                 const res = ResourceFactory.create(value.type);
                 if (res) {
                     res.parse(value);
@@ -36,7 +37,7 @@ export class Model extends ElementBase {
             });
         }
         if (o.elements) {
-            o.elements.forEach((value: Resource) => {
+            (o.elements as SerializedData[]).forEach((value: SerializedData) => {
                 const element = ElementFactory.create(value.type);
                 if (element) {
                     element.parse(value);
@@ -308,7 +309,7 @@ export class Model extends ElementBase {
      * @param localeId - Desired locale ID (e.g. en-US) or null for any locale
      */
     public getResourceKeyReferenceCounts(localeId: string) {
-        const keys: { [index: string]: any } = {};
+        const keys: { [index: string]: number } = {};
 
         const rm = this.resourceManager;
         const model = this;
@@ -733,19 +734,21 @@ export class Model extends ElementBase {
      * Serializes persistent properties to new object instance
      * @returns Serialized element
      */
-    public serialize(): any {
+    public serialize(): SerializedData {
         const o = super.serialize();
         if (this.resources && this.resources.length > 0) {
-            o.resources = [];
+            const resources: SerializedData[] = [];
             this.resources.forEach(r => {
-                o.resources.push(r.serialize());
+                resources.push(r.serialize());
             });
+            o.resources = resources;
         }
         if (this.elements && this.elements.length > 0) {
-            o.elements = [];
+            const elements: SerializedData[] = [];
             this.elements.forEach(e => {
-                o.elements.push(e.serialize());
+                elements.push(e.serialize());
             });
+            o.elements = elements;
         }
         return o;
     }

@@ -1,8 +1,14 @@
 import { ErrorMessages } from '../core/error-messages';
+import { Model } from '../core/model';
 import { Region } from '../core/region';
 import { ElementBase } from '../elements/element-base';
 import { FillFactory } from '../fill/fill-factory';
-import { ViewController } from './view-controller';
+
+interface ViewControllerLike {
+    offsetX: number;
+    offsetY: number;
+    model?: Model;
+}
 
 /**
  * Renders model content for viewing
@@ -11,12 +17,12 @@ export class ViewRenderer {
     /**
      * View controller
      */
-    public controller: ViewController;
+    public controller: ViewControllerLike;
 
     /**
      * @param controller - Associated view controller
      */
-    constructor(controller: ViewController) {
+    constructor(controller: ViewControllerLike) {
         this.controller = controller;
     }
 

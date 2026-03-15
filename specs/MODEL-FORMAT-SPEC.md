@@ -10,6 +10,11 @@ The Elise model format is a JSON-based document format that describes a 2D retai
 
 All rendering is performed onto an HTML5 Canvas 2D context using a painter's algorithm (back-to-front element ordering).
 
+## Related Specifications
+
+- [API Specification](API-SPEC.md)
+- [Modernization Recommendations](MODERNIZATION-RECOMMENDATIONS.md)
+
 ---
 
 ## Top-Level Model Object
@@ -46,7 +51,7 @@ All element types, including the model itself, share these base properties:
 | `type` | `string` | — | Yes | Element type discriminator |
 | `id` | `string` | — | No | Optional unique identifier |
 | `size` | `string` | — | No | Dimensions as `"widthxheight"` (e.g., `"800x600"`) |
-| `location` | `string` | — | No | Position as `"x,y"` (e.g., `"10.5,20.3"`) |
+| `location` | `string` | — | No | Position as `"x,y"` (e.g., `"10,20"`) |
 | `locked` | `boolean` | `false` | No | Prevents moving/resizing in design mode |
 | `aspectLocked` | `boolean` | `false` | No | Maintains aspect ratio during resize |
 | `fill` | `string \| FillObject` | — | No | Fill specification (see [Fill Formats](#fill-formats)) |
@@ -63,6 +68,8 @@ All element types, including the model itself, share these base properties:
 | `timer` | `string` | — | No | Command tag for timer events |
 
 > **Note:** Properties with default/falsy values are omitted from serialized output to minimize file size. The presence of any mouse/click/timer handler automatically makes the element interactive (hit-testable).
+>
+> **Point precision note:** Point-like values serialize through `Point.toString()`, which rounds to integer coordinates in JSON output.
 
 ---
 
@@ -182,7 +189,7 @@ A closed filled/stroked shape defined by an array of vertices.
 ```json
 {
   "type": "polygon",
-  "points": "(10,10) (100,10) (100,100) (10,100)",
+  "points": "10,10 100,10 100,100 10,100",
   "fill": "Yellow",
   "stroke": "Black",
   "winding": 2
@@ -194,7 +201,7 @@ A closed filled/stroked shape defined by an array of vertices.
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `points` | `string` | — | Space-separated point list as `"(x,y) (x,y) ..."` |
+| `points` | `string` | — | Space-separated point list as `"x,y x,y ..."` |
 | `winding` | `number` | `1` (NonZero) | Fill winding rule: `1` = NonZero, `2` = EvenOdd |
 
 > **Note:** The path is automatically closed during rendering.
@@ -208,7 +215,7 @@ An open line strip connecting multiple points, optionally smoothed.
 ```json
 {
   "type": "polyline",
-  "points": "(10,10) (50,80) (100,20) (150,90)",
+  "points": "10,10 50,80 100,20 150,90",
   "stroke": "Blue,3",
   "smoothPoints": true
 }
@@ -220,7 +227,7 @@ An open line strip connecting multiple points, optionally smoothed.
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `points` | `string` | — | Space-separated point list as `"(x,y) (x,y) ..."` |
+| `points` | `string` | — | Space-separated point list as `"x,y x,y ..."` |
 | `smoothPoints` | `boolean` | `false` | When `true`, uses quadratic curve interpolation between points |
 
 ---
@@ -398,7 +405,7 @@ Resources are shared assets referenced by elements via string keys. Resources su
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
 | `type` | `string` | Yes | Always `"bitmap"` |
-| `key` | `string` | Yes | Unique resource identifier |
+| `key` | `string` | No* | Unique resource identifier |
 | `uri` | `string` | Yes | Image source URI |
 | `locale` | `string` | No | Locale identifier (e.g., `"en-US"`) |
 | `size` | `string` | No | Image dimensions as `"widthxheight"` |
@@ -441,7 +448,7 @@ Or with an embedded model:
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
 | `type` | `string` | Yes | Always `"model"` |
-| `key` | `string` | Yes | Unique resource identifier |
+| `key` | `string` | No* | Unique resource identifier |
 | `uri` | `string` | No | Model JSON source path |
 | `model` | `object` | No | Inline embedded model JSON (mutually exclusive with `uri`) |
 | `locale` | `string` | No | Locale identifier |
@@ -472,7 +479,9 @@ Or URI-based:
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
 | `type` | `string` | Yes | Always `"text"` |
-| `key` | `string` | Yes | Unique resource identifier |
+| `key` | `string` | No* | Unique resource identifier |
+
+> **Resource key note:** `key` is strongly recommended and required for resource lookup by elements, but parser logic does not hard-fail when missing.
 | `text` | `string` | No | Inline text content (mutually exclusive with `uri`) |
 | `uri` | `string` | No | Text file source path |
 | `locale` | `string` | No | Locale identifier |
@@ -514,10 +523,10 @@ Reference a bitmap resource as a repeating tile fill:
 
 ```json
 "fill": "image(my-bitmap-key)"
-"fill": "image(my-bitmap-key;0.5)"
+"fill": "image(0.5;my-bitmap-key)"
 ```
 
-Format: `image(resourceKey)` or `image(resourceKey;opacity)`
+Format: `image(resourceKey)` or `image(opacity;resourceKey)`
 
 ### Model Fill (Tiled Pattern)
 
@@ -525,10 +534,10 @@ Reference a model resource as a repeating tile fill:
 
 ```json
 "fill": "model(my-model-key)"
-"fill": "model(my-model-key;0.8)"
+"fill": "model(0.8;my-model-key)"
 ```
 
-Format: `model(resourceKey)` or `model(resourceKey;opacity)`
+Format: `model(resourceKey)` or `model(opacity;resourceKey)`
 
 ### Linear Gradient Fill
 

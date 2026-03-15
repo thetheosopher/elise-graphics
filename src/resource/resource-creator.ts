@@ -8,5 +8,5 @@ export interface IResourceCreator {
      * Create a resource
      * @returns New resource
      */
-    create(...p: any[]): Resource;
+    create(...p: unknown[]): Resource;
 }

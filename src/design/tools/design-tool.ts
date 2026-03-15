@@ -2,14 +2,14 @@ import { Model } from '../../core/model';
 import { MouseLocationArgs } from '../../core/mouse-location-args';
 import { LinearGradientFill } from '../../fill/linear-gradient-fill';
 import { RadialGradientFill } from '../../fill/radial-gradient-fill';
-import { DesignController } from '../design-controller';
+import type { IDesignController } from '../design-controller-interface';
 
 /**
  * Base class for design surface tools
  */
 export abstract class DesignTool {
     public model?: Model;
-    public controller?: DesignController;
+    public controller?: IDesignController;
     public opacity: number;
     public stroke?: string;
     public fill?: string | LinearGradientFill | RadialGradientFill;

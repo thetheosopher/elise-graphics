@@ -2,8 +2,7 @@ import { CommonEvent } from '../core/common-event';
 import { Model } from '../core/model';
 import { RectangleElement } from '../elements/rectangle-element';
 import { TextElement } from '../elements/text-element';
-import { Surface } from './surface';
-import { SurfaceElement } from './surface-element';
+import { SurfaceElement, type SurfaceLike } from './surface-element';
 
 /**
  * Renders styled text with an optional background fill and border stroke
@@ -127,7 +126,7 @@ export class SurfaceTextElement extends SurfaceElement {
      * @param surface - Target surface for text element
      * @returns This text element
      */
-    public addTo(surface: Surface) {
+    public addTo(surface: SurfaceLike) {
         surface.elements.push(this);
         return this;
     }

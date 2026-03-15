@@ -1,4 +1,5 @@
 import { ElementCommandHandler } from '../command/element-command-handler';
+import type { CommandParameters } from '../command/command-parameters';
 import { IController } from '../controller/controller';
 import { CommonEvent } from '../core/common-event';
 import { ErrorMessages } from '../core/error-messages';
@@ -10,7 +11,7 @@ import { BitmapResource } from '../resource/bitmap-resource';
 import { ResourceManager } from '../resource/resource-manager';
 import { ResourceState } from '../resource/resource-state';
 import { TransitionRenderer } from '../transitions/transitions';
-import { Surface } from './surface';
+import type { SurfaceLike } from './surface-element';
 import { SurfaceAnimationFrame } from './surface-animation-frame';
 import { SurfaceAnimationViewController } from './surface-animation-view-controller';
 import { SurfaceLayer } from './surface-layer';
@@ -213,7 +214,7 @@ export class SurfaceAnimationLayer extends SurfaceLayer {
      * Registers a resource listener
      * @param listener - Animation resource listener (rm: Elise.ResourceManager, state: Elise.ResourceState)
      */
-    public setResourceListener(listener: (rm: ResourceManager, state: ResourceState | undefined) => void) {
+    public setResourceListener(listener: (rm: unknown, state?: ResourceState) => void) {
         if (this.model) {
             this.model.resourceManager.listenerEvent.add(listener);
         }
@@ -222,7 +223,7 @@ export class SurfaceAnimationLayer extends SurfaceLayer {
     /**
      * Adds animation to parent surface
      */
-    public addToSurface(surface: Surface) {
+    public addToSurface(surface: SurfaceLike) {
         this.surface = surface;
 
         // If no frames, throw error
@@ -309,7 +310,7 @@ export class SurfaceAnimationLayer extends SurfaceLayer {
         canvas.style.position = 'absolute';
         canvas.style.left = this.translateX + this.left * surface.scale + 'px';
         canvas.style.top = this.translateY + this.top * surface.scale + 'px';
-        canvas.style.opacity = (this.surface.opacity * this.opacity).toString();
+        canvas.style.opacity = (surface.opacity * this.opacity).toString();
         this.element = canvas;
         this.sprite = sprite;
     }
@@ -346,7 +347,7 @@ export class SurfaceAnimationLayer extends SurfaceLayer {
         );
         elementCommandHandler.addHandler(
             SurfaceAnimationLayer.ANIMATION_CLICK,
-            (controller: IController, element: ElementBase, command: string, trigger: string, parameters: any) => {
+            (controller: IController, element: ElementBase, command: string, trigger: string, parameters?: CommandParameters) => {
                 const animationController = controller as SurfaceAnimationViewController;
                 const animation = animationController.animation;
                 if (animation) {
@@ -356,7 +357,7 @@ export class SurfaceAnimationLayer extends SurfaceLayer {
         );
         elementCommandHandler.addHandler(
             SurfaceAnimationLayer.ANIMATION_ADVANCE,
-            (controller: IController, element: ElementBase, command: string, trigger: string, parameters: any) => {
+            (controller: IController, element: ElementBase, command: string, trigger: string, parameters?: CommandParameters) => {
                 const animationController = controller as SurfaceAnimationViewController;
                 const animation = animationController.animation;
                 if (animation && animation.sprite) {
@@ -512,7 +513,7 @@ export class SurfaceAnimationLayer extends SurfaceLayer {
         this.frameAdvanced.trigger(this);
     }
 
-    public addTo(surface: Surface) {
+    public addTo(surface: SurfaceLike) {
         surface.layers.push(this);
         return this;
     }

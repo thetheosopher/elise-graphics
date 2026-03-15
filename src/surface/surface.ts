@@ -1,4 +1,5 @@
 import { ElementCommandHandler } from '../command/element-command-handler';
+import type { CommandParameters } from '../command/command-parameters';
 import { IController } from '../controller/controller';
 import { CommonEvent } from '../core/common-event';
 import { ErrorMessages } from '../core/error-messages';
@@ -242,7 +243,7 @@ export class Surface {
         // Bind command handler event handlers to element event trigger functions
         ech.addHandler(
             SurfaceButtonElement.BUTTON_CLICK,
-            (controller: IController, element: ElementBase, command: string, trigger: string, parameters: any) => {
+            (controller: IController, element: ElementBase, command: string, trigger: string, parameters?: CommandParameters) => {
                 const c = controller as SurfaceViewController;
                 if (!c.surface || !element || !element.id) {
                     return;
@@ -258,7 +259,7 @@ export class Surface {
 
         ech.addHandler(
             SurfaceTextElement.TEXT_CLICK,
-            (controller: IController, element: ElementBase, command: string, trigger: string, parameters: any) => {
+            (controller: IController, element: ElementBase, command: string, trigger: string, parameters?: CommandParameters) => {
                 const c = controller as SurfaceViewController;
                 if (!c.surface || !element || !element.id) {
                     return;
@@ -566,7 +567,7 @@ export class Surface {
      * Registers a resource listener
      * @param {function} listener - Resource listener function (rm: ResourceManager, state: ResourceState)
      */
-    public addResourceListener(listener: (rm: ResourceManager, state: ResourceState | undefined) => void) {
+    public addResourceListener(listener: (rm: unknown, state?: ResourceState) => void) {
         this.resourceListenerEvent.add(listener);
         if (this.model) {
             this.model.resourceManager.listenerEvent.add(listener);

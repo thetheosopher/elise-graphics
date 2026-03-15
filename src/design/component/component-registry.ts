@@ -91,7 +91,7 @@ export class ComponentRegistry {
         top: number,
         width: number,
         height: number,
-        props: any
+        props: unknown
     ): ComponentElement {
         const component = ComponentRegistry.getComponent(type);
         if (!component) {

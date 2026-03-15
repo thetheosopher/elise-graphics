@@ -1,8 +1,7 @@
 import { ErrorMessages } from '../../core/error-messages';
 import { TransitionRenderer } from '../../transitions/transitions';
-import { Surface } from '../surface';
-import { SurfacePane } from '../surface-pane';
 import { PaneTransition } from './pane-transition';
+import type { PaneContainerLike, PaneSurfaceLike } from './pane-transition';
 
 /**
  * Fade pane transition
@@ -10,10 +9,10 @@ import { PaneTransition } from './pane-transition';
 export class PaneTransitionFade extends PaneTransition {
     public duration: number;
     public startTime?: number;
-    public source?: Surface;
+    public source?: PaneSurfaceLike;
     public timer?: NodeJS.Timeout;
 
-    constructor(pane: SurfacePane, target: Surface, callback: (pane: SurfacePane) => void, duration: number) {
+    constructor(pane: PaneContainerLike, target: PaneSurfaceLike, callback: (pane: PaneContainerLike) => void, duration: number) {
         super(pane, target, callback);
         this.tick = this.tick.bind(this);
         this.duration = duration;

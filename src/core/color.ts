@@ -220,7 +220,7 @@ export class Color {
         for (const namedColor of Color.NamedColors) {
             if (namedColor.name.toLowerCase() === evalString) {
                 if (alpha === 255) {
-                    return namedColor.color;
+                    return new Color(namedColor.color.a, namedColor.color.r, namedColor.color.g, namedColor.color.b);
                 }
                 else {
                     return new Color(alpha * 255, namedColor.color.r, namedColor.color.g, namedColor.color.b);
@@ -332,7 +332,7 @@ export class Color {
      * @param that - Color of interest
      * @returns True if color of interest equals this
      */
-    public equals(that: Color): boolean {
+    public equals(that: { a: number; r: number; g: number; b: number }): boolean {
         return that !== null && this.a === that.a && this.r === that.r && this.g === that.g && this.b === that.b;
     }
 
@@ -341,7 +341,7 @@ export class Color {
      * @param that - Color of interest
      * @returns True if color of interest equals this without regard to alpha
      */
-    public equalsHue(that: Color): boolean {
+    public equalsHue(that: { r: number; g: number; b: number }): boolean {
         return this.r === that.r && this.g === that.g && this.b === that.b;
     }
 

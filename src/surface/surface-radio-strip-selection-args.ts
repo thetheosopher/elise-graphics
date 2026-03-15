@@ -1,5 +1,12 @@
-import { SurfaceRadioStrip } from './surface-radio-strip';
 import { SurfaceRadioStripItem } from './surface-radio-strip-item';
+
+interface SurfaceRadioStrip {
+    orientation?: number;
+    downOffset?: number;
+    downPosition?: number;
+    maxOffset?: number;
+    scrollTo(offset: number): void;
+}
 
 /**
  * Contains arguments for radio strip selection event

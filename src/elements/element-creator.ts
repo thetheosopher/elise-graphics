@@ -7,5 +7,5 @@ export interface IElementCreator {
     /**
      * Create element given supplied properties
      */
-    create(...p: any[]): ElementBase;
+    create(...p: unknown[]): ElementBase;
 }

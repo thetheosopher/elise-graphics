@@ -1,5 +1,5 @@
 import { ViewController } from '../view/view-controller';
-import { Surface } from './surface';
+import type { SurfaceLike } from './surface-element';
 
 /**
  * Extends ViewController to add surface property
@@ -8,7 +8,7 @@ export class SurfaceViewController extends ViewController {
     /**
      * Controlled surface
      */
-    public surface?: Surface;
+    public surface?: SurfaceLike;
 
     constructor() {
         super();

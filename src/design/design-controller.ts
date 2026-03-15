@@ -18,6 +18,7 @@ import { TimerParameters } from '../core/timer-parameters';
 import { Utility } from '../core/utility';
 import { ViewDragArgs } from '../core/view-drag-args';
 import { ElementBase } from '../elements/element-base';
+import type { ElementModel } from '../elements/element-base';
 import { ElementCreationProps } from '../elements/element-creation-props';
 import { ElementDragArgs } from '../elements/element-drag-args';
 import { ElementLocationArgs } from '../elements/element-location-args';
@@ -53,7 +54,7 @@ export class DesignController implements IController {
      * @param s - Size
      * @param model - Model
      */
-    public static isInBounds(p: Point, s: Size, model: Model): boolean {
+    public static isInBounds(p: Point, s: Size, model: Model | ElementModel): boolean {
         if (p.x < 0 || p.y < 0) {
             return false;
         }

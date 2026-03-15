@@ -1,7 +1,9 @@
+import type { ISimpleEvent } from './typed-event';
+
 /**
  * Generic multicast event dispatcher
  */
-export class CommonEvent<T> {
+export class CommonEvent<T> implements ISimpleEvent<T> {
     private handlers: Array<(data?: T) => void> = [];
 
     constructor() {
@@ -16,7 +18,7 @@ export class CommonEvent<T> {
         this.handlers.push(handler);
     }
 
-    public remove(handler: any): void {
+    public remove(handler: (data?: T) => void): void {
         const index = this.handlers.indexOf(handler);
         if (index > -1) {
             this.handlers.splice(index, 1);

@@ -7,9 +7,15 @@ import { UploadProgressProps } from '../../elements/upload-progress-props';
 import { LinearGradientFill } from '../../fill/linear-gradient-fill';
 import { RadialGradientFill } from '../../fill/radial-gradient-fill';
 import { ModelResource } from '../../resource/model-resource';
-import { Component } from './component';
 import { ComponentElement } from './component-element';
 import { ComponentEvent } from './component-event';
+
+interface ComponentLike {
+    fill?: string | LinearGradientFill | RadialGradientFill;
+    stroke?: string;
+    selectedFill?: string | LinearGradientFill | RadialGradientFill;
+    selectedStroke?: string;
+}
 
 /**
  * Describes element component creation properties
@@ -167,7 +173,7 @@ export class ComponentProps {
      * @param c - Component
      * @param props - Element resizing properties
      */
-    public defaultResize(c: Component, props: ElementSizeProps) {
+    public defaultResize(c: ComponentLike, props: ElementSizeProps) {
         if (!props.element || !props.element.model || !props.element.id) {
             return;
         }
@@ -177,7 +183,7 @@ export class ComponentProps {
         }
     }
 
-    public defaultSelect(c: Component, el: ComponentElement) {
+    public defaultSelect(c: ComponentLike, el: ComponentElement) {
         if (!el.model || !el.id) {
             return;
         }
@@ -194,7 +200,7 @@ export class ComponentProps {
         }
     }
 
-    public defaultDeselect(c: Component, el: ComponentElement) {
+    public defaultDeselect(c: ComponentLike, el: ComponentElement) {
         if (!el.model || !el.id) {
             return;
         }

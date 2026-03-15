@@ -1,10 +1,14 @@
 import { ErrorMessages } from '../core/error-messages';
-import { Model } from '../core/model';
 import { Resource } from './resource';
 import { ResourceLoaderState } from './resource-loader-state';
 import { ResourceManagerEvent } from './resource-manager-event';
 import { ResourceState } from './resource-state';
 import { UrlProxy } from './url-proxy';
+
+interface ResourceOwner {
+    basePath: string;
+    resources: Resource[];
+}
 
 /**
  * Manages model resource loading and resolution
@@ -63,7 +67,7 @@ export class ResourceManager {
     /**
      * Reference to model containing resources to manage
      */
-    public model?: Model;
+    public model?: ResourceOwner;
 
     /*
      * Proxy for getting authorized Urls from saved Url
@@ -73,7 +77,7 @@ export class ResourceManager {
     /**
      * @param model - Model with resources to manage
      */
-    constructor(model: Model) {
+    constructor(model: ResourceOwner) {
         this.add = this.add.bind(this);
         this.merge = this.merge.bind(this);
         this.findBestResource = this.findBestResource.bind(this);

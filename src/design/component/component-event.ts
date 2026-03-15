@@ -1,10 +1,11 @@
-import { Component } from './component';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ComponentEventHandler<T> = (source: any, data: T) => void;
 
 /**
  * Component related event
  */
 export class ComponentEvent<T> {
-    private listeners: Array<(c: Component, data: T) => void> = [];
+    private listeners: Array<ComponentEventHandler<T>> = [];
 
     constructor() {
         this.add = this.add.bind(this);
@@ -19,7 +20,7 @@ export class ComponentEvent<T> {
      * Adds a component event listener
      * @param listener - Listener function (c: Component, data: T)
      */
-    public add(listener: (c: Component, data: T) => void) {
+    public add(listener: ComponentEventHandler<T>) {
         this.listeners.push(listener);
     }
 
@@ -27,7 +28,7 @@ export class ComponentEvent<T> {
      * Removes a component event listener
      * @param listener - Listener function to remove (c: Component, data: T)
      */
-    public remove(listener: any): void {
+    public remove(listener: ComponentEventHandler<T>): void {
         const index = this.listeners.indexOf(listener);
         if (index > -1) {
             this.listeners.splice(index, 1);
@@ -46,8 +47,8 @@ export class ComponentEvent<T> {
      * @param c - Component firing event
      * @param data - Event data
      */
-    public trigger(c: Component, data: T) {
-        this.listeners.slice(0).forEach(h => h(c, data));
+    public trigger(c: unknown, data?: T) {
+        this.listeners.slice(0).forEach(h => h(c, data as T));
     }
 
     /**

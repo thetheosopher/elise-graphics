@@ -1,7 +1,28 @@
 import { Model } from '../core/model';
 import { Utility } from '../core/utility';
 import { ElementBase } from '../elements/element-base';
-import { Surface } from './surface';
+
+export interface SurfaceLike {
+    scale: number;
+    opacity: number;
+    elements: SurfaceElement[];
+    layers: SurfaceElement[];
+    controller?: {
+        draw(): void;
+    };
+    div?: HTMLDivElement;
+    normalImageSource?: string;
+    selectedImageSource?: string;
+    highlightedImageSource?: string;
+    disabledImageSource?: string;
+    elementWithId(id: string): unknown;
+    onErrorInternal(message: string): void;
+    resourceListenerEvent: {
+        hasListeners(): boolean;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        listeners: Array<(source: any, data?: any) => void>;
+    };
+}
 
 /**
  * Base class for surface elements
@@ -35,7 +56,7 @@ export class SurfaceElement {
     /**
      * Parent surface
      */
-    public surface?: Surface;
+    public surface?: SurfaceLike;
 
     /**
      * @param id - Item id

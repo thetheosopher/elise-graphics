@@ -1,4 +1,5 @@
 import { ErrorMessages } from '../core/error-messages';
+import type { SerializedData } from '../core/serialization';
 import { Utility } from '../core/utility';
 import { Resource } from './resource';
 import { ResourceFactory } from './resource-factory';
@@ -79,10 +80,10 @@ export class TextResource extends Resource {
      * Copies properties of another text resource
      * @param o - Source text resource
      */
-    public parse(o: any): void {
+    public parse(o: SerializedData): void {
         super.parse(o);
         if (o.text) {
-            this.text = o.text;
+            this.text = o.text as string;
         }
     }
 
@@ -90,7 +91,7 @@ export class TextResource extends Resource {
      * Serializes resource to a new instance
      * @returns Serialized resource instance
      */
-    public serialize(): any {
+    public serialize(): SerializedData {
         const o = super.serialize();
         if (this.text) {
             o.text = this.text;

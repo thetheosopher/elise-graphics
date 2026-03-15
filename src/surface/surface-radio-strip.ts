@@ -1,4 +1,5 @@
 import { ElementCommandHandler } from '../command/element-command-handler';
+import type { CommandParameters } from '../command/command-parameters';
 import { IController } from '../controller/controller';
 import { CommonEvent } from '../core/common-event';
 import { ErrorMessages } from '../core/error-messages';
@@ -886,9 +887,9 @@ export class SurfaceRadioStrip extends SurfaceLayer {
      * @param controller - Strip view controller
      * @param args - Strip mouse down point info
      */
-    public stripDown(controller: IController, args: PointEventParameters) {
+    public stripDown(controller: IController, args?: PointEventParameters) {
         const c = controller as SurfaceRadioStripViewController;
-        if (!c.strip || !args.point) {
+        if (!c.strip || !args || !args.point) {
             return;
         }
         if (c.strip.orientation === RadioStripOrientation.Horizontal) {
@@ -906,9 +907,9 @@ export class SurfaceRadioStrip extends SurfaceLayer {
      * @param controller - Strip view controller
      * @param args - Strip mouse move point info
      */
-    public stripMoved(controller: IController, args: PointEventParameters) {
+    public stripMoved(controller: IController, args?: PointEventParameters) {
         const c = controller as SurfaceRadioStripViewController;
-        if (!c.strip || !args.point || !c.strip.downPosition || !c.strip.downOffset || !c.strip.maxOffset) {
+        if (!c.strip || !args || !args.point || !c.strip.downPosition || !c.strip.downOffset || !c.strip.maxOffset) {
             return;
         }
         if (c.isMouseDown) {
@@ -1039,7 +1040,7 @@ export class SurfaceRadioStrip extends SurfaceLayer {
         commandHandler.attachController(self.controller);
         commandHandler.addHandler(
             SurfaceRadioStrip.RADIO_BUTTON_CLICK,
-            (controller: IController, element: ElementBase, command: string, trigger: string, parameters: any) => {
+            (controller: IController, element: ElementBase, command: string, trigger: string, parameters?: CommandParameters) => {
                 const radioStripController = controller as SurfaceRadioStripViewController;
                 const radioStrip = radioStripController.strip;
                 const radioStripSpriteElement = element as SurfaceRadioItemSpriteElement;
@@ -1050,7 +1051,7 @@ export class SurfaceRadioStrip extends SurfaceLayer {
         );
         commandHandler.addHandler(
             SurfaceRadioStrip.RADIO_BUTTON_DOWN,
-            (controller: IController, element: ElementBase, command: string, trigger: string, parameters: any) => {
+            (controller: IController, element: ElementBase, command: string, trigger: string, parameters?: CommandParameters) => {
                 const radioStripController = controller as SurfaceRadioStripViewController;
                 const radioStrip = radioStripController.strip;
                 const radioStripSpriteElement = element as SurfaceRadioItemSpriteElement;
@@ -1061,7 +1062,7 @@ export class SurfaceRadioStrip extends SurfaceLayer {
         );
         commandHandler.addHandler(
             SurfaceRadioStrip.RADIO_BUTTON_UP,
-            (controller: IController, element: ElementBase, command: string, trigger: string, parameters: any) => {
+            (controller: IController, element: ElementBase, command: string, trigger: string, parameters?: CommandParameters) => {
                 const radioStripController = controller as SurfaceRadioStripViewController;
                 const radioStrip = radioStripController.strip;
                 const radioStripSpriteElement = element as SurfaceRadioItemSpriteElement;

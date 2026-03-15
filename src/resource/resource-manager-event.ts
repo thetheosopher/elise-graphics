@@ -1,10 +1,10 @@
-import { ResourceManager } from './resource-manager';
+import type { ISourceEvent, OptionalDataEventHandler } from '../core/typed-event';
 
 /**
  * Resource manager event
  */
-export class ResourceManagerEvent<T> {
-    public listeners: Array<(resourceManager: ResourceManager, data?: T) => void> = [];
+export class ResourceManagerEvent<T> implements ISourceEvent<unknown, T> {
+    public listeners: Array<OptionalDataEventHandler<unknown, T>> = [];
 
     constructor() {
         this.add = this.add.bind(this);
@@ -18,7 +18,7 @@ export class ResourceManagerEvent<T> {
      * Add a new event listener
      * @param listener - Resource manager event listener (resourceManager: ResourceManager, data?: T)
      */
-    public add(listener: (resourceManager: ResourceManager, data?: T) => void) {
+    public add(listener: OptionalDataEventHandler<unknown, T>) {
         this.listeners.push(listener);
     }
 
@@ -26,7 +26,7 @@ export class ResourceManagerEvent<T> {
      * Removes an event listener
      * @param listener - Resource manager event listener (resourceManager: ResourceManager, data?: T)
      */
-    public remove(listener: (resourceManager: ResourceManager, data?: T) => void) {
+    public remove(listener: OptionalDataEventHandler<unknown, T>) {
         const index = this.listeners.indexOf(listener);
         if (index !== -1) {
             this.listeners.splice(index, 1);
@@ -45,7 +45,7 @@ export class ResourceManagerEvent<T> {
      * @param rm - Resource manager
      * @param data - Event data
      */
-    public trigger(rm: ResourceManager, data?: T) {
+    public trigger(rm: unknown, data?: T) {
         this.listeners.slice(0).forEach(h => h(rm, data));
     }
 

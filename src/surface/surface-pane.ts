@@ -1,5 +1,6 @@
 import { ErrorMessages } from '../core/error-messages';
 import { Utility } from '../core/utility';
+import type { PaneContainerLike } from './pane-transitions/pane-transition';
 import { PaneTransitionDirection } from './pane-transitions/pane-transition-direction';
 import { PaneTransitionFade } from './pane-transitions/pane-transition-fade';
 import { PaneTransitionNone } from './pane-transitions/pane-transition-none';
@@ -8,6 +9,7 @@ import { PaneTransitionReveal } from './pane-transitions/pane-transition-reveal'
 import { PaneTransitionSlide } from './pane-transitions/pane-transition-slide';
 import { PaneTransitionWipe } from './pane-transitions/pane-transition-wipe';
 import { Surface } from './surface';
+import type { SurfaceLike } from './surface-element';
 import { SurfaceLayer } from './surface-layer';
 
 /**
@@ -64,7 +66,7 @@ export class SurfacePane extends SurfaceLayer {
     /**
      * Adds pane to parent surface
      */
-    public addToSurface(surface: Surface) {
+    public addToSurface(surface: SurfaceLike) {
         this.surface = surface;
 
         // If no child surface, throw error
@@ -145,7 +147,7 @@ export class SurfacePane extends SurfaceLayer {
      */
     public replaceSurface(
         newChild: Surface,
-        callback: (pane: SurfacePane) => void,
+        callback: (pane: PaneContainerLike) => void,
         transition?: string,
         duration?: number
     ) {

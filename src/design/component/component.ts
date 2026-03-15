@@ -299,14 +299,14 @@ export class Component {
         top: number,
         width: number,
         height: number,
-        props: any
+        props: unknown
     ) {
         let el = null;
         if (this.create) {
-            el = this.create(new ElementCreationProps(model, id, left, top, width, height, props));
+            el = this.create(new ElementCreationProps(model, id, left, top, width, height, props as Record<string, unknown>));
         }
         else {
-            const elProps = new ElementCreationProps(model, id, left, top, width, height, props);
+            const elProps = new ElementCreationProps(model, id, left, top, width, height, props as Record<string, unknown>);
             const componentProps = new ComponentProps();
             el = componentProps.defaultCreate(elProps);
             model.add(el);
@@ -317,7 +317,7 @@ export class Component {
         }
         el.component = this;
         if (props) {
-            el.props = props;
+            el.props = props as Record<string, unknown>;
         }
         return el;
     }

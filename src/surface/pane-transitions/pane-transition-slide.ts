@@ -1,9 +1,8 @@
 import { ErrorMessages } from '../../core/error-messages';
 import { TransitionRenderer } from '../../transitions/transitions';
-import { Surface } from '../surface';
-import { SurfacePane } from '../surface-pane';
 import { PaneTransition } from './pane-transition';
 import { PaneTransitionDirection } from './pane-transition-direction';
+import type { PaneContainerLike, PaneSurfaceLike } from './pane-transition';
 
 /**
  * Slide pane transition
@@ -11,14 +10,14 @@ import { PaneTransitionDirection } from './pane-transition-direction';
 export class PaneTransitionSlide extends PaneTransition {
     public duration: number;
     public startTime?: number;
-    public source?: Surface;
+    public source?: PaneSurfaceLike;
     public timer?: NodeJS.Timeout;
     public direction: PaneTransitionDirection;
 
     constructor(
-        pane: SurfacePane,
-        target: Surface,
-        callback: (pane: SurfacePane) => void,
+        pane: PaneContainerLike,
+        target: PaneSurfaceLike,
+        callback: (pane: PaneContainerLike) => void,
         duration: number,
         direction: PaneTransitionDirection
     ) {

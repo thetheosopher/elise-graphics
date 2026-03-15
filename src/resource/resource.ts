@@ -1,7 +1,23 @@
-import { ErrorMessages } from '../core/error-messages';
-import { Model } from '../core/model';
-import { ResourceFactory } from './resource-factory';
-import { ResourceManager } from './resource-manager';
+import type { SerializedData } from '../core/serialization';
+
+interface ResourceManagerModelLike {
+    basePath: string;
+}
+
+interface ResourceManagerLike {
+    localResourcePath?: string;
+    model?: ResourceManagerModelLike;
+    currentLocaleId?: string;
+    urlProxy?: {
+        getUrl(url: string, callback: (success: boolean, proxyUrl: string) => void): void;
+    };
+    unregister(resource: Resource, success: boolean): void;
+    merge(resource: Resource): void;
+}
+
+interface ResourceModelLike {
+    resourceManager: ResourceManagerLike;
+}
 
 /**
  * Base class for model resources
@@ -30,7 +46,7 @@ export abstract class Resource {
     /**
      * Resource manager
      */
-    public resourceManager?: ResourceManager;
+    public resourceManager?: ResourceManagerLike;
 
     /**
      * True if registered for retrieval
@@ -68,10 +84,8 @@ export abstract class Resource {
      * @returns Cloned resource instance
      */
     public clone(): Resource {
-        const o = ResourceFactory.create(this.type);
-        if (!o) {
-            throw new Error(ErrorMessages.InvalidResourceType + ': ' + this.type);
-        }
+        const ResourceCtor = this.constructor as { new (): Resource };
+        const o = new ResourceCtor();
         this.cloneTo(o);
         return o;
     }
@@ -80,7 +94,7 @@ export abstract class Resource {
      * Clones properties of this resource to another resource
      * @param o - Target resource for property copy
      */
-    public cloneTo(o: any): void {
+    public cloneTo(o: Resource): void {
         if (this.type) {
             o.type = this.type;
         }
@@ -99,15 +113,15 @@ export abstract class Resource {
      * Clones properties from another resource to this resource
      * @param o - Source resource for property copy
      */
-    public parse(o: any): void {
+    public parse(o: SerializedData): void {
         if (o.key) {
-            this.key = o.key;
+            this.key = o.key as string;
         }
         if (o.locale) {
-            this.locale = o.locale;
+            this.locale = o.locale as string;
         }
         if (o.uri) {
-            this.uri = o.uri;
+            this.uri = o.uri as string;
         }
     }
 
@@ -115,9 +129,8 @@ export abstract class Resource {
      * Clones serializable properties from this resource to a new resource
      * @returns Serialized resource instance
      */
-    public serialize(): any {
-        const o: any = {};
-        o.type = this.type;
+    public serialize(): SerializedData {
+        const o: SerializedData = { type: this.type };
         if (this.key) {
             o.key = this.key;
         }
@@ -224,7 +237,7 @@ export abstract class Resource {
 
     public abstract initialize(): void;
 
-    public addTo(model: Model) {
+    public addTo(model: ResourceModelLike) {
         model.resourceManager.merge(this);
         return this;
     }

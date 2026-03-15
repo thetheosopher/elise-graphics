@@ -68,7 +68,8 @@ export class Sketcher {
         return this;
     }
 
-    public controllerAttached(drawModel: Model, controller?: IController | undefined) {
+    public controllerAttached(source: unknown, controller?: IController | undefined) {
+        const drawModel = source as Model;
         drawModel.controllerAttached.clear();
         this.drawModel = drawModel;
         this.controller = controller as ViewController;
@@ -116,7 +117,8 @@ export class Sketcher {
         self.timerHandle = setTimeout(self.drawNextElement, self.timerDelay, self);
     }
 
-    public controllerDetached(drawModel: Model, controller?: IController | undefined) {
+    public controllerDetached(source: unknown, controller?: IController | undefined) {
+        const drawModel = source as Model;
         this.controller = undefined;
         drawModel.controllerDetached.clear();
         this.drawModel = undefined;

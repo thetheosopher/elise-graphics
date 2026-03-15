@@ -1,10 +1,10 @@
 import { Point } from '../core/point';
 import { PointDepth } from '../core/point-depth';
 import { Size } from '../core/size';
-import { DesignController } from '../design/design-controller';
 import { ElementBase } from '../elements/element-base';
 import { PathElement } from '../elements/path-element';
 import { Handle } from './handle';
+import type { IDesignController } from './design-controller-interface';
 
 /**
  * Creates design mode manipulation handles for supported elements
@@ -17,7 +17,7 @@ export class HandleFactory {
      * @param scale - Controller rendering scale
      * @returns Array of handles for element
      */
-    public static handlesForElement(el: ElementBase, c: DesignController, scale: number): Handle[] {
+    public static handlesForElement(el: ElementBase, c: IDesignController, scale: number): Handle[] {
         if (el.type === 'path') {
             if (el.editPoints) {
                 return HandleFactory.pathShapeHandles(el as PathElement, c, scale);
@@ -44,7 +44,7 @@ export class HandleFactory {
      * @param scale - Controller rendering scale
      * @returns Array of handles for element
      */
-    public static rectangularElementHandles(el: ElementBase, c: DesignController, scale: number): Handle[] {
+    public static rectangularElementHandles(el: ElementBase, c: IDesignController, scale: number): Handle[] {
         const handles: Handle[] = [];
         let moveLocation: Point;
         let resizeSize: Size;
@@ -176,7 +176,7 @@ export class HandleFactory {
      * @param scale - Controller rendering scale
      * @returns Array of handles for element
      */
-    public static pathShapeHandles(el: PathElement, c: DesignController, scale: number): Handle[] {
+    public static pathShapeHandles(el: PathElement, c: IDesignController, scale: number): Handle[] {
         const handles: Handle[] = [];
         let movingPointIndex = -1;
         let offsetX = 0;
@@ -319,7 +319,7 @@ export class HandleFactory {
      * @param scale - Controller rendering scale
      * @returns Array of handles for element
      */
-    public static pointContainerHandles(el: ElementBase, c: DesignController, scale: number): Handle[] {
+    public static pointContainerHandles(el: ElementBase, c: IDesignController, scale: number): Handle[] {
         const handles: Handle[] = [];
         let movingPointIndex: number | undefined;
         if (c.isMovingPoint && c.movingPointIndex !== undefined) {

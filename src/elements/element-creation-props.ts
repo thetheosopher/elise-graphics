@@ -37,7 +37,7 @@ export class ElementCreationProps {
     /**
      * Extra element properties
      */
-    public props: any;
+    public props: Record<string, unknown>;
 
     /**
      * @param model - Model to which element should be added
@@ -48,7 +48,7 @@ export class ElementCreationProps {
      * @param height - Height
      * @param props - Extra properties object
      */
-    constructor(model: Model, id: string, left: number, top: number, width: number, height: number, props: any) {
+    constructor(model: Model, id: string, left: number, top: number, width: number, height: number, props: Record<string, unknown>) {
         this.model = model;
         this.id = id;
         this.left = left;
