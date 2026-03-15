@@ -375,7 +375,6 @@ export class PolylineElement extends ElementBase implements IPointContainer {
             return this;
         }
         const newPoints: Point[] = [];
-        const pl = this._points.length;
         const location = this.getLocation();
         if (!location) {
             throw new Error(ErrorMessages.LocationUndefined);
@@ -517,7 +516,7 @@ export class PolylineElement extends ElementBase implements IPointContainer {
      * @param depth - Not applicable
      * @returns Requested point
      */
-    public getPointAt(index: number, depth?: PointDepth): Point {
+    public getPointAt(index: number, _depth?: PointDepth): Point {
         if (!this._points) {
             throw new Error(ErrorMessages.NoPointsAreDefined);
         }
@@ -533,7 +532,7 @@ export class PolylineElement extends ElementBase implements IPointContainer {
      * @param value - New point value
      * @param depth - Not applicable to this element
      */
-    public setPointAt(index: number, value: Point, depth: PointDepth) {
+    public setPointAt(index: number, value: Point, _depth: PointDepth) {
         if (!this._points) {
             throw new Error(ErrorMessages.NoPointsAreDefined);
         }

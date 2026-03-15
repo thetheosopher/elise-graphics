@@ -11,8 +11,13 @@ export interface IDesignController {
     isMoving: boolean;
     isResizing: boolean;
     isMovingPoint: boolean;
+    isRotating: boolean;
+    isMovingPivot: boolean;
     movingPointIndex?: number;
     movingPointLocation?: Point;
+    rotationCenter?: Point;
+    rotationStartAngle: number;
+    originalRotation: number;
     minElementSize: Size;
     snapToGrid: boolean;
     lockAspect: boolean;

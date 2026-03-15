@@ -8,7 +8,6 @@ import { ElementBase } from '../elements/element-base';
 import { SpriteElement } from '../elements/sprite-element';
 import { SpriteFrame } from '../elements/sprite-frame';
 import { BitmapResource } from '../resource/bitmap-resource';
-import { ResourceManager } from '../resource/resource-manager';
 import { ResourceState } from '../resource/resource-state';
 import { TransitionRenderer } from '../transitions/transitions';
 import type { SurfaceLike } from './surface-element';
@@ -347,7 +346,7 @@ export class SurfaceAnimationLayer extends SurfaceLayer {
         );
         elementCommandHandler.addHandler(
             SurfaceAnimationLayer.ANIMATION_CLICK,
-            (controller: IController, element: ElementBase, command: string, trigger: string, parameters?: CommandParameters) => {
+            (controller: IController, _element: ElementBase, _command: string, _trigger: string, _parameters?: CommandParameters) => {
                 const animationController = controller as SurfaceAnimationViewController;
                 const animation = animationController.animation;
                 if (animation) {
@@ -357,7 +356,7 @@ export class SurfaceAnimationLayer extends SurfaceLayer {
         );
         elementCommandHandler.addHandler(
             SurfaceAnimationLayer.ANIMATION_ADVANCE,
-            (controller: IController, element: ElementBase, command: string, trigger: string, parameters?: CommandParameters) => {
+            (controller: IController, _element: ElementBase, _command: string, _trigger: string, _parameters?: CommandParameters) => {
                 const animationController = controller as SurfaceAnimationViewController;
                 const animation = animationController.animation;
                 if (animation && animation.sprite) {

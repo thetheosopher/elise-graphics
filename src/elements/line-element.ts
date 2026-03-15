@@ -301,6 +301,14 @@ export class LineElement extends ElementBase implements IPointContainer {
     }
 
     /**
+     * Lines cannot be rotated
+     * @returns False
+     */
+    public canRotate(): boolean {
+        return false;
+    }
+
+    /**
      * Scales line by given horizontal and vertical scaling factors
      * @param scaleX - Horizontal scaling factor
      * @param scaleY - Vertical scaling factor
@@ -435,7 +443,7 @@ export class LineElement extends ElementBase implements IPointContainer {
      * @param depth - Not applicable
      * @returns Requested point
      */
-    public getPointAt(index: number, depth?: PointDepth): Point {
+    public getPointAt(index: number, _depth?: PointDepth): Point {
         if (index === 0 && this._p1) {
             return this._p1;
         }
@@ -451,7 +459,7 @@ export class LineElement extends ElementBase implements IPointContainer {
      * @param value - New point value
      * @param depth - Not applicable
      */
-    public setPointAt(index: number, value: Point, depth: PointDepth) {
+    public setPointAt(index: number, value: Point, _depth: PointDepth) {
         if (index === 0) {
             this._p1 = new Point(value.x, value.y);
             return this;

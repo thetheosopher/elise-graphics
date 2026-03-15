@@ -179,8 +179,8 @@ export class TransitionRenderer {
         c: IController,
         el: SpriteElement,
         command: string,
-        trigger: string,
-        parameters?: CommandParameters
+        _trigger: string,
+        _parameters?: CommandParameters
     ) {
         if (!el.frameStack) {
             el.frameStack = [];
@@ -195,9 +195,9 @@ export class TransitionRenderer {
     public static popFrameTransition(
         c: IController,
         el: SpriteElement,
-        command: string,
-        trigger: string,
-        parameters?: CommandParameters
+        _command: string,
+        _trigger: string,
+        _parameters?: CommandParameters
     ) {
         if (!el.frameStack) {
             return;
@@ -274,7 +274,7 @@ export class TransitionRenderer {
         left: number,
         top: number,
         width: number,
-        height: number
+        _height: number
     ): void {
         const offsetX = offset * width;
         context.drawImage(c2, left + width - offsetX, top);
@@ -289,7 +289,7 @@ export class TransitionRenderer {
         left: number,
         top: number,
         width: number,
-        height: number
+        _height: number
     ): void {
         const offsetX = offset * width;
         context.drawImage(c2, left - width + offsetX, top);
@@ -402,7 +402,7 @@ export class TransitionRenderer {
         left: number,
         top: number,
         width: number,
-        height: number
+        _height: number
     ): void {
         const offsetX = offset * width;
         context.drawImage(c1, left, top);
@@ -417,7 +417,7 @@ export class TransitionRenderer {
         left: number,
         top: number,
         width: number,
-        height: number
+        _height: number
     ): void {
         const offsetX = offset * width;
         context.drawImage(c1, left, top);
@@ -526,7 +526,7 @@ export class TransitionRenderer {
         left: number,
         top: number,
         width: number,
-        height: number
+        _height: number
     ): void {
         const offsetX = offset * width;
         context.drawImage(c2, left, top);
@@ -541,7 +541,7 @@ export class TransitionRenderer {
         left: number,
         top: number,
         width: number,
-        height: number
+        _height: number
     ): void {
         const offsetX = offset * width;
         context.drawImage(c2, left, top);

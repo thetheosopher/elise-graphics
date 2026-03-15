@@ -5,6 +5,7 @@ import { ControllerEventArgs } from '../controller/controller-event-args';
 import { Color } from '../core/color';
 import { ErrorMessages } from '../core/error-messages';
 import { Logging } from '../core/logging';
+import { Matrix2D } from '../core/matrix-2d';
 import { Model } from '../core/model';
 import { IMouseEvent } from '../core/mouse-event';
 import { MouseEventArgs } from '../core/mouse-event-args';
@@ -22,6 +23,7 @@ import type { ElementModel } from '../elements/element-base';
 import { ElementCreationProps } from '../elements/element-creation-props';
 import { ElementDragArgs } from '../elements/element-drag-args';
 import { ElementLocationArgs } from '../elements/element-location-args';
+import { ElementRotationArgs } from '../elements/element-rotation-args';
 import { ElementSizeArgs } from '../elements/element-size-args';
 import { ElementSizeProps } from '../elements/element-size-props';
 import { MoveLocation } from '../elements/move-location';
@@ -49,17 +51,26 @@ export class DesignController implements IController {
     public static captured?: DesignController;
 
     /**
-     * Determines if a location and size are within the bounds of a model
+     * Determines if a location and size are within the bounds of a model.
+     * If an element transform is provided, the check uses the axis-aligned bounding
+     * box of the transformed rectangle.
      * @param p - Point
      * @param s - Size
      * @param model - Model
+     * @param transform - Optional element transform string
      */
-    public static isInBounds(p: Point, s: Size, model: Model | ElementModel): boolean {
-        if (p.x < 0 || p.y < 0) {
-            return false;
-        }
+    public static isInBounds(p: Point, s: Size, model: Model | ElementModel, transform?: string): boolean {
         const size = model.getSize();
         if (!size) {
+            return false;
+        }
+        if (transform) {
+            const tb = DesignController.getTransformedAABB(p, s, transform);
+            return tb.x >= 0 && tb.y >= 0 &&
+                tb.x + tb.width <= size.width &&
+                tb.y + tb.height <= size.height;
+        }
+        if (p.x < 0 || p.y < 0) {
             return false;
         }
         if (p.x + s.width > size.width) {
@@ -69,6 +80,34 @@ export class DesignController implements IController {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Returns the axis-aligned bounding box of a rectangle after applying a transform
+     * @param location - Element location
+     * @param s - Element size
+     * @param transform - Transform string
+     * @returns Axis-aligned bounding region in model space
+     */
+    public static getTransformedAABB(location: Point, s: Size, transform: string): Region {
+        const mat = Matrix2D.fromTransformString(transform, location);
+        const corners = [
+            mat.transformPoint(new Point(location.x, location.y)),
+            mat.transformPoint(new Point(location.x + s.width, location.y)),
+            mat.transformPoint(new Point(location.x + s.width, location.y + s.height)),
+            mat.transformPoint(new Point(location.x, location.y + s.height))
+        ];
+        let minX = corners[0].x;
+        let minY = corners[0].y;
+        let maxX = corners[0].x;
+        let maxY = corners[0].y;
+        for (let i = 1; i < 4; i++) {
+            if (corners[i].x < minX) { minX = corners[i].x; }
+            if (corners[i].y < minY) { minY = corners[i].y; }
+            if (corners[i].x > maxX) { maxX = corners[i].x; }
+            if (corners[i].y > maxY) { maxY = corners[i].y; }
+        }
+        return new Region(minX, minY, maxX - minX, maxY - minY);
     }
 
     /**
@@ -234,6 +273,16 @@ export class DesignController implements IController {
     public elementSized: IControllerEvent<ElementSizeArgs> = new ControllerEvent<ElementSizeArgs>();
 
     /**
+     * Fired when an element is being rotated
+     */
+    public elementRotating: IControllerEvent<ElementRotationArgs> = new ControllerEvent<ElementRotationArgs>();
+
+    /**
+     * Fired when an element has been rotated
+     */
+    public elementRotated: IControllerEvent<ElementRotationArgs> = new ControllerEvent<ElementRotationArgs>();
+
+    /**
      * Fired when a mouse drag has started over the view
      */
     public viewDragEnter: IControllerEvent<ViewDragArgs> = new ControllerEvent<ViewDragArgs>();
@@ -344,6 +393,16 @@ export class DesignController implements IController {
     public isResizing: boolean;
 
     /**
+     * True when element is being rotated
+     */
+    public isRotating: boolean;
+
+    /**
+     * True when pivot handle is being moved
+     */
+    public isMovingPivot: boolean;
+
+    /**
      * True when point container point is being moved
      */
     public isMovingPoint: boolean;
@@ -407,6 +466,26 @@ export class DesignController implements IController {
      * Location of point container point in motion
      */
     public movingPointLocation?: Point;
+
+    /**
+     * Rotation center (pivot) in canvas coordinates
+     */
+    public rotationCenter?: Point;
+
+    /**
+     * Angle from rotation center to mouse at drag start (radians)
+     */
+    public rotationStartAngle: number;
+
+    /**
+     * Element rotation angle at drag start (degrees)
+     */
+    public originalRotation: number;
+
+    /**
+     * Element transform string before rotation started (for cancel)
+     */
+    public originalTransform?: string;
 
     /**
      * Array of tentative sizes for elements being sized
@@ -607,6 +686,8 @@ export class DesignController implements IController {
         this.setGridSpacing = this.setGridSpacing.bind(this);
         this.setGridColor = this.setGridColor.bind(this);
         this.bindTarget = this.bindTarget.bind(this);
+        this.onElementRotating = this.onElementRotating.bind(this);
+        this.onElementRotated = this.onElementRotated.bind(this);
 
         this.enabled = true;
         this.scale = 1.0;
@@ -616,6 +697,8 @@ export class DesignController implements IController {
         this.isMouseDown = false;
         this.isMoving = false;
         this.isResizing = false;
+        this.isRotating = false;
+        this.isMovingPivot = false;
         this.isMovingPoint = false;
         this.isDragging = false;
         this.lastClientX = -1;
@@ -631,6 +714,8 @@ export class DesignController implements IController {
         this.selectionEnabled = true;
         this.needsRedraw = false;
         this.largeJump = 10;
+        this.rotationStartAngle = 0;
+        this.originalRotation = 0;
     }
 
     /**
@@ -653,6 +738,8 @@ export class DesignController implements IController {
         this.isMouseDown = false;
         this.isMoving = false;
         this.isResizing = false;
+        this.isRotating = false;
+        this.isMovingPivot = false;
         this.isMovingPoint = false;
         this.isDragging = false;
         this.mouseDownPosition = undefined;
@@ -666,6 +753,10 @@ export class DesignController implements IController {
         this.selecting = false;
         this.sizeHandles = undefined;
         this.movingPointLocation = undefined;
+        this.rotationCenter = undefined;
+        this.rotationStartAngle = 0;
+        this.originalRotation = 0;
+        this.originalTransform = undefined;
         this.elementResizeSizes = [];
         this.elementMoveLocations = [];
         this.rubberBandActive = false;
@@ -895,6 +986,7 @@ export class DesignController implements IController {
         canvas.addEventListener('mousemove', self.onCanvasMouseMove);
         canvas.addEventListener('keydown', self.onCanvasKeyDown);
         canvas.addEventListener('dragenter', self.onCanvasDragEnter);
+        canvas.addEventListener('dragover', self.onCanvasDragOver);
         canvas.addEventListener('dragleave', self.onCanvasDragLeave);
         canvas.addEventListener('drop', self.onCanvasDrop);
 
@@ -915,14 +1007,15 @@ export class DesignController implements IController {
             return;
         }
         log('Detaching event handlers and destroying canvas');
-        this.canvas.addEventListener('mouseenter', this.onCanvasMouseEnter);
-        this.canvas.addEventListener('mouseleave', this.onCanvasMouseLeave);
-        this.canvas.addEventListener('mousedown', this.onCanvasMouseDown);
-        this.canvas.addEventListener('mousemove', this.onCanvasMouseMove);
-        this.canvas.addEventListener('keydown', this.onCanvasKeyDown);
-        this.canvas.addEventListener('dragenter', this.onCanvasDragEnter);
-        this.canvas.addEventListener('dragleave', this.onCanvasDragLeave);
-        this.canvas.addEventListener('drop', this.onCanvasDrop);
+        this.canvas.removeEventListener('mouseenter', this.onCanvasMouseEnter);
+        this.canvas.removeEventListener('mouseleave', this.onCanvasMouseLeave);
+        this.canvas.removeEventListener('mousedown', this.onCanvasMouseDown);
+        this.canvas.removeEventListener('mousemove', this.onCanvasMouseMove);
+        this.canvas.removeEventListener('keydown', this.onCanvasKeyDown);
+        this.canvas.removeEventListener('dragenter', this.onCanvasDragEnter);
+        this.canvas.removeEventListener('dragover', this.onCanvasDragOver);
+        this.canvas.removeEventListener('dragleave', this.onCanvasDragLeave);
+        this.canvas.removeEventListener('drop', this.onCanvasDrop);
         const element = this.canvas.parentElement;
         if (element) {
             element.removeChild(this.canvas);
@@ -949,6 +1042,8 @@ export class DesignController implements IController {
         this.elementMoved.clear();
         this.elementSizing.clear();
         this.elementSized.clear();
+        this.elementRotating.clear();
+        this.elementRotated.clear();
         this.viewDragEnter.clear();
         this.viewDragOver.clear();
         this.viewDragLeave.clear();
@@ -1051,7 +1146,7 @@ export class DesignController implements IController {
             log(`Window mouse up ${e.clientX}:${e.clientY}`);
             captured.onCanvasMouseUp(e);
             captured.drawIfNeeded();
-            window.removeEventListener('mousedown', captured.windowMouseUp, true);
+            window.removeEventListener('mouseup', captured.windowMouseUp, true);
             window.removeEventListener('mousemove', captured.windowMouseMove, true);
             DesignController.captured = undefined;
         }
@@ -1243,6 +1338,39 @@ export class DesignController implements IController {
             if (foundHandle && button === 0 && selectedHandle) {
                 // If multiple elements selected
                 this.sizeHandles = [];
+
+                // Check for rotation or pivot handle
+                const hid = selectedHandle.handleId;
+                if (typeof hid === 'string' && hid.startsWith('rotate-')) {
+                    this.sizeHandles.push(selectedHandle);
+                    this.isRotating = true;
+                    const el = selectedHandle.element;
+                    const b = el.getBounds();
+                    if (b) {
+                        // Determine rotation center in canvas space
+                        if (!this.rotationCenter) {
+                            const rc = el.getRotationCenter();
+                            if (rc) {
+                                this.rotationCenter = new Point(b.x + rc.x, b.y + rc.y);
+                            } else {
+                                this.rotationCenter = new Point(b.x + b.width / 2, b.y + b.height / 2);
+                            }
+                        }
+                        this.rotationStartAngle = Math.atan2(
+                            p.y - this.rotationCenter.y,
+                            p.x - this.rotationCenter.x
+                        );
+                        this.originalRotation = el.getRotation();
+                        this.originalTransform = el.transform;
+                    }
+                    return;
+                }
+                else if (typeof hid === 'string' && hid === 'pivot') {
+                    this.sizeHandles.push(selectedHandle);
+                    this.isMovingPivot = true;
+                    return;
+                }
+
                 if (this.resizeableSelectedElementCount() > 0) {
                     const self = this;
                     this.selectedElements.forEach(selectedElement => {
@@ -1444,11 +1572,52 @@ export class DesignController implements IController {
             return;
         }
 
-        // If resizing
-        if (this.isResizing && this.sizeHandles && this.sizeHandles.length > 0) {
+        // If rotating
+        if (this.isRotating && this.sizeHandles && this.sizeHandles.length > 0) {
+            this.sizeHandles.forEach(h => {
+                if (h.handleMoved) {
+                    h.handleMoved(h, {
+                        deltaX: 0,
+                        deltaY: 0,
+                        mouseX: p.x,
+                        mouseY: p.y,
+                        shiftKey: e.shiftKey
+                    });
+                }
+            });
+            if (this.sizeHandles.length > 0) {
+                const rotEl = this.sizeHandles[0].element;
+                this.onElementRotating(rotEl, rotEl.getRotation());
+            }
+        }
+        // If moving pivot
+        else if (this.isMovingPivot && this.sizeHandles && this.sizeHandles.length > 0) {
             this.sizeHandles.forEach(h => {
                 if (h.handleMoved) {
                     h.handleMoved(h, { deltaX: Math.round(deltaX), deltaY: Math.round(deltaY) });
+                }
+            });
+        }
+        // If resizing
+        else if (this.isResizing && this.sizeHandles && this.sizeHandles.length > 0) {
+            this.sizeHandles.forEach(h => {
+                if (h.handleMoved) {
+                    let dx = Math.round(deltaX);
+                    let dy = Math.round(deltaY);
+                    // Convert screen-space deltas to local element space for transformed elements
+                    const el = h.element;
+                    if (el.transform && this.model) {
+                        const b = el.getBounds();
+                        if (b) {
+                            const ref = new Point(b.x, b.y);
+                            const mat = Matrix2D.fromTransformString(el.transform, ref);
+                            const inv = mat.inverse();
+                            const local = inv.transformVector(deltaX, deltaY);
+                            dx = Math.round(local.x);
+                            dy = Math.round(local.y);
+                        }
+                    }
+                    h.handleMoved(h, { deltaX: dx, deltaY: dy });
                 }
             });
         }
@@ -1463,7 +1632,7 @@ export class DesignController implements IController {
                             continue;
                         }
                         const moveLocation = new Point(Math.round(b.x + deltaX), Math.round(b.y + deltaY));
-                        if (!DesignController.isInBounds(moveLocation, b.size, this.model)) {
+                        if (!DesignController.isInBounds(moveLocation, b.size, this.model, selectedElement.transform)) {
                             allOkay = false;
                             break;
                         }
@@ -1541,15 +1710,29 @@ export class DesignController implements IController {
                 depth = PointDepth.Full;
             }
             const pointLocation = pointHolder.getPointAt(this.movingPointIndex, depth);
+            // Convert deltas to local element space for transformed elements
+            let localDX = deltaX;
+            let localDY = deltaY;
+            if (pointHolder.transform && this.model) {
+                const b = pointHolder.getBounds();
+                if (b) {
+                    const ref = new Point(b.x, b.y);
+                    const mat = Matrix2D.fromTransformString(pointHolder.transform, ref);
+                    const inv = mat.inverse();
+                    const local = inv.transformVector(deltaX, deltaY);
+                    localDX = local.x;
+                    localDY = local.y;
+                }
+            }
             let newLocation: Point;
             if (this.snapToGrid) {
                 newLocation = new Point(
-                    this.getNearestSnapX(pointLocation.x + deltaX),
-                    this.getNearestSnapY(pointLocation.y + deltaY)
+                    this.getNearestSnapX(pointLocation.x + localDX),
+                    this.getNearestSnapY(pointLocation.y + localDY)
                 );
             }
             else {
-                newLocation = new Point(Math.round(pointLocation.x + deltaX), Math.round(pointLocation.y + deltaY));
+                newLocation = new Point(Math.round(pointLocation.x + localDX), Math.round(pointLocation.y + localDY));
             }
             this.movingPointLocation = newLocation;
             this.invalidate();
@@ -1835,6 +2018,24 @@ export class DesignController implements IController {
                     this.invalidate();
                     this.canvas.style.cursor = 'crosshair';
                 }
+                else if (this.isRotating) {
+                    // Restore original transform on cancel
+                    if (this.selectedElements.length > 0) {
+                        const el = this.selectedElements[0];
+                        el.transform = this.originalTransform;
+                    }
+                    this.sizeHandles = undefined;
+                    this.isRotating = false;
+                    this.originalTransform = undefined;
+                    this.invalidate();
+                    this.canvas.style.cursor = 'crosshair';
+                }
+                else if (this.isMovingPivot) {
+                    this.sizeHandles = undefined;
+                    this.isMovingPivot = false;
+                    this.invalidate();
+                    this.canvas.style.cursor = 'crosshair';
+                }
                 return;
             }
 
@@ -1895,6 +2096,24 @@ export class DesignController implements IController {
                 this.sizeHandles = undefined;
                 this.isMovingPoint = false;
                 this.movingPointLocation = undefined;
+                this.invalidate();
+                this.canvas.style.cursor = 'crosshair';
+            }
+            else if (this.isRotating) {
+                // Rotation is already applied to element transform during drag
+                if (this.selectedElements.length > 0) {
+                    const el = this.selectedElements[0];
+                    this.onElementRotated(el, el.getRotation());
+                }
+                this.sizeHandles = undefined;
+                this.isRotating = false;
+                this.originalTransform = undefined;
+                this.invalidate();
+                this.canvas.style.cursor = 'crosshair';
+            }
+            else if (this.isMovingPivot) {
+                this.sizeHandles = undefined;
+                this.isMovingPivot = false;
                 this.invalidate();
                 this.canvas.style.cursor = 'crosshair';
             }
@@ -2182,7 +2401,7 @@ export class DesignController implements IController {
         if (!b) {
             return;
         }
-        if (DesignController.isInBounds(b.location, b.size, model)) {
+        if (DesignController.isInBounds(b.location, b.size, model, el.transform)) {
             return;
         }
         if (!el.canResize()) {
@@ -2454,6 +2673,29 @@ export class DesignController implements IController {
         }
         if (this.elementMoved.hasListeners()) {
             this.elementMoved.trigger(this, new ElementLocationArgs(el, location));
+        }
+        this.setIsDirty(true);
+    }
+
+    /**
+     * Called while an element is being rotated
+     * @param el - Element being rotated
+     * @param angle - Tentative rotation angle in degrees
+     */
+    public onElementRotating(el: ElementBase, angle: number): void {
+        if (this.elementRotating.hasListeners()) {
+            this.elementRotating.trigger(this, new ElementRotationArgs(el, angle));
+        }
+    }
+
+    /**
+     * Called after an element has been rotated
+     * @param el - Rotated element
+     * @param angle - Final rotation angle in degrees
+     */
+    public onElementRotated(el: ElementBase, angle: number): void {
+        if (this.elementRotated.hasListeners()) {
+            this.elementRotated.trigger(this, new ElementRotationArgs(el, angle));
         }
         this.setIsDirty(true);
     }
@@ -2779,7 +3021,6 @@ export class DesignController implements IController {
                         this.drawDashedLine(context, handle.x, handle.y, connected.x, connected.y, 2);
                     }
                 }
-                handle.draw(context);
             }
 
             // Draw handles
@@ -2788,6 +3029,47 @@ export class DesignController implements IController {
             }
 
             context.restore();
+
+            // Draw rotation angle feedback when rotating
+            if (this.isRotating && this.rotationCenter) {
+                const angle = el.getRotation();
+                const cx = this.rotationCenter.x;
+                const cy = this.rotationCenter.y;
+                const _scale = this.scale;
+
+                // Draw dashed line from pivot to element center
+                context.save();
+                context.strokeStyle = 'rgba(0,128,255,0.6)';
+                context.lineWidth = 1.0 / _scale;
+                context.setLineDash([4 / _scale, 4 / _scale]);
+                context.beginPath();
+                context.moveTo(cx, cy);
+                const armLen = 40 / _scale;
+                const angleRad = angle * Math.PI / 180;
+                context.lineTo(cx + armLen * Math.cos(angleRad - Math.PI / 2), cy + armLen * Math.sin(angleRad - Math.PI / 2));
+                context.stroke();
+                context.setLineDash([]);
+
+                // Draw arc showing rotation
+                if (Math.abs(angle) > 0.5) {
+                    const arcRadius = 30 / _scale;
+                    const startRad = -Math.PI / 2;
+                    const endRad = startRad + angleRad;
+                    context.beginPath();
+                    context.arc(cx, cy, arcRadius, startRad, endRad, angle < 0);
+                    context.strokeStyle = 'rgba(0,128,255,0.5)';
+                    context.lineWidth = 1.5 / _scale;
+                    context.stroke();
+                }
+
+                // Draw angle text
+                const displayAngle = Math.round(angle * 10) / 10;
+                const fontSize = 11 / _scale;
+                context.font = `${fontSize}px sans-serif`;
+                context.fillStyle = 'rgba(0,128,255,0.9)';
+                context.fillText(`${displayAngle}°`, cx + 8 / _scale, cy - 8 / _scale);
+                context.restore();
+            }
         }
 
         // Draw rubber band and guidewires
@@ -2798,10 +3080,10 @@ export class DesignController implements IController {
             }
             else if (
                 this.isMouseDown &&
-                this.currentX &&
-                this.currentY &&
-                this.currentWidth &&
-                this.currentHeight &&
+                this.currentX !== undefined &&
+                this.currentY !== undefined &&
+                this.currentWidth !== undefined &&
+                this.currentHeight !== undefined &&
                 this.selectedElementCount() === 0
             ) {
                 this.drawGuidewires(context, this.currentX + this.currentWidth, this.currentY + this.currentHeight);
@@ -3033,10 +3315,12 @@ export class DesignController implements IController {
                 if (self.model) {
                     self.model.add(elc);
                 }
+                self.onElementAdded(elc);
                 newSelected.push(elc);
             });
             this.selectedElements = newSelected;
             this.onSelectionChanged();
+            this.setIsDirty(true);
         }
     }
 
@@ -3183,7 +3467,7 @@ export class DesignController implements IController {
             }
         }
         const newSize = new Size(newWidth, newHeight);
-        if (!this.constrainToBounds || DesignController.isInBounds(location, newSize, el.model)) {
+        if (!this.constrainToBounds || DesignController.isInBounds(location, newSize, el.model, el.transform)) {
             for (const resizeSize of this.elementResizeSizes) {
                 if (resizeSize.element === el) {
                     resizeSize.size = newSize;
@@ -3259,7 +3543,7 @@ export class DesignController implements IController {
             }
         }
         const newLocation = new Point(newX, newY);
-        if (!this.constrainToBounds || DesignController.isInBounds(newLocation, newSize, el.model)) {
+        if (!this.constrainToBounds || DesignController.isInBounds(newLocation, newSize, el.model, el.transform)) {
             for (const moveLocation of this.elementMoveLocations) {
                 if (moveLocation.element === el) {
                     moveLocation.location = newLocation;
@@ -3307,7 +3591,7 @@ export class DesignController implements IController {
                 if (size.width <= 0 || size.height <= 0) {
                     return;
                 }
-                if (this.constrainToBounds && e.model && !DesignController.isInBounds(b.location, size, e.model)) {
+                if (this.constrainToBounds && e.model && !DesignController.isInBounds(b.location, size, e.model, e.transform)) {
                     return;
                 }
             }
@@ -3348,7 +3632,7 @@ export class DesignController implements IController {
                     throw new Error(ErrorMessages.BoundsAreUndefined);
                 }
                 const location = new Point(b.x + offsetX, b.y + offsetY);
-                if (this.constrainToBounds && e.model && !DesignController.isInBounds(location, b.size, e.model)) {
+                if (this.constrainToBounds && e.model && !DesignController.isInBounds(location, b.size, e.model, e.transform)) {
                     allGood = false;
                     break;
                 }

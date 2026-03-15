@@ -1,3 +1,4 @@
+import { Matrix2D } from '../core/matrix-2d';
 import { Point } from '../core/point';
 import { PointDepth } from '../core/point-depth';
 import { Size } from '../core/size';
@@ -5,6 +6,28 @@ import { ElementBase } from '../elements/element-base';
 import { PathElement } from '../elements/path-element';
 import { Handle } from './handle';
 import type { IDesignController } from './design-controller-interface';
+
+/**
+ * Ordered cycle of resize cursors at 45° increments starting from north (0°)
+ */
+const CURSOR_CYCLE: string[] = ['n-resize', 'ne-resize', 'e-resize', 'se-resize', 's-resize', 'sw-resize', 'w-resize', 'nw-resize'];
+
+/**
+ * Returns a rotated resize cursor based on a base cursor and a rotation angle
+ * @param baseCursor - The unrotated cursor name (e.g. 'nw-resize')
+ * @param angleRad - Transform rotation in radians
+ * @returns Rotated cursor name
+ */
+function rotatedCursor(baseCursor: string, angleRad: number): string {
+    const baseIndex = CURSOR_CYCLE.indexOf(baseCursor);
+    if (baseIndex === -1) {
+        return baseCursor;
+    }
+    // Each step is 45°; convert angle to number of steps
+    const steps = Math.round(angleRad / (Math.PI / 4));
+    const idx = ((baseIndex + steps) % 8 + 8) % 8;
+    return CURSOR_CYCLE[idx];
+}
 
 /**
  * Creates design mode manipulation handles for supported elements
@@ -18,23 +41,31 @@ export class HandleFactory {
      * @returns Array of handles for element
      */
     public static handlesForElement(el: ElementBase, c: IDesignController, scale: number): Handle[] {
+        let handles: Handle[];
         if (el.type === 'path') {
             if (el.editPoints) {
                 return HandleFactory.pathShapeHandles(el as PathElement, c, scale);
             }
-            return HandleFactory.rectangularElementHandles(el, c, scale);
+            handles = HandleFactory.rectangularElementHandles(el, c, scale);
         }
-        if (el.type === 'polyline' || el.type === 'polygon') {
+        else if (el.type === 'polyline' || el.type === 'polygon') {
             if (el.editPoints) {
                 return HandleFactory.pointContainerHandles(el, c, scale);
             }
-            return HandleFactory.rectangularElementHandles(el, c, scale);
+            handles = HandleFactory.rectangularElementHandles(el, c, scale);
         }
-        if (el.type === 'line') {
+        else if (el.type === 'line') {
             return HandleFactory.pointContainerHandles(el, c, scale);
         }
-        // image, sprite, rectangle, ellipse, model, text elements
-        return HandleFactory.rectangularElementHandles(el, c, scale);
+        else {
+            handles = HandleFactory.rectangularElementHandles(el, c, scale);
+        }
+
+        // Add rotation handles for rotatable elements with single selection
+        if (el.canRotate() && c.selectedElementCount() === 1) {
+            handles = handles.concat(HandleFactory.rotationHandles(el, c, scale));
+        }
+        return handles;
     }
 
     /**
@@ -70,6 +101,13 @@ export class HandleFactory {
             }
         }
 
+        // Compute rotation angle for cursor adjustment
+        let angle = 0;
+        if (el.transform) {
+            const mat = Matrix2D.fromTransformString(el.transform, new Point(b.x, b.y));
+            angle = Matrix2D.getRotationAngle(mat);
+        }
+
         // Top Left
         const topLeft = new Handle(location.x, location.y, el, c);
         topLeft.scale = scale;
@@ -77,7 +115,7 @@ export class HandleFactory {
         topLeft.handleMoved = Handle.sizeRectangleLeftTop;
         topLeft.canMoveHorizontal = true;
         topLeft.canMoveVertical = true;
-        topLeft.cursor = 'nw-resize';
+        topLeft.cursor = rotatedCursor('nw-resize', angle);
         topLeft.region = topLeft.getBounds();
         handles.push(topLeft);
 
@@ -90,7 +128,7 @@ export class HandleFactory {
         topCenter.canMoveVertical = true;
         topCenter.region = topCenter.getBounds();
         // topCenter.barRegion = elise.region(location.x, location.y, size.width / 4, scale);
-        topCenter.cursor = 'n-resize';
+        topCenter.cursor = rotatedCursor('n-resize', angle);
         handles.push(topCenter);
 
         // Top right
@@ -101,7 +139,7 @@ export class HandleFactory {
         topRight.canMoveHorizontal = true;
         topRight.canMoveVertical = true;
         topRight.region = topRight.getBounds();
-        topRight.cursor = 'ne-resize';
+        topRight.cursor = rotatedCursor('ne-resize', angle);
         handles.push(topRight);
 
         // Middle right
@@ -113,7 +151,7 @@ export class HandleFactory {
         middleRight.canMoveVertical = false;
         middleRight.region = middleRight.getBounds();
         // middleRight.barRegion = elise.region(location.x + size.width, location.y, 4 / scale, size.height);
-        middleRight.cursor = 'e-resize';
+        middleRight.cursor = rotatedCursor('e-resize', angle);
         handles.push(middleRight);
 
         // Bottom right
@@ -124,7 +162,7 @@ export class HandleFactory {
         bottomRight.canMoveHorizontal = true;
         bottomRight.canMoveVertical = true;
         bottomRight.region = bottomRight.getBounds();
-        bottomRight.cursor = 'se-resize';
+        bottomRight.cursor = rotatedCursor('se-resize', angle);
         handles.push(bottomRight);
 
         // Bottom center
@@ -136,7 +174,7 @@ export class HandleFactory {
         bottomCenter.canMoveVertical = true;
         bottomCenter.region = bottomCenter.getBounds();
         // bottomCenter.barRegion = elise.region(location.x, location.y + size.height, size.width, 4 / scale);
-        bottomCenter.cursor = 's-resize';
+        bottomCenter.cursor = rotatedCursor('s-resize', angle);
         handles.push(bottomCenter);
 
         // Left bottom
@@ -147,7 +185,7 @@ export class HandleFactory {
         bottomLeft.canMoveHorizontal = true;
         bottomLeft.canMoveVertical = true;
         bottomLeft.region = bottomLeft.getBounds();
-        bottomLeft.cursor = 'sw-resize';
+        bottomLeft.cursor = rotatedCursor('sw-resize', angle);
         handles.push(bottomLeft);
 
         // Middle left
@@ -159,12 +197,117 @@ export class HandleFactory {
         middleLeft.canMoveVertical = false;
         middleLeft.region = middleLeft.getBounds();
         // middleLeft.barRegion = elise.region(location.x, location.y, 4 / scale, size.height);
-        middleLeft.cursor = 'w-resize';
+        middleLeft.cursor = rotatedCursor('w-resize', angle);
         handles.push(middleLeft);
 
         // Connect handles
         topLeft.connectedHandles = [ topRight, bottomLeft ];
         bottomRight.connectedHandles = [ bottomLeft, topRight ];
+
+        return handles;
+    }
+
+    /**
+     * Creates rotation handles for an element (4 corner handles + pivot handle)
+     * @param el - Element
+     * @param c - Design controller
+     * @param scale - Controller rendering scale
+     * @returns Array of rotation and pivot handles
+     */
+    public static rotationHandles(el: ElementBase, c: IDesignController, scale: number): Handle[] {
+        const handles: Handle[] = [];
+        const b = el.getBounds();
+        if (!b) {
+            return handles;
+        }
+        let location = b.location;
+        let size = b.size;
+
+        if (c.isMoving && c.isSelected(el) && el.canMove()) {
+            const ml = c.getElementMoveLocation(el);
+            location = new Point(ml.x, ml.y);
+        } else if (c.isResizing && c.isSelected(el) && el.canResize()) {
+            const ml = c.getElementMoveLocation(el);
+            location = new Point(ml.x, ml.y);
+            const rs = c.getElementResizeSize(el);
+            size = new Size(rs.width, rs.height);
+        }
+
+        // Diagonal offset from corners for rotation handles
+        const offset = 14 / scale;
+        const diag = offset * Math.SQRT1_2;
+
+        // Top-left rotation handle
+        const rtl = new Handle(location.x - diag, location.y - diag, el, c);
+        rtl.scale = scale;
+        rtl.handleId = 'rotate-topLeft';
+        rtl.handleMoved = Handle.rotateElement;
+        rtl.canMoveHorizontal = true;
+        rtl.canMoveVertical = true;
+        rtl.shape = 'circle';
+        rtl.cursor = 'grab';
+        rtl.region = rtl.getBounds();
+        handles.push(rtl);
+
+        // Top-right rotation handle
+        const rtr = new Handle(location.x + size.width + diag, location.y - diag, el, c);
+        rtr.scale = scale;
+        rtr.handleId = 'rotate-topRight';
+        rtr.handleMoved = Handle.rotateElement;
+        rtr.canMoveHorizontal = true;
+        rtr.canMoveVertical = true;
+        rtr.shape = 'circle';
+        rtr.cursor = 'grab';
+        rtr.region = rtr.getBounds();
+        handles.push(rtr);
+
+        // Bottom-right rotation handle
+        const rbr = new Handle(location.x + size.width + diag, location.y + size.height + diag, el, c);
+        rbr.scale = scale;
+        rbr.handleId = 'rotate-bottomRight';
+        rbr.handleMoved = Handle.rotateElement;
+        rbr.canMoveHorizontal = true;
+        rbr.canMoveVertical = true;
+        rbr.shape = 'circle';
+        rbr.cursor = 'grab';
+        rbr.region = rbr.getBounds();
+        handles.push(rbr);
+
+        // Bottom-left rotation handle
+        const rbl = new Handle(location.x - diag, location.y + size.height + diag, el, c);
+        rbl.scale = scale;
+        rbl.handleId = 'rotate-bottomLeft';
+        rbl.handleMoved = Handle.rotateElement;
+        rbl.canMoveHorizontal = true;
+        rbl.canMoveVertical = true;
+        rbl.shape = 'circle';
+        rbl.cursor = 'grab';
+        rbl.region = rbl.getBounds();
+        handles.push(rbl);
+
+        // Pivot handle at rotation center
+        let pivotX = location.x + size.width / 2;
+        let pivotY = location.y + size.height / 2;
+        if (c.rotationCenter) {
+            pivotX = c.rotationCenter.x;
+            pivotY = c.rotationCenter.y;
+        } else {
+            const rc = el.getRotationCenter();
+            if (rc) {
+                pivotX = location.x + rc.x;
+                pivotY = location.y + rc.y;
+            }
+        }
+        const pivot = new Handle(pivotX, pivotY, el, c);
+        pivot.scale = scale;
+        pivot.handleId = 'pivot';
+        pivot.handleMoved = Handle.moveRotationCenter;
+        pivot.canMoveHorizontal = true;
+        pivot.canMoveVertical = true;
+        pivot.shape = 'circle';
+        pivot.cursor = 'move';
+        pivot.region = pivot.getBounds();
+        handles.push(pivot);
 
         return handles;
     }

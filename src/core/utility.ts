@@ -12,7 +12,7 @@ export class Utility {
         const request = new XMLHttpRequest();
         request.open('GET', url, true);
         request.overrideMimeType('text/plain; charset=x-user-defined');
-        request.onreadystatechange = status => {
+        request.onreadystatechange = _status => {
             if (request.readyState === 4) {
                 if (request.status === 200) {
                     callback(request.responseText);
@@ -43,7 +43,7 @@ export class Utility {
         const request = new XMLHttpRequest();
         request.open('GET', url, true);
         request.responseType = 'arraybuffer';
-        request.onreadystatechange = status => {
+        request.onreadystatechange = _status => {
             if (request.readyState === 4) {
                 if (request.status === 200) {
                     const byteArray = new Uint8Array(request.response);
@@ -75,7 +75,7 @@ export class Utility {
         const request = new XMLHttpRequest();
         request.open('GET', url, true);
         request.responseType = 'blob';
-        request.onreadystatechange = status => {
+        request.onreadystatechange = _status => {
             if (request.readyState === 4) {
                 if (request.status === 200) {
                     callback(request.response);

@@ -167,7 +167,7 @@ export class ImageElement extends ElementBase {
         else if (res.image !== undefined) {
             try {
                 c.drawImage(res.image, this._location.x, this._location.y, this._size.width, this._size.height);
-            } catch (ignore) {
+            } catch {
                 console.log('Error rendering image in ImageElement.draw.');
             }
         }

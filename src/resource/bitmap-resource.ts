@@ -111,17 +111,17 @@ export class BitmapResource extends Resource {
             this.resourceManager.urlProxy.getUrl(url, (success, proxyUrl) => {
                 if (success) {
                     image.src = proxyUrl;
-                    image.onload = e => {
+                    image.onload = _e => {
                         if (callback) {
                             callback(true);
                         }
                     };
-                    image.onabort = e => {
+                    image.onabort = _e => {
                         if (callback) {
                             callback(false);
                         }
                     };
-                    image.onerror = e => {
+                    image.onerror = _e => {
                         if (callback) {
                             callback(false);
                         }
@@ -136,17 +136,17 @@ export class BitmapResource extends Resource {
         }
         else {
             image.src = url;
-            image.onload = e => {
+            image.onload = _e => {
                 if (callback) {
                     callback(true);
                 }
             };
-            image.onabort = e => {
+            image.onabort = _e => {
                 if (callback) {
                     callback(false);
                 }
             };
-            image.onerror = e => {
+            image.onerror = _e => {
                 if (callback) {
                     callback(false);
                 }

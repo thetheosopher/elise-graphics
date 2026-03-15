@@ -45,7 +45,7 @@ export class PaneTransitionWipe extends PaneTransition {
                 break;
         }
 
-        self.bind(surface => {
+        self.bind(_surface => {
             if (!self.pane || !self.target) {
                 return;
             }

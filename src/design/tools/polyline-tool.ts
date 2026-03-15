@@ -72,7 +72,7 @@ export class PolylineTool extends DesignTool {
         }
     }
 
-    public mouseUp(args: MouseLocationArgs) {
+    public mouseUp(_args: MouseLocationArgs) {
         if (this.controller) {
             this.controller.invalidate();
         }

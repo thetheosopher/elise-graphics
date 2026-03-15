@@ -35,7 +35,7 @@ export class PaneTransitionReveal extends PaneTransition {
         self.source = self.pane.childSurface;
         self.onStart();
 
-        self.bind(surface => {
+        self.bind(_surface => {
             // Save start time after preparation
             self.startTime = performance.now();
 

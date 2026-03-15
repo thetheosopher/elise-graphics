@@ -61,13 +61,13 @@ export class ImageBasedComponentProps extends ComponentProps {
     protected onInitialize(callback: (success: boolean) => void) {
         const self = this;
         const image = new Image();
-        image.onload = e => {
+        image.onload = _e => {
             self.fillImage = image;
             if (callback) {
                 callback(true);
             }
         };
-        image.onerror = e => {
+        image.onerror = _e => {
             self.fillImage = undefined;
             if (callback) {
                 callback(false);
@@ -98,7 +98,7 @@ export class ImageBasedComponentProps extends ComponentProps {
         }
         else {
             const image = new Image();
-            image.onload = e => {
+            image.onload = _e => {
                 if (callback) {
                     callback(image);
                 }

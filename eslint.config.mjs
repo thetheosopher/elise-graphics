@@ -5,6 +5,9 @@ import prettier from 'eslint-config-prettier';
 
 export default [
     {
+        ignores: ['lib/**', 'lib-esm/**', '_bundles/**', 'node_modules/**', 'docs/**', 'src/__tests__/**'],
+    },
+    {
         files: ['src/**/*.ts'],
         languageOptions: {
             parser: tsparser,
@@ -22,10 +25,8 @@ export default [
             'no-empty': 'off',
             '@typescript-eslint/no-explicit-any': 'off',
             '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+            '@typescript-eslint/no-this-alias': 'off',
         },
-    },
-    {
-        ignores: ['lib/**', 'lib-esm/**', '_bundles/**', 'node_modules/**', 'docs/**'],
     },
     prettier,
 ];

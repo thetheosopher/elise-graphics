@@ -4,7 +4,7 @@ import { Point } from '../core/point';
 import { IPointContainer } from '../core/point-container';
 import { PointDepth } from '../core/point-depth';
 import { Region } from '../core/region';
-import type { ISerializable, SerializedData } from '../core/serialization';
+import type { SerializedData } from '../core/serialization';
 import type { ScalingInfo } from '../core/scaling-info';
 import { Size } from '../core/size';
 import { LinearGradientFill } from '../fill/linear-gradient-fill';
@@ -549,6 +549,14 @@ export class ElementBase implements IPointContainer {
     }
 
     /**
+     * Can element be rotated
+     * @returns Can rotate
+     */
+    public canRotate(): boolean {
+        return true;
+    }
+
+    /**
      * Register any required resources with the provided resource manager
      * @param rm - Resource manager
      */
@@ -601,7 +609,7 @@ export class ElementBase implements IPointContainer {
      * Render the element to the HTML5 rendering context provided
      * @param c - Rendering context
      */
-    public draw(c: CanvasRenderingContext2D) {
+    public draw(_c: CanvasRenderingContext2D) {
         return;
     }
 
@@ -651,11 +659,11 @@ export class ElementBase implements IPointContainer {
         }
         let newWidth = this._size.width + widthDelta;
         let newHeight = this._size.height + heightDelta;
-        if (newWidth < 0) {
-            newWidth = 0;
+        if (newWidth < 1) {
+            newWidth = 1;
         }
-        if (newHeight < 0) {
-            newHeight = 0;
+        if (newHeight < 1) {
+            newHeight = 1;
         }
         this._size = new Size(newWidth, newHeight);
         return this;
@@ -689,7 +697,7 @@ export class ElementBase implements IPointContainer {
             throw new Error(ErrorMessages.LocationUndefined);
         }
         this._size = Size.scale(this._size, scaleX, scaleY);
-        this._location = Point.scale(this._location, scaleY, scaleY);
+        this._location = Point.scale(this._location, scaleX, scaleY);
         return this;
     }
 
@@ -845,6 +853,61 @@ export class ElementBase implements IPointContainer {
     }
 
     /**
+     * Gets current rotation angle in degrees from element transform
+     * @returns Rotation angle in degrees, or 0 if no rotation
+     */
+    public getRotation(): number {
+        if (!this.transform) {
+            return 0;
+        }
+        const t = this.transform.trim();
+        if (t.length > 7 && t.substring(0, 7).toLowerCase() === 'rotate(') {
+            let command = t.substring(7, t.length - 1);
+            if (command.indexOf('(') !== -1) {
+                command = command.substring(0, command.indexOf('('));
+            }
+            return parseFloat(command);
+        }
+        return 0;
+    }
+
+    /**
+     * Gets rotation center point from element transform
+     * @returns Rotation center relative to element position, or undefined if default
+     */
+    public getRotationCenter(): Point | undefined {
+        if (!this.transform) {
+            return undefined;
+        }
+        const t = this.transform.trim();
+        if (t.length > 7 && t.substring(0, 7).toLowerCase() === 'rotate(') {
+            const command = t.substring(7, t.length - 1);
+            if (command.indexOf('(') !== -1) {
+                const centerString = command.substring(command.indexOf('(') + 1, command.length - 1);
+                return Point.parse(centerString);
+            }
+        }
+        return undefined;
+    }
+
+    /**
+     * Sets rotation angle and optional center point on element transform.
+     * Format: rotate(degrees) or rotate(degrees(cx,cy)) to match setRenderTransform.
+     * @param degrees - Rotation angle in degrees
+     * @param cx - Optional center X relative to element position
+     * @param cy - Optional center Y relative to element position
+     * @returns This element
+     */
+    public setRotation(degrees: number, cx?: number, cy?: number) {
+        if (cx !== undefined && cy !== undefined) {
+            this.transform = `rotate(${degrees}(${cx},${cy}))`;
+        } else {
+            this.transform = `rotate(${degrees})`;
+        }
+        return this;
+    }
+
+    /**
      * Retrieves number of points in element
      * @returns Number of points
      */
@@ -858,7 +921,7 @@ export class ElementBase implements IPointContainer {
      * @param depth - Point depth (simple or complex)
      * @returns Point at index
      */
-    public getPointAt(index: number, depth?: PointDepth): Point {
+    public getPointAt(_index: number, _depth?: PointDepth): Point {
         throw new Error(ErrorMessages.NotImplemented);
     }
 
@@ -868,7 +931,7 @@ export class ElementBase implements IPointContainer {
      * @param value - New point value
      * @param depth - Point depth (simple or complex)
      */
-    public setPointAt(index: number, value: Point, depth: PointDepth) {
+    public setPointAt(_index: number, _value: Point, _depth: PointDepth) {
         throw new Error(ErrorMessages.NotImplemented);
     }
 

@@ -157,3 +157,33 @@ Colors are specified with a text string using one of the following forms:
 * **Named Color** - One of the known named colors (e.g. Red, Blue, Yellow)
 * **#rrggbb** - Six digit hexadecimal RGB form with # prefix
 * **#aarrggbb** - Eight digit hexadecimal ARGB form with # prefix
+
+## Building and Packaging
+
+### Prerequisites
+
+Ensure you have [Node.js](https://nodejs.org/) installed. After cloning the repository, install dependencies:
+
+```bash
+npm install
+```
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `npm run build` | Clean output directories, compile TypeScript to CommonJS (`lib/`) and ES module (`lib-esm/`) targets, and bundle UMD packages (`_bundles/`) with webpack. |
+| `npm run clean` | Remove the `_bundles`, `lib`, and `lib-esm` output directories. |
+| `npm test` | Run the Jest test suite. |
+| `npm run lint` | Run ESLint against the `src/` directory. |
+| `npm run format` | Format source files in `src/` with Prettier. |
+| `npm run doc` | Generate API documentation with TypeDoc into the `docs/` directory. |
+
+### Publishing
+
+The `prepare` lifecycle script runs the full build automatically before `npm pack` or `npm publish`. The `prepublishOnly` script ensures linting passes before a publish is allowed.
+
+```bash
+npm version patch   # bump version, lint, format, commit, and tag
+npm publish         # build, lint, and publish to npm
+```

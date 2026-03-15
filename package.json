@@ -5,6 +5,25 @@
     "main": "lib/index.js",
     "types": "lib/index.d.ts",
     "module": "lib-esm/index.js",
+    "sideEffects": false,
+    "exports": {
+        ".": {
+            "types": "./lib/index.d.ts",
+            "import": "./lib-esm/index.js",
+            "require": "./lib/index.js",
+            "default": "./lib/index.js"
+        },
+        "./lib/*": {
+            "types": "./lib/*.d.ts",
+            "import": "./lib-esm/*.js",
+            "require": "./lib/*.js",
+            "default": "./lib/*.js"
+        },
+        "./lib-esm/*": {
+            "types": "./lib/*.d.ts",
+            "import": "./lib-esm/*.js"
+        }
+    },
     "scripts": {
         "clean": "shx rm -rf _bundles lib lib-esm",
         "doc": "npx typedoc",
@@ -34,6 +53,7 @@
     },
     "homepage": "https://github.com/thetheosopher/elise-graphics#readme",
     "devDependencies": {
+        "@eslint/js": "^10.0.1",
         "@types/jest": "^30.0.0",
         "@typescript-eslint/eslint-plugin": "^8.57.0",
         "@typescript-eslint/parser": "^8.57.0",

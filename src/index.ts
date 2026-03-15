@@ -211,6 +211,7 @@ export { ElementDragArgs } from './elements/element-drag-args';
 export { ElementFactory } from './elements/element-factory';
 export { ElementLocationArgs } from './elements/element-location-args';
 export { ElementMouseEventArgs } from './elements/element-mouse-event-args';
+export { ElementRotationArgs } from './elements/element-rotation-args';
 export { ElementSizeArgs } from './elements/element-size-args';
 export { ElementSizeProps } from './elements/element-size-props';
 export { EllipseElement } from './elements/ellipse-element';

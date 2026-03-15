@@ -150,7 +150,7 @@ export abstract class Resource {
      */
     public load(url: string, callback?: (result: boolean) => void): void {
         if (this.resourceManager && this.resourceManager.urlProxy) {
-            this.resourceManager.urlProxy.getUrl(url, (success, proxyUrl) => {
+            this.resourceManager.urlProxy.getUrl(url, (success, _proxyUrl) => {
                 if (callback) {
                     callback(success);
                 }

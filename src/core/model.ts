@@ -213,7 +213,7 @@ export class Model extends ElementBase {
      * @param path - Model path
      * @param resourceFolder - Resource folder local path
      */
-    public setModelPath(path: string, resourceFolder?: string) {
+    public setModelPath(path: string, _resourceFolder?: string) {
         this.modelPath = path;
         if (!Utility.endsWith(this.modelPath, '/')) {
             this.modelPath = this.modelPath + '/';

@@ -1040,7 +1040,7 @@ export class SurfaceRadioStrip extends SurfaceLayer {
         commandHandler.attachController(self.controller);
         commandHandler.addHandler(
             SurfaceRadioStrip.RADIO_BUTTON_CLICK,
-            (controller: IController, element: ElementBase, command: string, trigger: string, parameters?: CommandParameters) => {
+            (controller: IController, element: ElementBase, _command: string, _trigger: string, _parameters?: CommandParameters) => {
                 const radioStripController = controller as SurfaceRadioStripViewController;
                 const radioStrip = radioStripController.strip;
                 const radioStripSpriteElement = element as SurfaceRadioItemSpriteElement;
@@ -1051,7 +1051,7 @@ export class SurfaceRadioStrip extends SurfaceLayer {
         );
         commandHandler.addHandler(
             SurfaceRadioStrip.RADIO_BUTTON_DOWN,
-            (controller: IController, element: ElementBase, command: string, trigger: string, parameters?: CommandParameters) => {
+            (controller: IController, element: ElementBase, _command: string, _trigger: string, _parameters?: CommandParameters) => {
                 const radioStripController = controller as SurfaceRadioStripViewController;
                 const radioStrip = radioStripController.strip;
                 const radioStripSpriteElement = element as SurfaceRadioItemSpriteElement;
@@ -1062,7 +1062,7 @@ export class SurfaceRadioStrip extends SurfaceLayer {
         );
         commandHandler.addHandler(
             SurfaceRadioStrip.RADIO_BUTTON_UP,
-            (controller: IController, element: ElementBase, command: string, trigger: string, parameters?: CommandParameters) => {
+            (controller: IController, element: ElementBase, _command: string, _trigger: string, _parameters?: CommandParameters) => {
                 const radioStripController = controller as SurfaceRadioStripViewController;
                 const radioStrip = radioStripController.strip;
                 const radioStripSpriteElement = element as SurfaceRadioItemSpriteElement;

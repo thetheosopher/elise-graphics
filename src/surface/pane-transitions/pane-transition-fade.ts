@@ -26,7 +26,7 @@ export class PaneTransitionFade extends PaneTransition {
         self.source = self.pane.childSurface;
         self.onStart();
         self.target.setOpacity(0);
-        self.bind(surface => {
+        self.bind(_surface => {
             // Save start time after preparation
             self.startTime = performance.now();
 

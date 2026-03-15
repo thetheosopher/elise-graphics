@@ -1,4 +1,3 @@
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ComponentEventHandler<T> = (source: any, data: T) => void;
 
 /**

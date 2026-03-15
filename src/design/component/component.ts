@@ -24,7 +24,7 @@ export class Component {
      * @param component - Component
      * @param el - Component element
      */
-    public static defaultSelect(component: Component, el: ComponentElement): void {
+    public static defaultSelect(_component: Component, _el: ComponentElement): void {
         return;
     }
 
@@ -33,7 +33,7 @@ export class Component {
      * @param component - Component
      * @param el - Component element
      */
-    public static defaultDeselect(component: Component, el: ComponentElement): void {
+    public static defaultDeselect(_component: Component, _el: ComponentElement): void {
         return;
     }
 

@@ -19,7 +19,6 @@ export interface SurfaceLike {
     onErrorInternal(message: string): void;
     resourceListenerEvent: {
         hasListeners(): boolean;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         listeners: Array<(source: any, data?: any) => void>;
     };
 }
@@ -82,7 +81,7 @@ export class SurfaceElement {
      * Adds item to surface model
      * @param model - Surface model
      */
-    public addToModel(model: Model): ElementBase | undefined {
+    public addToModel(_model: Model): ElementBase | undefined {
         return undefined;
     }
 }

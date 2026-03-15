@@ -82,7 +82,7 @@ export abstract class SurfaceLayer extends SurfaceElement {
     /**
      * Sets rendering scale
      */
-    public setScale(scale: number | undefined) {
+    public setScale(_scale: number | undefined) {
         return this;
     }
 

@@ -15,7 +15,7 @@ export class PaneTransitionNone extends PaneTransition {
         }
         const source = self.pane.childSurface;
         self.onStart();
-        self.bind(surface => {
+        self.bind(_surface => {
             source.unbind();
             self.onComplete();
         }, false);

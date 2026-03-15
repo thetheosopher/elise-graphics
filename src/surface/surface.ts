@@ -7,9 +7,7 @@ import { Model } from '../core/model';
 import { Utility } from '../core/utility';
 import { ElementBase } from '../elements/element-base';
 import { ImageElement } from '../elements/image-element';
-import { SpriteElement } from '../elements/sprite-element';
 import { BitmapResource } from '../resource/bitmap-resource';
-import { ResourceManager } from '../resource/resource-manager';
 import { ResourceManagerEvent } from '../resource/resource-manager-event';
 import { ResourceState } from '../resource/resource-state';
 import { SurfaceButtonElement } from './surface-button-element';
@@ -243,7 +241,7 @@ export class Surface {
         // Bind command handler event handlers to element event trigger functions
         ech.addHandler(
             SurfaceButtonElement.BUTTON_CLICK,
-            (controller: IController, element: ElementBase, command: string, trigger: string, parameters?: CommandParameters) => {
+            (controller: IController, element: ElementBase, _command: string, _trigger: string, _parameters?: CommandParameters) => {
                 const c = controller as SurfaceViewController;
                 if (!c.surface || !element || !element.id) {
                     return;
@@ -259,7 +257,7 @@ export class Surface {
 
         ech.addHandler(
             SurfaceTextElement.TEXT_CLICK,
-            (controller: IController, element: ElementBase, command: string, trigger: string, parameters?: CommandParameters) => {
+            (controller: IController, element: ElementBase, _command: string, _trigger: string, _parameters?: CommandParameters) => {
                 const c = controller as SurfaceViewController;
                 if (!c.surface || !element || !element.id) {
                     return;
@@ -514,7 +512,7 @@ export class Surface {
         // Find next unprepared layer
         for (const layer of self.layers) {
             if (!layer.isPrepared) {
-                layer.prepare(success => {
+                layer.prepare(_success => {
                     self.loadResources();
                 });
                 return;

@@ -51,7 +51,7 @@ export class PaneTransitionPush extends PaneTransition {
                 self.target.setTranslateY(-self.target.height);
                 break;
         }
-        self.bind(surface => {
+        self.bind(_surface => {
             // Save start time after preparation
             self.startTime = performance.now();
 

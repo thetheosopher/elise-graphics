@@ -20,7 +20,7 @@ export class ElementCommandHandler implements ICommandHandler<ElementBase> {
     public static PUSH_FRAME = 'pushFrame';
     public static POP_FRAME = 'popFrame';
 
-    public static pushFill(c: IController, el: ElementBase, command: string, trigger: string, parameters: string) {
+    public static pushFill(c: IController, el: ElementBase, command: string, _trigger: string, _parameters: string) {
         if (!el.fillStack) {
             el.fillStack = [];
         }
@@ -35,7 +35,7 @@ export class ElementCommandHandler implements ICommandHandler<ElementBase> {
         c.draw();
     }
 
-    public static popFill(c: IController, el: ElementBase, command: string, trigger: string, parameters: string) {
+    public static popFill(c: IController, el: ElementBase, _command: string, _trigger: string, _parameters: string) {
         if (!el.fillStack) {
             return;
         }
@@ -48,7 +48,7 @@ export class ElementCommandHandler implements ICommandHandler<ElementBase> {
         c.draw();
     }
 
-    public static pushStroke(c: IController, el: ElementBase, command: string, trigger: string, parameters: string) {
+    public static pushStroke(c: IController, el: ElementBase, command: string, _trigger: string, _parameters: string) {
         if (!el.strokeStack) {
             el.strokeStack = [];
         }
@@ -63,7 +63,7 @@ export class ElementCommandHandler implements ICommandHandler<ElementBase> {
         c.draw();
     }
 
-    public static popStroke(c: IController, el: ElementBase, command: string, trigger: string, parameters?: CommandParameters) {
+    public static popStroke(c: IController, el: ElementBase, _command: string, _trigger: string, _parameters?: CommandParameters) {
         if (!el.strokeStack) {
             return;
         }
@@ -76,7 +76,7 @@ export class ElementCommandHandler implements ICommandHandler<ElementBase> {
         c.draw();
     }
 
-    public static pushFrame(c: IController, element: ElementBase, command: string, trigger: string, parameters?: CommandParameters) {
+    public static pushFrame(c: IController, element: ElementBase, command: string, _trigger: string, _parameters?: CommandParameters) {
         const el = element as SpriteElement;
         if (!el.frameStack) {
             el.frameStack = [];
@@ -87,7 +87,7 @@ export class ElementCommandHandler implements ICommandHandler<ElementBase> {
         c.draw();
     }
 
-    public static popFrame(c: IController, element: ElementBase, command: string, trigger: string, parameters?: CommandParameters) {
+    public static popFrame(c: IController, element: ElementBase, _command: string, _trigger: string, _parameters?: CommandParameters) {
         const el = element as SpriteElement;
         if (!el.frameStack) {
             return;

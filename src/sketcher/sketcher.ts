@@ -117,7 +117,7 @@ export class Sketcher {
         self.timerHandle = setTimeout(self.drawNextElement, self.timerDelay, self);
     }
 
-    public controllerDetached(source: unknown, controller?: IController | undefined) {
+    public controllerDetached(source: unknown, _controller?: IController | undefined) {
         const drawModel = source as Model;
         this.controller = undefined;
         drawModel.controllerDetached.clear();

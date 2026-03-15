@@ -35,7 +35,7 @@ export class PaneTransitionSlide extends PaneTransition {
         self.source = self.pane.childSurface;
         self.onStart();
 
-        self.bind(surface => {
+        self.bind(_surface => {
             if (!self.pane || !self.target) {
                 return;
             }

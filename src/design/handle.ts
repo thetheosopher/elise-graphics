@@ -45,6 +45,9 @@ export class Handle {
         if (el.aspectLocked || h.controller.lockAspect) {
             const aspect = b.width / b.height;
             newHeight = newWidth / aspect;
+            if (newHeight < h.controller.minElementSize.height) {
+                return;
+            }
         }
         const moveLocation = new Point(newX, b.y);
         const resizeSize = new Size(
@@ -66,9 +69,6 @@ export class Handle {
         const b = el.getBounds();
         if (!b) {
             throw new Error(ErrorMessages.BoundsAreUndefined);
-        }
-        if (!el) {
-            throw new Error(ErrorMessages.ElementUndefined);
         }
         if (!el.model) {
             throw new Error(ErrorMessages.ModelUndefined);
@@ -109,6 +109,9 @@ export class Handle {
         if (el.aspectLocked || h.controller.lockAspect) {
             const aspect = b.width / b.height;
             newHeight = newWidth / aspect;
+            if (newWidth < h.controller.minElementSize.width || newHeight < h.controller.minElementSize.height) {
+                return;
+            }
         }
         const moveLocation = new Point(newX, b.y);
         const resizeSize = new Size(
@@ -148,6 +151,9 @@ export class Handle {
         if (el.aspectLocked || h.controller.lockAspect) {
             const aspect = b.width / b.height;
             newWidth = newHeight * aspect;
+            if (newWidth < h.controller.minElementSize.width || newHeight < h.controller.minElementSize.height) {
+                return;
+            }
         }
         const resizeSize = new Size(
             Math.max(newWidth, h.controller.minElementSize.width),
@@ -185,6 +191,9 @@ export class Handle {
         if (el.aspectLocked || h.controller.lockAspect) {
             const aspect = b.width / b.height;
             newHeight = newWidth / aspect;
+            if (newWidth < h.controller.minElementSize.width || newHeight < h.controller.minElementSize.height) {
+                return;
+            }
         }
         const resizeSize = new Size(
             Math.max(newWidth, h.controller.minElementSize.width),
@@ -229,6 +238,9 @@ export class Handle {
         if (el.aspectLocked || h.controller.lockAspect) {
             const aspect = b.width / b.height;
             newHeight = newWidth / aspect;
+            if (newWidth < h.controller.minElementSize.width || newHeight < h.controller.minElementSize.height) {
+                return;
+            }
         }
         const resizeSize = new Size(
             Math.max(newWidth, h.controller.minElementSize.width),
@@ -276,6 +288,9 @@ export class Handle {
             const adjustedHeight = newWidth / aspect;
             newY -= adjustedHeight - newHeight;
             newHeight = adjustedHeight;
+            if (newWidth < h.controller.minElementSize.width || newHeight < h.controller.minElementSize.height) {
+                return;
+            }
         }
         const moveLocation = new Point(b.x, newY);
         const resizeSize = new Size(
@@ -316,6 +331,9 @@ export class Handle {
         if (el.aspectLocked || h.controller.lockAspect) {
             const aspect = b.width / b.height;
             newWidth = newHeight * aspect;
+            if (newWidth < h.controller.minElementSize.width || newHeight < h.controller.minElementSize.height) {
+                return;
+            }
         }
         const moveLocation = new Point(b.x, newY);
         const resizeSize = new Size(
@@ -366,6 +384,9 @@ export class Handle {
             const adjustedHeight = newWidth / aspect;
             newY -= adjustedHeight - newHeight;
             newHeight = adjustedHeight;
+            if (newWidth < h.controller.minElementSize.width || newHeight < h.controller.minElementSize.height) {
+                return;
+            }
         }
         const moveLocation = new Point(newX, newY);
         const resizeSize = new Size(
@@ -405,6 +426,80 @@ export class Handle {
         dc.clearElementResizeSizes();
         el.clearBounds();
         h.controller.invalidate();
+    }
+
+    /**
+     * Handles rotation of element via rotation handle drag
+     * @param h - Handle being moved
+     * @param args - Handle movement info with mouse position
+     */
+    public static rotateElement(h: Handle, args: HandleMovedArgs): void {
+        const el = h.element;
+        const b = el.getBounds();
+        if (!b || args.mouseX === undefined || args.mouseY === undefined) {
+            return;
+        }
+        const c = h.controller;
+
+        // Get rotation center in canvas space
+        let centerX: number;
+        let centerY: number;
+        if (c.rotationCenter) {
+            centerX = c.rotationCenter.x;
+            centerY = c.rotationCenter.y;
+        } else {
+            centerX = b.x + b.width / 2;
+            centerY = b.y + b.height / 2;
+        }
+
+        // Compute current angle from center to mouse
+        const currentAngle = Math.atan2(args.mouseY - centerY, args.mouseX - centerX);
+
+        // Compute delta from start angle
+        const deltaAngle = currentAngle - c.rotationStartAngle;
+
+        // New rotation in degrees
+        let newDegrees = c.originalRotation + deltaAngle * 180 / Math.PI;
+
+        // Shift snap to 15° increments
+        if (args.shiftKey) {
+            newDegrees = Math.round(newDegrees / 15) * 15;
+        }
+
+        // Normalize to 0-360
+        newDegrees = ((newDegrees % 360) + 360) % 360;
+
+        // Compute local center relative to element position
+        const localCx = centerX - b.x;
+        const localCy = centerY - b.y;
+
+        // Set rotation on element
+        el.setRotation(newDegrees, localCx, localCy);
+        c.invalidate();
+    }
+
+    /**
+     * Handles movement of rotation center (pivot) handle
+     * @param h - Handle being moved
+     * @param args - Handle movement info
+     */
+    public static moveRotationCenter(h: Handle, args: HandleMovedArgs): void {
+        const c = h.controller;
+        if (c.rotationCenter) {
+            c.rotationCenter = new Point(
+                c.rotationCenter.x + args.deltaX,
+                c.rotationCenter.y + args.deltaY
+            );
+        } else {
+            const b = h.element.getBounds();
+            if (b) {
+                c.rotationCenter = new Point(
+                    b.x + b.width / 2 + args.deltaX,
+                    b.y + b.height / 2 + args.deltaY
+                );
+            }
+        }
+        c.invalidate();
     }
 
     /**

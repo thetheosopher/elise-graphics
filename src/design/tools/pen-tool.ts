@@ -71,7 +71,7 @@ export class PenTool extends DesignTool {
         }
     }
 
-    public mouseUp(args: MouseLocationArgs) {
+    public mouseUp(_args: MouseLocationArgs) {
         if (!this.model) {
             return;
         }

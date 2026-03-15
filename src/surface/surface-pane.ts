@@ -111,7 +111,7 @@ export class SurfacePane extends SurfaceLayer {
         }
         self.childSurface.bind(
             self.element,
-            surface => {
+            _surface => {
                 self.isPrepared = true;
                 callback(true);
             },
