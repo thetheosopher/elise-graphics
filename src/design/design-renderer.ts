@@ -85,8 +85,7 @@ export class DesignRenderer {
                 c.translate(fillOffsetX, fillOffsetY);
                 c.fillRect(-fillOffsetX, -fillOffsetY, w, h);
                 c.translate(-fillOffsetX, -fillOffsetY);
-            }
-            else {
+            } else {
                 c.fillRect(0, 0, w, h);
             }
         }
@@ -111,34 +110,25 @@ export class DesignRenderer {
      */
     public renderElement(c: CanvasRenderingContext2D, el: ElementBase) {
         if (el.type === 'image') {
-            this.renderImageElement.apply(this, [ c, el as ImageElement ]);
-        }
-        else if (el.type === 'sprite') {
-            this.renderSpriteElement.apply(this, [ c, el as SpriteElement ]);
-        }
-        else if (el.type === 'rectangle') {
-            this.renderRectangleElement.apply(this, [ c, el as RectangleElement ]);
-        }
-        else if (el.type === 'line') {
-            this.renderLineElement.apply(this, [ c, el as LineElement ]);
-        }
-        else if (el.type === 'polyline') {
-            this.renderPolylineElement.apply(this, [ c, el as PolylineElement ]);
-        }
-        else if (el.type === 'polygon') {
-            this.renderPolygonElement.apply(this, [ c, el as PolygonElement ]);
-        }
-        else if (el.type === 'path') {
-            this.renderPathElement.apply(this, [ c, el as PathElement ]);
-        }
-        else if (el.type === 'ellipse') {
-            this.renderEllipseElement.apply(this, [ c, el as EllipseElement ]);
-        }
-        else if (el.type === 'model') {
-            this.renderModelElement.apply(this, [ c, el as ModelElement ]);
-        }
-        else if (el.type === 'text') {
-            this.renderTextElement.apply(this, [ c, el as TextElement ]);
+            this.renderImageElement.apply(this, [c, el as ImageElement]);
+        } else if (el.type === 'sprite') {
+            this.renderSpriteElement.apply(this, [c, el as SpriteElement]);
+        } else if (el.type === 'rectangle') {
+            this.renderRectangleElement.apply(this, [c, el as RectangleElement]);
+        } else if (el.type === 'line') {
+            this.renderLineElement.apply(this, [c, el as LineElement]);
+        } else if (el.type === 'polyline') {
+            this.renderPolylineElement.apply(this, [c, el as PolylineElement]);
+        } else if (el.type === 'polygon') {
+            this.renderPolygonElement.apply(this, [c, el as PolygonElement]);
+        } else if (el.type === 'path') {
+            this.renderPathElement.apply(this, [c, el as PathElement]);
+        } else if (el.type === 'ellipse') {
+            this.renderEllipseElement.apply(this, [c, el as EllipseElement]);
+        } else if (el.type === 'model') {
+            this.renderModelElement.apply(this, [c, el as ModelElement]);
+        } else if (el.type === 'text') {
+            this.renderTextElement.apply(this, [c, el as TextElement]);
         }
     }
 
@@ -180,8 +170,7 @@ export class DesignRenderer {
             c.globalAlpha = image.opacity;
             c.drawImage(resource.image, location.x, location.y, size.width, size.height);
             c.globalAlpha = o;
-        }
-        else if (resource.image) {
+        } else if (resource.image) {
             try {
                 c.drawImage(resource.image, location.x, location.y, size.width, size.height);
             } catch (ignore) {
@@ -240,11 +229,10 @@ export class DesignRenderer {
                 location.x,
                 location.y,
                 size.width,
-                size.height
+                size.height,
             );
             c.globalAlpha = o;
-        }
-        else {
+        } else {
             c.drawImage(
                 resource.image,
                 frame.x,
@@ -254,7 +242,7 @@ export class DesignRenderer {
                 location.x,
                 location.y,
                 size.width,
-                size.height
+                size.height,
             );
         }
         c.restore();
@@ -304,8 +292,7 @@ export class DesignRenderer {
                 c.translate(loc.x + fillOffsetX, loc.y + fillOffsetY);
                 c.fillRect(-fillOffsetX, -fillOffsetY, w, h);
                 c.translate(-(loc.x + fillOffsetX), -(loc.y + fillOffsetY));
-            }
-            else {
+            } else {
                 c.translate(loc.x, loc.y);
                 c.fillRect(0, 0, w, h);
                 c.translate(-loc.x, -loc.y);
@@ -354,21 +341,18 @@ export class DesignRenderer {
                 p1y = this.controller.movingPointLocation.y;
                 p2x = p2.x;
                 p2y = p2.y;
-            }
-            else if (this.controller.movingPointIndex === 1) {
+            } else if (this.controller.movingPointIndex === 1) {
                 p1x = p1.x;
                 p1y = p1.y;
                 p2x = this.controller.movingPointLocation.x;
                 p2y = this.controller.movingPointLocation.y;
-            }
-            else {
+            } else {
                 p1x = p1.x;
                 p2x = p2.x;
                 p1y = p1.y;
                 p2y = p2.y;
             }
-        }
-        else {
+        } else {
             p1x = p1.x;
             p2x = p2.x;
             p1y = p1.y;
@@ -376,7 +360,7 @@ export class DesignRenderer {
         }
         c.save();
         if (line.transform) {
-            model.setRenderTransform(c, line.transform, new Point(p1x, p1y));
+            model.setRenderTransform(c, line.transform, location);
         }
         c.beginPath();
         c.moveTo(p1x + offsetX, p1y + offsetY);
@@ -429,13 +413,12 @@ export class DesignRenderer {
         }
         c.save();
         if (polyline.transform) {
-            model.setRenderTransform(c, polyline.transform, b.location);
+            model.setRenderTransform(c, polyline.transform, location);
         }
         c.beginPath();
         if (movingPointIndex === 0 && movingPointLocation) {
             c.moveTo(movingPointLocation.x, movingPointLocation.y);
-        }
-        else {
+        } else {
             scaled = Point.scale(polyline.getPointAt(0), scaleX, scaleY, b.x, b.y);
             scaled = Point.translate(scaled, offsetX, offsetY);
             c.moveTo(scaled.x, scaled.y);
@@ -451,8 +434,7 @@ export class DesignRenderer {
                     const xc = (movingPointLocation.x + scaled2.x) / 2;
                     const yc = (movingPointLocation.y + scaled2.y) / 2;
                     c.quadraticCurveTo(movingPointLocation.x, movingPointLocation.y, xc, yc);
-                }
-                else {
+                } else {
                     scaled = Point.scale(polyline.getPointAt(i), scaleX, scaleY, b.x, b.y);
                     scaled = Point.translate(scaled, offsetX, offsetY);
                     scaled2 = Point.scale(polyline.getPointAt(i + 1), scaleX, scaleY, b.x, b.y);
@@ -468,19 +450,16 @@ export class DesignRenderer {
                 scaled2 = Point.translate(scaled2, offsetX, offsetY);
                 c.lineTo(scaled2.x, scaled2.y);
                 // c.quadraticCurveTo(movingPointLocation.x, movingPointLocation.y, scaled2.x, scaled2.y);
-            }
-            else {
+            } else {
                 scaled2 = Point.scale(polyline.getPointAt(i + 1), scaleX, scaleY, b.x, b.y);
                 scaled2 = Point.translate(scaled2, offsetX, offsetY);
                 c.lineTo(scaled2.x, scaled2.y);
             }
-        }
-        else {
+        } else {
             for (i = 1; i < l; i++) {
                 if (i === movingPointIndex && movingPointLocation) {
                     c.lineTo(movingPointLocation.x + offsetX, movingPointLocation.y + offsetY);
-                }
-                else {
+                } else {
                     scaled = Point.scale(polyline.getPointAt(i), scaleX, scaleY, b.x, b.y);
                     scaled = Point.translate(scaled, offsetX, offsetY);
                     c.lineTo(scaled.x, scaled.y);
@@ -535,13 +514,12 @@ export class DesignRenderer {
         }
         c.save();
         if (polygon.transform) {
-            model.setRenderTransform(c, polygon.transform, b.location);
+            model.setRenderTransform(c, polygon.transform, location);
         }
         c.beginPath();
         if (movingPointIndex === 0 && movingPointLocation) {
             c.moveTo(movingPointLocation.x, movingPointLocation.y);
-        }
-        else {
+        } else {
             scaled = Point.scale(polygon.getPointAt(0), scaleX, scaleY, b.x, b.y);
             scaled = Point.translate(scaled, offsetX, offsetY);
             c.moveTo(scaled.x, scaled.y);
@@ -551,8 +529,7 @@ export class DesignRenderer {
         for (i = 1; i < l; i++) {
             if (i === movingPointIndex && movingPointLocation) {
                 c.lineTo(movingPointLocation.x, movingPointLocation.y);
-            }
-            else {
+            } else {
                 scaled = Point.scale(polygon.getPointAt(i), scaleX, scaleY, b.x, b.y);
                 scaled = Point.translate(scaled, offsetX, offsetY);
                 c.lineTo(scaled.x, scaled.y);
@@ -573,18 +550,15 @@ export class DesignRenderer {
                 c.translate(loc.x + fillOffsetX, loc.y + fillOffsetY);
                 if (polygon.winding && polygon.winding === WindingMode.EvenOdd) {
                     c.fill('evenodd');
-                }
-                else {
+                } else {
                     c.fill('nonzero');
                 }
                 c.translate(-(loc.x + fillOffsetX), -(loc.y + fillOffsetY));
-            }
-            else {
+            } else {
                 c.translate(loc.x, loc.y);
                 if (polygon.winding && polygon.winding === WindingMode.EvenOdd) {
                     c.fill('evenodd');
-                }
-                else {
+                } else {
                     c.fill('nonzero');
                 }
                 c.translate(-loc.x, -loc.y);
@@ -638,14 +612,13 @@ export class DesignRenderer {
             movingPointLocation = this.controller.movingPointLocation;
             if (this.controller.selectedElementCount() === 1) {
                 depth = PointDepth.Full;
-            }
-            else {
+            } else {
                 depth = PointDepth.Simple;
             }
         }
         c.save();
         if (pathElement.transform) {
-            model.setRenderTransform(c, pathElement.transform, b.location);
+            model.setRenderTransform(c, pathElement.transform, location);
         }
         c.beginPath();
         const commands = pathElement.getCommands();
@@ -655,27 +628,23 @@ export class DesignRenderer {
                     current++;
                     if (current === movingPointIndex && movingPointLocation) {
                         c.moveTo(movingPointLocation.x + offsetX, movingPointLocation.y + offsetY);
-                    }
-                    else {
+                    } else {
                         let point = Point.parse(command.substring(1, command.length));
                         point = Point.scale(point, scaleX, scaleY, b.x, b.y);
                         point = Point.translate(point, offsetX, offsetY);
                         c.moveTo(point.x, point.y);
                     }
-                }
-                else if (command.charAt(0) === 'l') {
+                } else if (command.charAt(0) === 'l') {
                     current++;
                     if (current === movingPointIndex && movingPointLocation) {
                         c.lineTo(movingPointLocation.x + offsetX, movingPointLocation.y + offsetY);
-                    }
-                    else {
+                    } else {
                         let point = Point.parse(command.substring(1, command.length));
                         point = Point.scale(point, scaleX, scaleY, b.x, b.y);
                         point = Point.translate(point, offsetX, offsetY);
                         c.lineTo(point.x, point.y);
                     }
-                }
-                else if (command.charAt(0) === 'c') {
+                } else if (command.charAt(0) === 'c') {
                     const parts = command.substring(1, command.length).split(',');
                     let cp1 = new Point(parseFloat(parts[0]), parseFloat(parts[1]));
                     cp1 = Point.scale(cp1, scaleX, scaleY, b.x, b.y);
@@ -703,8 +672,7 @@ export class DesignRenderer {
                         }
                     }
                     c.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, endPoint.x, endPoint.y);
-                }
-                else if (command.charAt(0) === 'z') {
+                } else if (command.charAt(0) === 'z') {
                     c.closePath();
                 }
             }
@@ -725,18 +693,15 @@ export class DesignRenderer {
                     c.translate(loc.x + fillOffsetX, loc.y + fillOffsetY);
                     if (pathElement.winding && pathElement.winding === WindingMode.EvenOdd) {
                         c.fill('evenodd');
-                    }
-                    else {
+                    } else {
                         c.fill('nonzero');
                     }
                     c.translate(-(loc.x + fillOffsetX), -(loc.y + fillOffsetY));
-                }
-                else {
+                } else {
                     c.translate(loc.x, loc.y);
                     if (pathElement.winding && pathElement.winding === WindingMode.EvenOdd) {
                         c.fill('evenodd');
-                    }
-                    else {
+                    } else {
                         c.fill('nonzero');
                     }
                     c.translate(-loc.x, -loc.y);
@@ -777,7 +742,11 @@ export class DesignRenderer {
         if (ellipse.transform) {
             const b = ellipse.getBounds();
             if (b) {
-                model.setRenderTransform(c, ellipse.transform, new Point(b.x, b.y));
+                let ref = b.location;
+                if ((this.controller.isMoving || this.controller.isResizing) && this.controller.isSelected(ellipse)) {
+                    ref = this.controller.getElementMoveLocation(ellipse);
+                }
+                model.setRenderTransform(c, ellipse.transform, ref);
             }
         }
         const scaleY = radiusY / radiusX;
@@ -800,8 +769,7 @@ export class DesignRenderer {
                     c.translate(loc.x + fillOffsetX, loc.y + fillOffsetY);
                     c.fill();
                     c.translate(-(loc.x + fillOffsetX), -(loc.y + fillOffsetY));
-                }
-                else {
+                } else {
                     c.translate(loc.x, loc.y);
                     c.fill();
                     c.translate(-loc.x, -loc.y);
@@ -863,8 +831,7 @@ export class DesignRenderer {
                 font += part;
                 font += ' ';
             }
-        }
-        else {
+        } else {
             font += 'sans-serif';
         }
         c.font = font;
@@ -876,30 +843,23 @@ export class DesignRenderer {
                 if (part.toLowerCase() === 'start') {
                     c.textAlign = 'start';
                     halign = 'left';
-                }
-                else if (part.toLowerCase() === 'end') {
+                } else if (part.toLowerCase() === 'end') {
                     c.textAlign = 'end';
                     halign = 'right';
-                }
-                else if (part.toLowerCase() === 'left') {
+                } else if (part.toLowerCase() === 'left') {
                     c.textAlign = 'left';
                     halign = 'left';
-                }
-                else if (part.toLowerCase() === 'right') {
+                } else if (part.toLowerCase() === 'right') {
                     c.textAlign = 'right';
                     halign = 'right';
-                }
-                else if (part.toLowerCase() === 'center') {
+                } else if (part.toLowerCase() === 'center') {
                     c.textAlign = 'center';
                     halign = 'center';
-                }
-                else if (part.toLowerCase() === 'top') {
+                } else if (part.toLowerCase() === 'top') {
                     valign = 'top';
-                }
-                else if (part.toLowerCase() === 'bottom') {
+                } else if (part.toLowerCase() === 'bottom') {
                     valign = 'bottom';
-                }
-                else if (part.toLowerCase() === 'middle') {
+                } else if (part.toLowerCase() === 'middle') {
                     valign = 'middle';
                 }
             }
@@ -943,16 +903,14 @@ export class DesignRenderer {
                 x = location.x;
                 if (halign === 'right') {
                     x += size.width;
-                }
-                else if (halign === 'center') {
+                } else if (halign === 'center') {
                     x += size.width / 2;
                 }
                 y = location.y;
                 c.textBaseline = 'top';
                 if (valign === 'middle') {
                     y = location.y + size.height / 2 - totalHeight / 2;
-                }
-                else if (valign === 'bottom') {
+                } else if (valign === 'bottom') {
                     y = location.y + size.height - totalHeight;
                 }
                 for (const line of lines) {
@@ -962,8 +920,7 @@ export class DesignRenderer {
                         c.translate(loc.x + fillOffsetX, loc.y + fillOffsetY);
                         c.fillText(line, -fillOffsetX + x - loc.x, -fillOffsetY + y - loc.y);
                         c.translate(-(loc.x + fillOffsetX), -(loc.y + fillOffsetY));
-                    }
-                    else {
+                    } else {
                         c.translate(loc.x, loc.y);
                         c.fillText(line, x - loc.x, y - loc.y);
                         c.translate(-loc.x, -loc.y);
@@ -978,15 +935,13 @@ export class DesignRenderer {
             x = location.x;
             if (halign === 'right') {
                 x += size.width;
-            }
-            else if (halign === 'center') {
+            } else if (halign === 'center') {
                 x += size.width / 2;
             }
             y = location.y;
             if (valign === 'middle') {
                 y = location.y + size.height / 2 - totalHeight / 2;
-            }
-            else if (valign === 'bottom') {
+            } else if (valign === 'bottom') {
                 y = location.y + size.height - totalHeight;
             }
             for (const line of lines) {
@@ -1038,8 +993,7 @@ export class DesignRenderer {
         if (size && size !== Size.Empty) {
             w = size.width;
             h = size.height;
-        }
-        else if (innerModel.size) {
+        } else if (innerModel.size) {
             size = innerModel.getSize();
             if (size) {
                 w = size.width;
@@ -1079,8 +1033,7 @@ export class DesignRenderer {
             }
             c.drawImage(offscreen, x, y);
             c.restore();
-        }
-        else {
+        } else {
             c.save();
             if (modelElement.transform) {
                 model.setRenderTransform(c, modelElement.transform, new Point(x, y));

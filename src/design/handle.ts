@@ -1,4 +1,5 @@
 import { ErrorMessages } from '../core/error-messages';
+import { Matrix2D } from '../core/matrix-2d';
 import { Point } from '../core/point';
 import { PointDepth } from '../core/point-depth';
 import { Region } from '../core/region';
@@ -52,7 +53,7 @@ export class Handle {
         const moveLocation = new Point(newX, b.y);
         const resizeSize = new Size(
             Math.max(newWidth, h.controller.minElementSize.width),
-            Math.max(newHeight, h.controller.minElementSize.height)
+            Math.max(newHeight, h.controller.minElementSize.height),
         );
         h.controller.setElementMoveLocation(el, moveLocation, resizeSize);
         h.controller.setElementResizeSize(el, resizeSize, moveLocation);
@@ -116,7 +117,7 @@ export class Handle {
         const moveLocation = new Point(newX, b.y);
         const resizeSize = new Size(
             Math.max(newWidth, h.controller.minElementSize.width),
-            Math.max(newHeight, h.controller.minElementSize.height)
+            Math.max(newHeight, h.controller.minElementSize.height),
         );
         h.controller.setElementMoveLocation(el, moveLocation, resizeSize);
         h.controller.setElementResizeSize(el, resizeSize, moveLocation);
@@ -157,7 +158,7 @@ export class Handle {
         }
         const resizeSize = new Size(
             Math.max(newWidth, h.controller.minElementSize.width),
-            Math.max(newHeight, h.controller.minElementSize.height)
+            Math.max(newHeight, h.controller.minElementSize.height),
         );
         h.controller.setElementResizeSize(el, resizeSize);
         h.controller.invalidate();
@@ -197,7 +198,7 @@ export class Handle {
         }
         const resizeSize = new Size(
             Math.max(newWidth, h.controller.minElementSize.width),
-            Math.max(newHeight, h.controller.minElementSize.height)
+            Math.max(newHeight, h.controller.minElementSize.height),
         );
         h.controller.setElementResizeSize(el, resizeSize);
         h.controller.invalidate();
@@ -244,7 +245,7 @@ export class Handle {
         }
         const resizeSize = new Size(
             Math.max(newWidth, h.controller.minElementSize.width),
-            Math.max(newHeight, h.controller.minElementSize.height)
+            Math.max(newHeight, h.controller.minElementSize.height),
         );
         h.controller.setElementResizeSize(el, resizeSize);
         h.controller.invalidate();
@@ -295,7 +296,7 @@ export class Handle {
         const moveLocation = new Point(b.x, newY);
         const resizeSize = new Size(
             Math.max(newWidth, h.controller.minElementSize.width),
-            Math.max(newHeight, h.controller.minElementSize.height)
+            Math.max(newHeight, h.controller.minElementSize.height),
         );
         h.controller.setElementMoveLocation(el, moveLocation, resizeSize);
         h.controller.setElementResizeSize(el, resizeSize, moveLocation);
@@ -338,7 +339,7 @@ export class Handle {
         const moveLocation = new Point(b.x, newY);
         const resizeSize = new Size(
             Math.max(newWidth, h.controller.minElementSize.width),
-            Math.max(newHeight, h.controller.minElementSize.height)
+            Math.max(newHeight, h.controller.minElementSize.height),
         );
         h.controller.setElementMoveLocation(el, moveLocation, resizeSize);
         h.controller.setElementResizeSize(el, resizeSize, moveLocation);
@@ -391,7 +392,7 @@ export class Handle {
         const moveLocation = new Point(newX, newY);
         const resizeSize = new Size(
             Math.max(newWidth, h.controller.minElementSize.width),
-            Math.max(newHeight, h.controller.minElementSize.height)
+            Math.max(newHeight, h.controller.minElementSize.height),
         );
         h.controller.setElementMoveLocation(el, moveLocation, resizeSize);
         h.controller.setElementResizeSize(el, resizeSize, moveLocation);
@@ -444,7 +445,13 @@ export class Handle {
         // Get rotation center in canvas space
         let centerX: number;
         let centerY: number;
-        if (c.rotationCenter) {
+
+        if (args.shiftKey) {
+            // Shift held: snap pivot to element center
+            centerX = b.x + b.width / 2;
+            centerY = b.y + b.height / 2;
+            c.rotationCenter = new Point(centerX, centerY);
+        } else if (c.rotationCenter) {
             centerX = c.rotationCenter.x;
             centerY = c.rotationCenter.y;
         } else {
@@ -452,14 +459,25 @@ export class Handle {
             centerY = b.y + b.height / 2;
         }
 
-        // Compute current angle from center to mouse
-        const currentAngle = Math.atan2(args.mouseY - centerY, args.mouseX - centerX);
+        // Transform local center to canvas space for angle calculation
+        let canvasCenterX = centerX;
+        let canvasCenterY = centerY;
+        const origTransform = c.originalTransform;
+        if (origTransform) {
+            const mat = Matrix2D.fromTransformString(origTransform, new Point(b.x, b.y));
+            const cp = mat.transformPoint(new Point(centerX, centerY));
+            canvasCenterX = cp.x;
+            canvasCenterY = cp.y;
+        }
+
+        // Compute current angle from center to mouse (both in canvas space)
+        const currentAngle = Math.atan2(args.mouseY - canvasCenterY, args.mouseX - canvasCenterX);
 
         // Compute delta from start angle
         const deltaAngle = currentAngle - c.rotationStartAngle;
 
         // New rotation in degrees
-        let newDegrees = c.originalRotation + deltaAngle * 180 / Math.PI;
+        let newDegrees = c.originalRotation + (deltaAngle * 180) / Math.PI;
 
         // Shift snap to 15° increments
         if (args.shiftKey) {
@@ -473,8 +491,37 @@ export class Handle {
         const localCx = centerX - b.x;
         const localCy = centerY - b.y;
 
-        // Set rotation on element
-        el.setRotation(newDegrees, localCx, localCy);
+        // Check if original transform was a simple rotation
+        if (!origTransform || origTransform.trim().substring(0, 7).toLowerCase() === 'rotate(') {
+            // Simple rotation or no transform: use standard setRotation
+            el.setRotation(newDegrees, localCx, localCy);
+        } else {
+            // Non-rotation transform: compose original transform matrix with rotation
+            const origin = new Point(b.x, b.y);
+            const origMatrix = Matrix2D.fromTransformString(origTransform, origin);
+
+            // Build rotation matrix around the center point
+            const rotMatrix = new Matrix2D(1, 0, 0, 1, 0, 0);
+            rotMatrix.translate(centerX, centerY);
+            const angleRad = (newDegrees * Math.PI) / 180;
+            rotMatrix.rotate(angleRad);
+            rotMatrix.translate(-centerX, -centerY);
+
+            // Remove original rotation component to get the base transform
+            const origAngle = (c.originalRotation * Math.PI) / 180;
+            const unrotMatrix = new Matrix2D(1, 0, 0, 1, 0, 0);
+            unrotMatrix.translate(centerX, centerY);
+            unrotMatrix.rotate(-origAngle);
+            unrotMatrix.translate(-centerX, -centerY);
+            const baseMatrix = Matrix2D.multiply(unrotMatrix, origMatrix);
+
+            // Composite: new rotation applied to the base (non-rotation) transform
+            const composite = Matrix2D.multiply(baseMatrix, rotMatrix);
+
+            // Store as matrix transform with center point
+            const m = composite;
+            el.transform = `matrix(${m.m11},${m.m12},${m.m21},${m.m22},${m.offsetX},${m.offsetY}(${localCx},${localCy}))`;
+        }
         c.invalidate();
     }
 
@@ -485,18 +532,12 @@ export class Handle {
      */
     public static moveRotationCenter(h: Handle, args: HandleMovedArgs): void {
         const c = h.controller;
-        if (c.rotationCenter) {
-            c.rotationCenter = new Point(
-                c.rotationCenter.x + args.deltaX,
-                c.rotationCenter.y + args.deltaY
-            );
+        if (c.originalPivotCenter) {
+            c.rotationCenter = new Point(c.originalPivotCenter.x + args.deltaX, c.originalPivotCenter.y + args.deltaY);
         } else {
             const b = h.element.getBounds();
             if (b) {
-                c.rotationCenter = new Point(
-                    b.x + b.width / 2 + args.deltaX,
-                    b.y + b.height / 2 + args.deltaY
-                );
+                c.rotationCenter = new Point(b.x + b.width / 2 + args.deltaX, b.y + b.height / 2 + args.deltaY);
             }
         }
         c.invalidate();
@@ -628,8 +669,7 @@ export class Handle {
             c.strokeStyle = 'white';
             c.lineWidth = 0.5 / this.scale;
             c.stroke();
-        }
-        else {
+        } else {
             // Rectangle
             c.fillStyle = 'white';
             c.fillRect(b.x, b.y, b.width, b.height);

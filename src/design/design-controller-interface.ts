@@ -16,8 +16,10 @@ export interface IDesignController {
     movingPointIndex?: number;
     movingPointLocation?: Point;
     rotationCenter?: Point;
+    originalPivotCenter?: Point;
     rotationStartAngle: number;
     originalRotation: number;
+    originalTransform?: string;
     minElementSize: Size;
     snapToGrid: boolean;
     lockAspect: boolean;

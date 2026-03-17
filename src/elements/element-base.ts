@@ -203,8 +203,7 @@ export class ElementBase implements IPointContainer {
     get size(): string | undefined {
         if (!this._size) {
             return undefined;
-        }
-        else {
+        } else {
             return this._size.toString();
         }
     }
@@ -216,8 +215,7 @@ export class ElementBase implements IPointContainer {
     set size(sizeString: string | undefined) {
         if (!sizeString) {
             this._size = undefined;
-        }
-        else {
+        } else {
             this._size = Size.parse(sizeString);
         }
     }
@@ -229,8 +227,7 @@ export class ElementBase implements IPointContainer {
     get location(): string | undefined {
         if (!this._location) {
             return undefined;
-        }
-        else {
+        } else {
             return this._location.toString();
         }
     }
@@ -241,8 +238,7 @@ export class ElementBase implements IPointContainer {
     set location(locationString: string | undefined) {
         if (!locationString) {
             this._location = undefined;
-        }
-        else {
+        } else {
             this._location = Point.parse(locationString);
         }
     }
@@ -266,37 +262,32 @@ export class ElementBase implements IPointContainer {
         }
         if (o.locked) {
             this.locked = o.locked as boolean;
-        }
-        else {
+        } else {
             this.locked = false;
         }
         if (o.aspectLocked) {
             this.aspectLocked = o.aspectLocked as boolean;
-        }
-        else {
+        } else {
             this.aspectLocked = false;
         }
         if (o.fill) {
             if (typeof o.fill === 'string') {
                 this.fill = o.fill;
-            }
-            else if ((o.fill as { type?: string }).type === 'linearGradient') {
+            } else if ((o.fill as { type?: string }).type === 'linearGradient') {
                 const lgr1 = o.fill as LinearGradientFill;
                 const lgr2 = new LinearGradientFill(lgr1.start, lgr1.end);
                 for (const stop of lgr1.stops) {
                     lgr2.addFillStop(stop.color, stop.offset);
                 }
                 this.fill = lgr2;
-            }
-            else if ((o.fill as { type?: string }).type === 'radialGradient') {
+            } else if ((o.fill as { type?: string }).type === 'radialGradient') {
                 const rgr1 = o.fill as RadialGradientFill;
                 const rgr2 = new RadialGradientFill(rgr1.center, rgr1.focus, rgr1.radiusX, rgr1.radiusY);
                 for (const stop of rgr1.stops) {
                     rgr2.addFillStop(stop.color, stop.offset);
                 }
                 this.fill = rgr2;
-            }
-            else {
+            } else {
                 this.fill = o.fill as string;
             }
         }
@@ -780,8 +771,7 @@ export class ElementBase implements IPointContainer {
     public setStroke(stroke: string | Color | undefined) {
         if (stroke instanceof Color) {
             this.stroke = stroke.toString();
-        }
-        else {
+        } else {
             this.stroke = stroke;
         }
         return this;
@@ -795,8 +785,7 @@ export class ElementBase implements IPointContainer {
     public setFill(fill: string | Color | LinearGradientFill | RadialGradientFill | undefined) {
         if (fill instanceof Color) {
             this.fill = fill.toString();
-        }
-        else {
+        } else {
             this.fill = fill;
         }
         return this;
@@ -868,6 +857,16 @@ export class ElementBase implements IPointContainer {
             }
             return parseFloat(command);
         }
+        if (t.length > 7 && t.substring(0, 7).toLowerCase() === 'matrix(') {
+            let command = t.substring(7, t.length - 1);
+            if (command.indexOf('(') !== -1) {
+                command = command.substring(0, command.indexOf('('));
+            }
+            const parts = command.split(',');
+            const m11 = parseFloat(parts[0]);
+            const m12 = parseFloat(parts[1]);
+            return (Math.atan2(m12, m11) * 180) / Math.PI;
+        }
         return 0;
     }
 
@@ -887,7 +886,26 @@ export class ElementBase implements IPointContainer {
                 return Point.parse(centerString);
             }
         }
+        if (t.length > 7 && t.substring(0, 7).toLowerCase() === 'matrix(') {
+            const command = t.substring(7, t.length - 1);
+            if (command.indexOf('(') !== -1) {
+                const centerString = command.substring(command.indexOf('(') + 1, command.length - 1);
+                return Point.parse(centerString);
+            }
+        }
         return undefined;
+    }
+
+    /**
+     * Returns true if the current transform is a pure rotation (or undefined).
+     * Returns false for scale, skew, translate, matrix, or any non-rotation transform.
+     */
+    public isSimpleRotation(): boolean {
+        if (!this.transform) {
+            return true;
+        }
+        const t = this.transform.trim();
+        return t.length > 7 && t.substring(0, 7).toLowerCase() === 'rotate(';
     }
 
     /**

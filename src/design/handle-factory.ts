@@ -10,7 +10,16 @@ import type { IDesignController } from './design-controller-interface';
 /**
  * Ordered cycle of resize cursors at 45° increments starting from north (0°)
  */
-const CURSOR_CYCLE: string[] = ['n-resize', 'ne-resize', 'e-resize', 'se-resize', 's-resize', 'sw-resize', 'w-resize', 'nw-resize'];
+const CURSOR_CYCLE: string[] = [
+    'n-resize',
+    'ne-resize',
+    'e-resize',
+    'se-resize',
+    's-resize',
+    'sw-resize',
+    'w-resize',
+    'nw-resize',
+];
 
 /**
  * Returns a rotated resize cursor based on a base cursor and a rotation angle
@@ -25,7 +34,7 @@ function rotatedCursor(baseCursor: string, angleRad: number): string {
     }
     // Each step is 45°; convert angle to number of steps
     const steps = Math.round(angleRad / (Math.PI / 4));
-    const idx = ((baseIndex + steps) % 8 + 8) % 8;
+    const idx = (((baseIndex + steps) % 8) + 8) % 8;
     return CURSOR_CYCLE[idx];
 }
 
@@ -47,17 +56,14 @@ export class HandleFactory {
                 return HandleFactory.pathShapeHandles(el as PathElement, c, scale);
             }
             handles = HandleFactory.rectangularElementHandles(el, c, scale);
-        }
-        else if (el.type === 'polyline' || el.type === 'polygon') {
+        } else if (el.type === 'polyline' || el.type === 'polygon') {
             if (el.editPoints) {
                 return HandleFactory.pointContainerHandles(el, c, scale);
             }
             handles = HandleFactory.rectangularElementHandles(el, c, scale);
-        }
-        else if (el.type === 'line') {
+        } else if (el.type === 'line') {
             return HandleFactory.pointContainerHandles(el, c, scale);
-        }
-        else {
+        } else {
             handles = HandleFactory.rectangularElementHandles(el, c, scale);
         }
 
@@ -91,8 +97,7 @@ export class HandleFactory {
                 moveLocation = c.getElementMoveLocation(el);
                 location = new Point(moveLocation.x, moveLocation.y);
             }
-        }
-        else if (c.isResizing) {
+        } else if (c.isResizing) {
             if (c.isSelected(el) && el.canResize()) {
                 moveLocation = c.getElementMoveLocation(el);
                 location = new Point(moveLocation.x, moveLocation.y);
@@ -201,8 +206,8 @@ export class HandleFactory {
         handles.push(middleLeft);
 
         // Connect handles
-        topLeft.connectedHandles = [ topRight, bottomLeft ];
-        bottomRight.connectedHandles = [ bottomLeft, topRight ];
+        topLeft.connectedHandles = [topRight, bottomLeft];
+        bottomRight.connectedHandles = [bottomLeft, topRight];
 
         return handles;
     }
@@ -286,18 +291,23 @@ export class HandleFactory {
         handles.push(rbl);
 
         // Pivot handle at rotation center
-        let pivotX = location.x + size.width / 2;
-        let pivotY = location.y + size.height / 2;
+        // Compute proportional position relative to original bounds,
+        // then apply to current (possibly tentative) bounds so the pivot
+        // tracks correctly during move and resize operations.
+        let fracX = 0.5;
+        let fracY = 0.5;
         if (c.rotationCenter) {
-            pivotX = c.rotationCenter.x;
-            pivotY = c.rotationCenter.y;
+            fracX = b.width > 0 ? (c.rotationCenter.x - b.x) / b.width : 0.5;
+            fracY = b.height > 0 ? (c.rotationCenter.y - b.y) / b.height : 0.5;
         } else {
             const rc = el.getRotationCenter();
             if (rc) {
-                pivotX = location.x + rc.x;
-                pivotY = location.y + rc.y;
+                fracX = b.width > 0 ? rc.x / b.width : 0.5;
+                fracY = b.height > 0 ? rc.y / b.height : 0.5;
             }
         }
+        const pivotX = location.x + fracX * size.width;
+        const pivotY = location.y + fracY * size.height;
         const pivot = new Handle(pivotX, pivotY, el, c);
         pivot.scale = scale;
         pivot.handleId = 'pivot';
@@ -351,12 +361,10 @@ export class HandleFactory {
                 if (command.charAt(0) === 'm') {
                     handleIndex++;
                     handlePoint = Point.parse(command.substring(1, command.length));
-                }
-                else if (command.charAt(0) === 'l') {
+                } else if (command.charAt(0) === 'l') {
                     handleIndex++;
                     handlePoint = Point.parse(command.substring(1, command.length));
-                }
-                else if (command.charAt(0) === 'c') {
+                } else if (command.charAt(0) === 'c') {
                     const parts = command.substring(1, command.length).split(',');
                     const cp1 = new Point(parseFloat(parts[0]), parseFloat(parts[1]));
                     const cp2 = new Point(parseFloat(parts[2]), parseFloat(parts[3]));
@@ -380,7 +388,7 @@ export class HandleFactory {
                         hend.cursor = 'move';
                         handles.push(hend);
                         if (connectToPrevious && previous) {
-                            hend.connectedHandles = [ previous ];
+                            hend.connectedHandles = [previous];
                         }
                         previous = hend;
 
@@ -401,7 +409,7 @@ export class HandleFactory {
                         hcp1.region = hcp1.getBounds();
                         hcp1.cursor = 'move';
                         handles.push(hcp1);
-                        hcp1.connectedHandles = [ previous ];
+                        hcp1.connectedHandles = [previous];
 
                         // Control point2
                         handleIndex++;
@@ -420,12 +428,11 @@ export class HandleFactory {
                         hcp2.region = hcp2.getBounds();
                         hcp2.cursor = 'move';
                         handles.push(hcp2);
-                        hcp2.connectedHandles = [ previous ];
+                        hcp2.connectedHandles = [previous];
 
                         createHandle = false;
                     }
-                }
-                else {
+                } else {
                     createHandle = false;
                     previous = undefined;
                 }
@@ -445,7 +452,7 @@ export class HandleFactory {
                     h.cursor = 'move';
                     handles.push(h);
                     if (connectToPrevious && previous) {
-                        h.connectedHandles = [ previous ];
+                        h.connectedHandles = [previous];
                     }
                     previous = h;
                 }
@@ -496,7 +503,7 @@ export class HandleFactory {
             h.cursor = 'move';
             handles.push(h);
             if (i !== 0 && previous) {
-                h.connectedHandles = [ previous ];
+                h.connectedHandles = [previous];
             }
             previous = h;
         }
