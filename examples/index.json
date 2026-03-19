@@ -76,5 +76,65 @@
         "id": "lava-lamp",
         "description": "Lava lamp simulation with morphing blobs.",
         "displayModelJson": false
+    },
+    {
+        "name": "Aurora Borealis",
+        "id": "aurora-borealis",
+        "description": "Northern Lights with undulating ribbon polylines over a starfield.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Kaleidoscope",
+        "id": "kaleidoscope",
+        "description": "Symmetrical mandala with rotating, color-cycling ellipses.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Solar System Orrery",
+        "id": "solar-system",
+        "description": "Top-down solar system with orbiting planets and glowing sun.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Jellyfish Tank",
+        "id": "jellyfish-tank",
+        "description": "Translucent jellyfish pulsing and drifting through a dark ocean.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Fireworks Display",
+        "id": "fireworks",
+        "description": "Fireworks bursting over a city skyline with fading spark trails.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Pendulum Wave",
+        "id": "pendulum-wave",
+        "description": "Pendulum wave physics demo with convergence/divergence patterns.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Raindrop Ripples",
+        "id": "raindrop-ripples",
+        "description": "Expanding concentric ripple rings on a dark water surface.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Geometric Morphing",
+        "id": "geometric-morphing",
+        "description": "Shape morphing between regular polygons with gradient fills.",
+        "displayModelJson": false
+    },
+    {
+        "name": "DNA Helix",
+        "id": "dna-helix",
+        "description": "Rotating 3D double helix with color-coded base pairs.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Northern Lights Clock",
+        "id": "aurora-clock",
+        "description": "Functional analog clock with aurora background and color-shifting hands.",
+        "displayModelJson": false
     }
 ]
