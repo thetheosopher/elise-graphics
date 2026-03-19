@@ -193,7 +193,7 @@ export class Surface {
 
     public createDiv(onBottom?: boolean) {
         if (!this.hostDiv) {
-            throw new Error('Host div is undefined');
+            throw new Error(ErrorMessages.HostElementUndefined);
         }
         const div = document.createElement('div');
         div.id = this.id + '_div';
@@ -356,6 +356,8 @@ export class Surface {
 
         // Clear event handlers
         this.resourceListenerEvent.clear();
+        this.loaded.clear();
+        this.initialized.clear();
         this.controller.mouseEnteredElement.clear();
         this.controller.mouseLeftElement.clear();
         this.controller.mouseDownElement.clear();

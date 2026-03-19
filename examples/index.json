@@ -1,0 +1,74 @@
+[
+    {
+        "name": "Model Grid",
+        "id": "model-grid",
+        "description": "Demonstrates a grid of model elements.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Ellipse Animation",
+        "id": "ellipse-animation",
+        "description": "Demonstrates animation of an array of ellipses.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Line Animation",
+        "id": "line-animation",
+        "description": "Demonstrates animation of an array of lines.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Particle Animation",
+        "id": "particle-animation",
+        "description": "Particle animation with collision detection.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Snow Simulation",
+        "id": "snow-animation",
+        "description": "Snow simulation.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Digital Rain Simulation",
+        "id": "digital-rain",
+        "description": "'The Matrix' Digital Rain Simulation.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Gradient Animation",
+        "id": "gradient-animation",
+        "description": "Radial gradient fill stop color animation",
+        "displayModelJson": false
+    },
+    {
+        "name": "Sprite Image Transition",
+        "id": "sprite-transitions",
+        "description": "Demonstrates sprite transition library.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Rotation Animation",
+        "id": "rotation-animation",
+        "description": "Demonstrates animation timer callback function.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Sprite Sheet Animation",
+        "id": "sprite-animation",
+        "description": "Demonstrates sprite sheet animation.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Multi Sprite Animation",
+        "id": "multi-sprite-animation",
+        "description": "Sprite sheet torture test.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Five Pointed Star",
+        "id": "star",
+        "description": "Generates a five pointed start polygon.",
+        "displayModelJson": true
+    }
+]

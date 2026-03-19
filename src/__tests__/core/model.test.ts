@@ -1,5 +1,6 @@
 import { ErrorMessages } from '../../core/error-messages';
 import { Model } from '../../core/model';
+import { Utility } from '../../core/utility';
 import { RectangleElement } from '../../elements/rectangle-element';
 
 test('model size', () => {
@@ -34,4 +35,73 @@ test('add model elements', () => {
     expect(index2).toBe(2);
     index3 = model.elements.indexOf(rect2);
     expect(index3).toBe(-1);
+});
+
+test('model loadAsync resolves model when json is returned', async () => {
+    const mock = jest.spyOn(Utility, 'getRemoteText').mockImplementation((_url, callback) => {
+        callback('{"type":"model","size":"10x20"}');
+    });
+
+    const model = await Model.loadAsync('/base/', 'scene/model.json');
+    expect(model).toBeDefined();
+    expect(model!.getSize()!.width).toBe(10);
+    expect(model!.getSize()!.height).toBe(20);
+    expect(model!.basePath).toBe('/base/');
+
+    mock.mockRestore();
+});
+
+test('model prepareResourcesAsync resolves callback result', async () => {
+    const model = Model.create(10, 10);
+    const mock = jest.spyOn(model, 'prepareResources').mockImplementation((_localeId, callback) => {
+        if (callback) {
+            callback(true);
+        }
+    });
+
+    const result = await model.prepareResourcesAsync('en-US');
+    expect(result).toBe(true);
+
+    mock.mockRestore();
+});
+
+test('model prepareResources registers model fill resources and element resources', () => {
+    const model = Model.create(10, 10);
+    const registerSpy = jest.spyOn(model.resourceManager, 'register').mockImplementation(() => undefined);
+    const loadSpy = jest.spyOn(model.resourceManager, 'load').mockImplementation(callback => {
+        if (callback) {
+            callback(true);
+        }
+    });
+
+    model.fill = 'image(0.5;hero-image)';
+
+    const registerResources = jest.fn();
+    model.elements.push({ registerResources } as unknown as any);
+
+    const callback = jest.fn();
+    model.prepareResources('en-US', callback);
+
+    expect(model.resourceManager.currentLocaleId).toBe('en-US');
+    expect(registerSpy).toHaveBeenCalledWith('hero-image');
+    expect(registerResources).toHaveBeenCalledWith(model.resourceManager);
+    expect(loadSpy).toHaveBeenCalled();
+    expect(callback).toHaveBeenCalledWith(true);
+
+    registerSpy.mockRestore();
+    loadSpy.mockRestore();
+});
+
+test('model prepareResources parses model() fill references', () => {
+    const model = Model.create(10, 10);
+    const registerSpy = jest.spyOn(model.resourceManager, 'register').mockImplementation(() => undefined);
+    const loadSpy = jest.spyOn(model.resourceManager, 'load').mockImplementation(() => undefined);
+
+    model.fill = 'model(overlay-model)';
+    model.prepareResources();
+
+    expect(registerSpy).toHaveBeenCalledWith('overlay-model');
+
+    registerSpy.mockRestore();
+    loadSpy.mockRestore();
 });

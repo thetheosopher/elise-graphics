@@ -1,3 +1,6 @@
+import { Color } from '../core/color';
+import { ErrorMessages } from '../core/error-messages';
+
 /**
  * Represents a radial or linear gradient color fill stop
  */
@@ -39,6 +42,10 @@ export class GradientFillStop {
      * @param offset - Stop offset in the range of 0 to 1
      */
     constructor(color: string, offset: number) {
+        Color.parse(color);
+        if (isNaN(offset) || !isFinite(offset) || offset < 0 || offset > 1) {
+            throw new Error(ErrorMessages.InvalidGradientStopOffset);
+        }
         this.color = color;
         this.offset = offset;
     }

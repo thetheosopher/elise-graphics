@@ -38,20 +38,46 @@ export abstract class PaneTransition {
     public pane?: PaneContainerLike;
     public target?: PaneSurfaceLike;
     public callback?: (pane: PaneContainerLike) => void;
+    protected canceled: boolean;
 
     constructor(pane: PaneContainerLike, target: PaneSurfaceLike, callback: (pane: PaneContainerLike) => void) {
         this.start = this.start.bind(this);
+        this.cancel = this.cancel.bind(this);
         this.onStart = this.onStart.bind(this);
         this.onComplete = this.onComplete.bind(this);
+        this.dispose = this.dispose.bind(this);
         this.bind = this.bind.bind(this);
         this.pane = pane;
         this.target = target;
         this.callback = callback;
+        this.canceled = false;
     }
 
     public abstract start(): void;
 
+    public cancel() {
+        if (this.canceled) {
+            return;
+        }
+        this.canceled = true;
+        this.onCancel();
+        this.dispose();
+    }
+
+    protected onCancel() {}
+
+    protected shouldAbortBoundSurface(surface: PaneSurfaceLike) {
+        if (!this.pane || !this.target || this.canceled) {
+            surface.unbind();
+            return true;
+        }
+        return false;
+    }
+
     public onStart() {
+        if (this.canceled) {
+            return;
+        }
         if (!this.pane || !this.target) {
             return;
         }
@@ -69,6 +95,10 @@ export abstract class PaneTransition {
     }
 
     public onComplete() {
+        if (this.canceled) {
+            this.dispose();
+            return;
+        }
         const self = this;
         if (!self.pane || !self.target) {
             return;
@@ -79,9 +109,13 @@ export abstract class PaneTransition {
         self.pane.isPrepared = true;
         self.pane.setHostDivScrolling();
         self.target.onload();
-        self.pane = undefined;
-        self.callback = undefined;
-        self.target = undefined;
+        self.dispose();
+    }
+
+    protected dispose() {
+        this.pane = undefined;
+        this.callback = undefined;
+        this.target = undefined;
     }
 
     public bind(callback: (surface: PaneSurfaceLike) => void, onBottom: boolean) {

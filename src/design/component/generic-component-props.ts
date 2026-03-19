@@ -10,9 +10,9 @@ export class GenericComponentProps extends ComponentProps {
 
         this.onSetCreationFill = this.onSetCreationFill.bind(this);
 
-        this.fill = '#C000ff00'; // Mostly translucent green
+        this.fill = '#00ff00c0'; // Mostly translucent green
         this.stroke = 'Black';
-        this.selectedFill = '#8000ff00'; // Less translucent green
+        this.selectedFill = '#00ff0080'; // Less translucent green
         this.selectedStroke = 'Gold,5';
         this.initialized = true;
         this.create = this.defaultCreate;

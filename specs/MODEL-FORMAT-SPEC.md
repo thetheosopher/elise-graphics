@@ -69,7 +69,7 @@ All element types, including the model itself, share these base properties:
 
 > **Note:** Properties with default/falsy values are omitted from serialized output to minimize file size. The presence of any mouse/click/timer handler automatically makes the element interactive (hit-testable).
 >
-> **Point precision note:** Point-like values serialize through `Point.toString()`, which rounds to integer coordinates in JSON output.
+> **Point precision note:** Point-like values serialize through `Point.toString()` with decimal precision preserved in JSON output.
 
 ---
 
@@ -508,14 +508,20 @@ A named color or hex string:
 ```json
 "fill": "Red"
 "fill": "#FF0000"
-"fill": "#80FF0000"
+"fill": "#FF000080"
+"fill": "rgb(255,0,0)"
+"fill": "rgba(255,0,0,0.5)"
 ```
 
 | Format | Description |
 |--------|-------------|
 | Named color | Any of 150+ CSS named colors (e.g., `"AliceBlue"`, `"Red"`) |
 | `#rrggbb` | 6-digit hex RGB |
-| `#aarrggbb` | 8-digit hex with alpha (ARGB order) |
+| `#rrggbbaa` | 8-digit hex with alpha (web/CSS order) |
+| `#rgb` | 3-digit shorthand hex RGB |
+| `#rgba` | 4-digit shorthand hex RGBA (web/CSS order) |
+| `rgb(r,g,b)` | CSS rgb string |
+| `rgba(r,g,b,a)` | CSS rgba string (`a` in range 0..1) |
 
 ### Image Fill (Tiled Pattern)
 
@@ -595,6 +601,10 @@ Format: `model(resourceKey)` or `model(opacity;resourceKey)`
 |----------|------|-------------|
 | `color` | `string` | Color value (named or hex) |
 | `offset` | `number` | Position along gradient (0.0 to 1.0) |
+
+Validation rules:
+- `color` must parse as a valid Elise/CSS color string.
+- `offset` must be a finite number in the inclusive range `[0, 1]`.
 
 ---
 

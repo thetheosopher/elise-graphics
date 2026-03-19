@@ -319,7 +319,7 @@ const linearGradientFill = LinearGradientFill.create;
 export { linearGradientFill };
 
 export function log(output: string){
-    console.log(output);
+    Logging.log(output);
 }
 
 const matrix2D = Matrix2D.create;
@@ -375,6 +375,11 @@ export { uriTextResource };
 
 const view = ViewController.initializeTarget;
 export { view };
+
+const requestAnimationFrameCompat =
+    typeof globalThis.requestAnimationFrame === 'function'
+        ? globalThis.requestAnimationFrame.bind(globalThis)
+        : undefined;
 
 export default {
     BitmapResource: BitmapResource,
@@ -532,7 +537,7 @@ export default {
     radialGradientFill: radialGradientFill,
     rectangle: rectangle,
     region: region,
-    requestAnimationFrame: false,
+    requestAnimationFrame: requestAnimationFrameCompat,
     size: size,
     sketcher: sketcher,
     sprite: sprite,

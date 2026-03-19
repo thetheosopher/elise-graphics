@@ -46,6 +46,8 @@ class Point {
                baseX?: number, baseY?: number): Point;     // Scale with optional pivot
 
   clone(): Point;
+  withX(x: number): Point;
+  withY(y: number): Point;
   equals(that: Point): boolean;
   toString(): string;                                      // Returns "x,y"
 }
@@ -66,6 +68,8 @@ class Size {
   static scale(s: Size, scaleX: number, scaleY: number): Size;
 
   clone(): Size;
+  withWidth(width: number): Size;
+  withHeight(height: number): Size;
   equals(that: Size): boolean;
   toString(): string;                                      // Returns "WxH"
 }
@@ -87,6 +91,12 @@ class Region {
   static create(x: number, y: number, width: number, height: number): Region;
 
   clone(): Region;
+  withX(x: number): Region;
+  withY(y: number): Region;
+  withWidth(width: number): Region;
+  withHeight(height: number): Region;
+  withLocation(location: Point): Region;
+  withSize(size: Size): Region;
   containsPoint(point: Point): boolean;
   containsCoordinate(x: number, y: number): boolean;
   intersectsWith(region: Region): boolean;
@@ -114,17 +124,21 @@ class Color {
   // ... etc.
 
   static create(a: number, r: number, g: number, b: number): Color;
-  static parse(colorSource: string): Color;                // Parses "#rrggbb", "#aarrggbb", or named
+  static parse(colorSource: string | Color): Color;        // Parses string formats or clones a Color instance
 
   clone(): Color;
-  toString(): string;                                      // Named color or hex
+  toString(): string;                                      // "Transparent", named, "alpha;NamedColor", or hex
   toHexString(): string;                                   // "#rrggbb" or "#rrggbbaa"
   toStyleString(): string;                                 // CSS "rgb(r,g,b)" or "rgba(r,g,b,a)"
-  equals(that: Color): boolean;                            // Full ARGB equality
+  equals(that: Color): boolean;                            // Full RGBA equality (includes alpha)
   equalsHue(that: Color): boolean;                         // RGB equality (ignores alpha)
   isNamedColor(): boolean;
 }
 ```
+
+Notes:
+- `Color.parse` throws for invalid color strings.
+- 8-digit hex uses web/CSS order `#rrggbbaa`.
 
 ### Matrix2D
 
@@ -155,8 +169,11 @@ Static utility methods.
 ```typescript
 class Utility {
   static getRemoteText(url: string, callback: (text?: string) => void): void;
+  static getRemoteTextAsync(url: string): Promise<string | undefined>;
   static getRemoteBytes(url: string, callback: (bytes?: Uint8Array) => void): void;
+  static getRemoteBytesAsync(url: string): Promise<Uint8Array | undefined>;
   static getRemoteBlob(url: string, callback: (blob?: Blob) => void): void;
+  static getRemoteBlobAsync(url: string): Promise<Blob | undefined>;
   static endsWith(str: string, suffix: string): boolean;
   static startsWith(str: string, prefix: string): boolean;
   static joinPaths(path1: string, path2: string): string;
@@ -236,6 +253,7 @@ class Model extends ElementBase {
   static create(width: number, height: number): Model;
   static parse(json: string): Model;
   static load(basePath: string, uri: string, callback: (model?: Model) => void): void;
+  static loadAsync(basePath: string, uri: string): Promise<Model | undefined>;
 
   // Element Management
   add(el: ElementBase): number;                            // Add to end (painter's top)
@@ -246,6 +264,7 @@ class Model extends ElementBase {
   setBasePath(basePath: string): void;
   setModelPath(path: string, resourceFolder?: string): void;
   prepareResources(localeId?: string, callback?: (result: boolean) => void): void;
+  prepareResourcesAsync(localeId?: string): Promise<boolean>;
 
   // Canvas
   createCanvas(scale?: number): HTMLCanvasElement;
@@ -308,6 +327,10 @@ abstract class ElementBase {
   strokeStack: Array<string | undefined>;
 
   // Positioning
+  size?: string;
+  location?: string;
+  sizeValue?: Size;
+  locationValue?: Point;
   getLocation(): Point | undefined;
   setLocation(location: Point): void;
   getSize(): Size | undefined;
@@ -351,8 +374,10 @@ abstract class ElementBase {
   // Serialization
   serialize(): any;
   parse(o: any): void;
+  parseFluent(o: any): ElementBase;
   clone(): ElementBase;
   cloneTo(e: ElementBase): void;
+  cloneToFluent<T extends ElementBase>(e: T): T;
 }
 ```
 
@@ -404,12 +429,25 @@ class PathElement extends ElementBase {
 
   static create(): PathElement;
 
-  add(command: string): PathElement;                       // Append command (e.g., "m(10,20)")
-  setCommands(commands: string): void;                     // Set all commands as space-separated string
+  add(command: string): PathElement;                       // Append command (e.g., "m10,20")
+  setCommands(commands: string): PathElement;              // Set commands from a space-separated string
 
   // Capabilities: canStroke=true, canFill=true, canEditPoints=true
-  // Commands: m(x,y), l(x,y), c(cx1,cy1,cx2,cy2,x,y), z
+  // Commands: mX,Y lX,Y cCX1,CY1,CX2,CY2,X,Y z
 }
+```
+
+Command string format (space-separated tokens):
+
+- `mX,Y`: move to point
+- `lX,Y`: line to point
+- `cCX1,CY1,CX2,CY2,X,Y`: cubic bezier to end point `X,Y`
+- `z`: close current subpath
+
+Example using all command types:
+
+```text
+m10,10 l50,10 c60,10,70,30,50,50 z
 ```
 
 ### PolygonElement
@@ -572,6 +610,9 @@ class LinearGradientFill {
 }
 ```
 
+Notes:
+- `addFillStop` validates inputs through `GradientFillStop` and throws for invalid color strings or offsets outside `[0, 1]`.
+
 ### RadialGradientFill
 
 ```typescript
@@ -591,6 +632,9 @@ class RadialGradientFill {
 }
 ```
 
+Notes:
+- `addFillStop` validates inputs through `GradientFillStop` and throws for invalid color strings or offsets outside `[0, 1]`.
+
 ### GradientFillStop
 
 ```typescript
@@ -603,6 +647,10 @@ class GradientFillStop {
   clone(): GradientFillStop;
 }
 ```
+
+Notes:
+- `GradientFillStop.create` and the constructor validate `color` using `Color.parse`.
+- `offset` must be a finite value in the range `[0, 1]`, otherwise `ErrorMessages.InvalidGradientStopOffset` is thrown.
 
 ### FillFactory
 
@@ -734,6 +782,7 @@ class ResourceManager {
   findBestResource(key: string, locale?: string): Resource | undefined;
   register(key: string): void;                             // Mark for download
   load(callback?: (result: boolean) => void): void;        // Start async loading
+  loadAsync(): Promise<boolean>;
 }
 ```
 
@@ -778,11 +827,11 @@ class ViewController implements IController {
   // Events
   modelUpdated: ControllerEvent<Model>;
   enabledChanged: ControllerEvent<boolean>;
-  mouseEnteredView: ControllerEvent<ElementBase>;
-  mouseLeftView: ControllerEvent<ElementBase>;
-  mouseDownView: ControllerEvent<ElementBase>;
-  mouseUpView: ControllerEvent<ElementBase>;
-  mouseMovedView: ControllerEvent<MouseEventArgs>;
+  mouseEnteredView: ControllerEvent<MouseEventArgs>;
+  mouseLeftView: ControllerEvent<MouseEventArgs>;
+  mouseDownView: ControllerEvent<PointEventParameters>;
+  mouseUpView: ControllerEvent<PointEventParameters>;
+  mouseMovedView: ControllerEvent<PointEventParameters>;
   mouseEnteredElement: ControllerEvent<ElementBase>;
   mouseLeftElement: ControllerEvent<ElementBase>;
   mouseDownElement: ControllerEvent<ElementBase>;
@@ -797,13 +846,15 @@ class ViewController implements IController {
   setModel(model: Model): void;
   setEnabled(enabled: boolean, disabledFill?: string): void;
   setScale(scale: number): void;
+  windowToCanvas(x: number, y: number): Point;
+  windowToCanvasWithOutput(x: number, y: number, out?: Point): Point;
   draw(): void;
   drawIfNeeded(): void;
   invalidate(): void;
   detach(): void;
 
   // Timer
-  startTimer(interval: number): void;
+  startTimer(offset?: number): void;
   pauseTimer(): void;
   resumeTimer(): void;
   stopTimer(): void;

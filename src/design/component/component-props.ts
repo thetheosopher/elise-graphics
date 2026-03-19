@@ -27,9 +27,9 @@ export class ComponentProps {
     public static baseImagePath: string;
 
     /**
-     * Standard element creation fill (default - Half transparent Gold #7fffd700)
+     * Standard element creation fill (default - Half transparent Gold #ffd7007f)
      */
-    public static standardFill = '#7fffd700';
+    public static standardFill = '#ffd7007f';
 
     /**
      * Standard element creation stroke (default - Solid Red)

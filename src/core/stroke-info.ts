@@ -19,10 +19,7 @@ export class StrokeInfo {
             else {
                 color = Color.parse(stroke);
             }
-            if (color.a !== 255) {
-                opacity = color.a;
-                color.a = 255;
-            }
+            opacity = color.a;
             return new StrokeInfo('color', color.toHexString(), opacity, width);
         }
         else {

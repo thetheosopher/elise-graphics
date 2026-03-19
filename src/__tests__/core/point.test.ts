@@ -42,6 +42,24 @@ test('point clone', () => {
     expect(cloned.y).toBe(4);
 });
 
+test('point withX', () => {
+    const point = Point.create(3, 4);
+    const updated = point.withX(10);
+    expect(updated.x).toBe(10);
+    expect(updated.y).toBe(4);
+    expect(point.x).toBe(3);
+    expect(point.y).toBe(4);
+});
+
+test('point withY', () => {
+    const point = Point.create(3, 4);
+    const updated = point.withY(11);
+    expect(updated.x).toBe(3);
+    expect(updated.y).toBe(11);
+    expect(point.x).toBe(3);
+    expect(point.y).toBe(4);
+});
+
 test('point equals', () => {
     const point1 = Point.create(3, 4);
     const point2 = Point.create(3, 4);
@@ -63,4 +81,9 @@ test('point not equals 2', () => {
 test('point to string', () => {
     const point = Point.create(3, 4);
     expect(point.toString()).toBe('3,4');
+});
+
+test('point to string preserves decimals', () => {
+    const point = Point.create(3.25, 4.5);
+    expect(point.toString()).toBe('3.25,4.5');
 });

@@ -8,6 +8,7 @@ import { ResourceManager } from '../resource/resource-manager';
 import { ResourceState } from '../resource/resource-state';
 import { Color } from './color';
 import { ErrorMessages } from './error-messages';
+import { Logging } from './logging';
 import { ModelEvent } from './model-event';
 import { Point } from './point';
 import { ScalingInfo } from './scaling-info';
@@ -77,6 +78,20 @@ export class Model extends ElementBase {
             else {
                 callback(undefined);
             }
+        });
+    }
+
+    /**
+     * Loads serialized model from specified path as a Promise.
+     * @param basePath - Base path for model URI and resource references
+     * @param uri - Base path relative path to serialized model
+     * @returns Promise resolving to deserialized model or undefined on failure
+     */
+    public static loadAsync(basePath: string, uri: string): Promise<Model | undefined> {
+        return new Promise(resolve => {
+            Model.load(basePath, uri, model => {
+                resolve(model);
+            });
         });
     }
 
@@ -197,7 +212,7 @@ export class Model extends ElementBase {
      * @param state - Resource state
      */
     public listen(rm: ResourceManager, state: ResourceState): void {
-        console.log(state.numberLoaded + '/' + state.totalResources + ', ' + state.status + '(' + state.code + ')');
+        Logging.log(state.numberLoaded + '/' + state.totalResources + ', ' + state.status + '(' + state.code + ')');
     }
 
     /**
@@ -420,6 +435,19 @@ export class Model extends ElementBase {
     }
 
     /**
+     * Loads all resources for the specified optional locale as a Promise.
+     * @param localeId - Desired locale ID (e.g. en-US) or undefined for default locale
+     * @returns Promise resolving true when all resources load successfully, otherwise false
+     */
+    public prepareResourcesAsync(localeId?: string): Promise<boolean> {
+        return new Promise(resolve => {
+            this.prepareResources(localeId, result => {
+                resolve(result);
+            });
+        });
+    }
+
+    /**
      * Sets rendering stroke style on canvas element for given element
      * @param c - Rendering context
      * @param el - Element being rendered
@@ -429,7 +457,7 @@ export class Model extends ElementBase {
         let color: Color;
         const stroke = this.strokeForElement(el);
         if (!stroke || stroke === 'no') {
-            c.strokeStyle = 'rgba(0, 0, 0, 0)';
+            c.strokeStyle = Color.Transparent.toStyleString();
             return false;
         }
         if (stroke.indexOf(',') !== -1) {
@@ -626,7 +654,7 @@ export class Model extends ElementBase {
      */
     public renderToContext(c: CanvasRenderingContext2D, scale?: number) {
         if (!this._size) {
-            throw new Error('Size is undefined.');
+            throw new Error(ErrorMessages.SizeUndefined);
         }
         let location = this._location;
         if (!location) {
@@ -709,7 +737,7 @@ export class Model extends ElementBase {
      */
     public clone(): Model {
         if (!this._size) {
-            throw new Error('Size is undefined.');
+            throw new Error(ErrorMessages.SizeUndefined);
         }
         const m: Model = Model.create(this._size.width, this._size.height);
         super.cloneTo(m);

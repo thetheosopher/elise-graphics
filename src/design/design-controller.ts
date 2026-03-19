@@ -2818,7 +2818,7 @@ export class DesignController implements IController {
                 c.fillStyle = pattern;
             }
         } else {
-            c.fillStyle = 'rgba(255,215,0,1.0)';
+            c.fillStyle = Color.Gold.toStyleString();
         }
         c.globalAlpha = 0.5;
         c.fillRect(
@@ -2923,33 +2923,33 @@ export class DesignController implements IController {
         const lw = 1.0 / _scale;
         const dl = 2 / _scale;
 
-        c.strokeStyle = 'rgba(0,0,0,0.65)';
+        c.strokeStyle = new Color(166, 0, 0, 0).toStyleString();
         c.lineWidth = lw;
         this.drawHorizontalLine(c, y);
         this.drawVerticalLine(c, x);
 
-        c.strokeStyle = 'rgba(255,255,255,0.8)';
+        c.strokeStyle = new Color(204, 255, 255, 255).toStyleString();
         this.drawDashedLine(c, x, y, 0, y, dl);
         this.drawDashedLine(c, x, y, size.width, y, dl);
         this.drawDashedLine(c, x, y, x, 0, dl);
         this.drawDashedLine(c, x, y, x, size.height, dl);
 
-        c.strokeStyle = 'rgba(0,0,0,0.6)';
+        c.strokeStyle = new Color(153, 0, 0, 0).toStyleString();
         c.beginPath();
         c.arc(x, y, 6 / _scale, 0, Math.PI * 2);
         c.stroke();
 
-        c.strokeStyle = 'rgba(255,255,255,0.75)';
+        c.strokeStyle = new Color(191, 255, 255, 255).toStyleString();
         c.beginPath();
         c.arc(x, y, 5 / _scale, 0, Math.PI * 2);
         c.stroke();
 
-        c.strokeStyle = 'rgba(0,0,0,0.6)';
+        c.strokeStyle = new Color(153, 0, 0, 0).toStyleString();
         c.beginPath();
         c.arc(x, y, 4 / _scale, 0, Math.PI * 2);
         c.stroke();
 
-        c.strokeStyle = 'rgba(0,0,0,0.9)';
+        c.strokeStyle = new Color(230, 0, 0, 0).toStyleString();
         this.drawDashedLine(c, x - 1 / _scale, y, x - 4 / _scale, y, 2);
         this.drawDashedLine(c, x + 1 / _scale, y, x + 4 / _scale, y, 2);
         this.drawDashedLine(c, x, y - 1 / _scale, x, y - 4 / _scale, 2);
@@ -3063,7 +3063,7 @@ export class DesignController implements IController {
 
                 // Draw dashed line from pivot to element center
                 context.save();
-                context.strokeStyle = 'rgba(0,128,255,0.6)';
+                context.strokeStyle = new Color(153, 0, 128, 255).toStyleString();
                 context.lineWidth = 1.0 / _scale;
                 context.setLineDash([4 / _scale, 4 / _scale]);
                 context.beginPath();
@@ -3084,7 +3084,7 @@ export class DesignController implements IController {
                     const endRad = startRad + angleRad;
                     context.beginPath();
                     context.arc(cx, cy, arcRadius, startRad, endRad, angle < 0);
-                    context.strokeStyle = 'rgba(0,128,255,0.5)';
+                    context.strokeStyle = new Color(128, 0, 128, 255).toStyleString();
                     context.lineWidth = 1.5 / _scale;
                     context.stroke();
                 }
@@ -3093,7 +3093,7 @@ export class DesignController implements IController {
                 const displayAngle = Math.round(angle * 10) / 10;
                 const fontSize = 11 / _scale;
                 context.font = `${fontSize}px sans-serif`;
-                context.fillStyle = 'rgba(0,128,255,0.9)';
+                context.fillStyle = new Color(230, 0, 128, 255).toStyleString();
                 context.fillText(`${displayAngle}°`, cx + 8 / _scale, cy - 8 / _scale);
                 context.restore();
             }
@@ -3136,14 +3136,14 @@ export class DesignController implements IController {
                     }
                 }
 
-                context.strokeStyle = 'rgba(0,0,0,0.65)';
+                context.strokeStyle = new Color(166, 0, 0, 0).toStyleString();
                 context.lineWidth = 1.0 / this.scale;
                 this.drawHorizontalLine(context, p.y);
                 this.drawHorizontalLine(context, p.y + s.height);
                 this.drawVerticalLine(context, p.x);
                 this.drawVerticalLine(context, p.x + s.width);
 
-                context.strokeStyle = 'rgba(255,255,255,0.8)';
+                context.strokeStyle = new Color(204, 255, 255, 255).toStyleString();
                 this.drawDashedHorizontalLine(context, p.y);
                 this.drawDashedHorizontalLine(context, p.y + s.height);
                 this.drawDashedVerticalLine(context, p.x);
@@ -3156,7 +3156,7 @@ export class DesignController implements IController {
         }
 
         if (this.model.displayFPS) {
-            context.fillStyle = 'cornflowerblue';
+            context.fillStyle = Color.CornflowerBlue.toStyleString();
             context.font = '16px monospace';
             context.fillText(this.calculateFPS().toFixed() + ' fps', 20, 20);
         }

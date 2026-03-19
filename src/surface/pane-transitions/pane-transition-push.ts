@@ -10,7 +10,7 @@ export class PaneTransitionPush extends PaneTransition {
     public duration: number;
     public startTime?: number;
     public source?: PaneSurfaceLike;
-    public timer?: NodeJS.Timeout;
+    public timer?: number;
     public direction: PaneTransitionDirection;
 
     constructor(
@@ -51,13 +51,34 @@ export class PaneTransitionPush extends PaneTransition {
                 self.target.setTranslateY(-self.target.height);
                 break;
         }
-        self.bind(_surface => {
+        self.bind(surface => {
+            if (self.shouldAbortBoundSurface(surface)) {
+                return;
+            }
             // Save start time after preparation
             self.startTime = performance.now();
 
-            // Fade in
-            self.timer = setInterval(self.tick, 15);
+            self.timer = requestAnimationFrame(self.tick);
         }, false);
+    }
+
+    protected onCancel() {
+        if (this.timer !== undefined) {
+            cancelAnimationFrame(this.timer);
+            this.timer = undefined;
+        }
+        if (this.target) {
+            this.target.setTranslateX(0);
+            this.target.setTranslateY(0);
+            this.target.setOpacity(1);
+        }
+        if (this.source) {
+            this.source.setTranslateX(0);
+            this.source.setTranslateY(0);
+            this.source.setOpacity(1);
+            this.source.unbind();
+            this.source = undefined;
+        }
     }
 
     public tick() {
@@ -81,7 +102,7 @@ export class PaneTransitionPush extends PaneTransition {
             this.target.setTranslateX(0);
             this.target.setTranslateY(0);
             if (this.timer) {
-                clearInterval(this.timer);
+                cancelAnimationFrame(this.timer);
                 this.timer = undefined;
             }
             this.source.unbind();
@@ -124,6 +145,7 @@ export class PaneTransitionPush extends PaneTransition {
                     }
                     break;
             }
+            this.timer = requestAnimationFrame(this.tick);
         }
     }
 }

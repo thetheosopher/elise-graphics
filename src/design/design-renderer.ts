@@ -109,26 +109,46 @@ export class DesignRenderer {
      * @param el - Element to render
      */
     public renderElement(c: CanvasRenderingContext2D, el: ElementBase) {
-        if (el.type === 'image') {
-            this.renderImageElement.apply(this, [c, el as ImageElement]);
-        } else if (el.type === 'sprite') {
-            this.renderSpriteElement.apply(this, [c, el as SpriteElement]);
-        } else if (el.type === 'rectangle') {
-            this.renderRectangleElement.apply(this, [c, el as RectangleElement]);
-        } else if (el.type === 'line') {
-            this.renderLineElement.apply(this, [c, el as LineElement]);
-        } else if (el.type === 'polyline') {
-            this.renderPolylineElement.apply(this, [c, el as PolylineElement]);
-        } else if (el.type === 'polygon') {
-            this.renderPolygonElement.apply(this, [c, el as PolygonElement]);
-        } else if (el.type === 'path') {
-            this.renderPathElement.apply(this, [c, el as PathElement]);
-        } else if (el.type === 'ellipse') {
-            this.renderEllipseElement.apply(this, [c, el as EllipseElement]);
-        } else if (el.type === 'model') {
-            this.renderModelElement.apply(this, [c, el as ModelElement]);
-        } else if (el.type === 'text') {
-            this.renderTextElement.apply(this, [c, el as TextElement]);
+        switch (el.type) {
+            case 'image':
+                this.renderImageElement(c, el as ImageElement);
+                break;
+
+            case 'sprite':
+                this.renderSpriteElement(c, el as SpriteElement);
+                break;
+
+            case 'rectangle':
+                this.renderRectangleElement(c, el as RectangleElement);
+                break;
+
+            case 'line':
+                this.renderLineElement(c, el as LineElement);
+                break;
+
+            case 'polyline':
+                this.renderPolylineElement(c, el as PolylineElement);
+                break;
+
+            case 'polygon':
+                this.renderPolygonElement(c, el as PolygonElement);
+                break;
+
+            case 'path':
+                this.renderPathElement(c, el as PathElement);
+                break;
+
+            case 'ellipse':
+                this.renderEllipseElement(c, el as EllipseElement);
+                break;
+
+            case 'model':
+                this.renderModelElement(c, el as ModelElement);
+                break;
+
+            case 'text':
+                this.renderTextElement(c, el as TextElement);
+                break;
         }
     }
 
@@ -279,23 +299,16 @@ export class DesignRenderer {
             model.setRenderTransform(c, rectangle.transform, location);
         }
         if (FillFactory.setElementFill(c, rectangle)) {
-            let loc = rectangle.getLocation();
-            if ((this.controller.isMoving || this.controller.isResizing) && this.controller.isSelected(rectangle)) {
-                loc = this.controller.getElementMoveLocation(rectangle);
-            }
-            if (!loc) {
-                throw new Error(ErrorMessages.LocationUndefined);
-            }
             if (rectangle.fillOffsetX || rectangle.fillOffsetY) {
                 const fillOffsetX = rectangle.fillOffsetX || 0;
                 const fillOffsetY = rectangle.fillOffsetY || 0;
-                c.translate(loc.x + fillOffsetX, loc.y + fillOffsetY);
+                c.translate(location.x + fillOffsetX, location.y + fillOffsetY);
                 c.fillRect(-fillOffsetX, -fillOffsetY, w, h);
-                c.translate(-(loc.x + fillOffsetX), -(loc.y + fillOffsetY));
+                c.translate(-(location.x + fillOffsetX), -(location.y + fillOffsetY));
             } else {
-                c.translate(loc.x, loc.y);
+                c.translate(location.x, location.y);
                 c.fillRect(0, 0, w, h);
-                c.translate(-loc.x, -loc.y);
+                c.translate(-location.x, -location.y);
             }
         }
         if (model.setElementStroke(c, rectangle)) {
@@ -646,32 +659,32 @@ export class DesignRenderer {
                     }
                 } else if (command.charAt(0) === 'c') {
                     const parts = command.substring(1, command.length).split(',');
-                    let cp1 = new Point(parseFloat(parts[0]), parseFloat(parts[1]));
-                    cp1 = Point.scale(cp1, scaleX, scaleY, b.x, b.y);
-                    cp1 = Point.translate(cp1, offsetX, offsetY);
-                    let cp2 = new Point(parseFloat(parts[2]), parseFloat(parts[3]));
-                    cp2 = Point.scale(cp2, scaleX, scaleY, b.x, b.y);
-                    cp2 = Point.translate(cp2, offsetX, offsetY);
-                    let endPoint: Point = new Point(parseFloat(parts[4]), parseFloat(parts[5]));
-                    endPoint = Point.scale(endPoint, scaleX, scaleY, b.x, b.y);
-                    endPoint = Point.translate(endPoint, offsetX, offsetY);
+                    let cp1x = (parseFloat(parts[0]) - b.x) * scaleX + b.x + offsetX;
+                    let cp1y = (parseFloat(parts[1]) - b.y) * scaleY + b.y + offsetY;
+                    let cp2x = (parseFloat(parts[2]) - b.x) * scaleX + b.x + offsetX;
+                    let cp2y = (parseFloat(parts[3]) - b.y) * scaleY + b.y + offsetY;
+                    let endX = (parseFloat(parts[4]) - b.x) * scaleX + b.x + offsetX;
+                    let endY = (parseFloat(parts[5]) - b.y) * scaleY + b.y + offsetY;
                     current++;
                     if (movingPointLocation) {
                         if (current === movingPointIndex) {
-                            endPoint = movingPointLocation;
+                            endX = movingPointLocation.x;
+                            endY = movingPointLocation.y;
                         }
                         if (depth === PointDepth.Full) {
                             current++;
                             if (current === movingPointIndex) {
-                                cp1 = movingPointLocation;
+                                cp1x = movingPointLocation.x;
+                                cp1y = movingPointLocation.y;
                             }
                             current++;
                             if (current === movingPointIndex) {
-                                cp2 = movingPointLocation;
+                                cp2x = movingPointLocation.x;
+                                cp2y = movingPointLocation.y;
                             }
                         }
                     }
-                    c.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, endPoint.x, endPoint.y);
+                    c.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endX, endY);
                 } else if (command.charAt(0) === 'z') {
                     c.closePath();
                 }

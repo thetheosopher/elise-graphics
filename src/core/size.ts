@@ -64,6 +64,8 @@ export class Size {
         this._height = height;
 
         this.clone = this.clone.bind(this);
+        this.withWidth = this.withWidth.bind(this);
+        this.withHeight = this.withHeight.bind(this);
         this.equals = this.equals.bind(this);
         this.toString = this.toString.bind(this);
     }
@@ -74,6 +76,24 @@ export class Size {
      */
     public clone(): Size {
         return new Size(this._width, this._height);
+    }
+
+    /**
+     * Returns a new size with updated width.
+     * @param width - New width
+     * @returns New size instance
+     */
+    public withWidth(width: number): Size {
+        return new Size(width, this._height);
+    }
+
+    /**
+     * Returns a new size with updated height.
+     * @param height - New height
+     * @returns New size instance
+     */
+    public withHeight(height: number): Size {
+        return new Size(this._width, height);
     }
 
     /**

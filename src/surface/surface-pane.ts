@@ -1,6 +1,6 @@
 import { ErrorMessages } from '../core/error-messages';
 import { Utility } from '../core/utility';
-import type { PaneContainerLike } from './pane-transitions/pane-transition';
+import type { PaneContainerLike, PaneTransition } from './pane-transitions/pane-transition';
 import { PaneTransitionDirection } from './pane-transitions/pane-transition-direction';
 import { PaneTransitionFade } from './pane-transitions/pane-transition-fade';
 import { PaneTransitionNone } from './pane-transitions/pane-transition-none';
@@ -42,6 +42,11 @@ export class SurfacePane extends SurfaceLayer {
     public element?: HTMLDivElement = undefined;
 
     /**
+     * Current pane transition in progress
+     */
+    private activeTransition?: PaneTransition;
+
+    /**
      * @param id - Pane id
      * @param left - Layout area x coordinate
      * @param top - Layout area y coordinate
@@ -52,9 +57,32 @@ export class SurfacePane extends SurfaceLayer {
     constructor(id: string, left: number, top: number, width: number, height: number, childSurface: Surface) {
         super(id, left, top, width, height);
         this.replaceSurface = this.replaceSurface.bind(this);
+        this.startTransition = this.startTransition.bind(this);
+        this.cancelTransition = this.cancelTransition.bind(this);
         this.setHostDivScrolling = this.setHostDivScrolling.bind(this);
         this.childSurface = childSurface;
         this.childSurface.isChild = true;
+    }
+
+    private startTransition(transition: PaneTransition) {
+        this.cancelTransition();
+        this.activeTransition = transition;
+        try {
+            transition.start();
+        }
+        catch (error) {
+            if (this.activeTransition === transition) {
+                this.activeTransition = undefined;
+            }
+            throw error;
+        }
+    }
+
+    private cancelTransition() {
+        if (this.activeTransition) {
+            this.activeTransition.cancel();
+            this.activeTransition = undefined;
+        }
     }
 
     // tslint:disable-next-line:no-empty
@@ -106,7 +134,9 @@ export class SurfacePane extends SurfaceLayer {
         self.surface.div.appendChild(self.element);
         if (self.surface.resourceListenerEvent.hasListeners()) {
             self.surface.resourceListenerEvent.listeners.forEach(listener => {
-                self.childSurface.resourceListenerEvent.add(listener);
+                if (self.childSurface.resourceListenerEvent.listeners.indexOf(listener) === -1) {
+                    self.childSurface.resourceListenerEvent.add(listener);
+                }
             });
         }
         self.childSurface.bind(
@@ -151,25 +181,31 @@ export class SurfacePane extends SurfaceLayer {
         transition?: string,
         duration?: number
     ) {
-        if (transition !== undefined && duration !== undefined) {
-            switch (transition.toLowerCase()) {
-                case 'fade':
-                    {
-                        const t = new PaneTransitionFade(this, newChild, callback, duration);
-                        t.start();
-                    }
-                    break;
+        const oldChild = this.childSurface;
+        const onTransitionComplete = (pane: PaneContainerLike) => {
+            this.activeTransition = undefined;
+            callback(pane);
+        };
+        try {
+            if (transition !== undefined && duration !== undefined) {
+                switch (transition.toLowerCase()) {
+                    case 'fade':
+                        {
+                            const t = new PaneTransitionFade(this, newChild, onTransitionComplete, duration);
+                            this.startTransition(t);
+                        }
+                        break;
 
                 case 'pushleft':
                     {
                         const t = new PaneTransitionPush(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.Left
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -178,11 +214,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionPush(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.Right
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -191,11 +227,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionPush(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.Up
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -204,11 +240,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionPush(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.Down
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -217,11 +253,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionWipe(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.Left
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -230,11 +266,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionWipe(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.LeftUp
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -243,11 +279,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionWipe(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.LeftDown
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -256,11 +292,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionWipe(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.Right
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -269,11 +305,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionWipe(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.RightUp
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -282,11 +318,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionWipe(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.RightDown
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -295,11 +331,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionWipe(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.Up
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -308,11 +344,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionWipe(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.Down
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -321,11 +357,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionWipe(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.In
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -334,11 +370,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionWipe(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.InX
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -347,11 +383,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionWipe(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.InY
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -360,11 +396,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionWipe(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.Out
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -373,11 +409,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionWipe(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.OutX
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -386,11 +422,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionWipe(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.OutY
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -399,11 +435,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionReveal(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.Left
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -412,11 +448,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionReveal(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.LeftUp
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -425,11 +461,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionReveal(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.LeftDown
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -438,11 +474,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionReveal(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.Right
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -451,11 +487,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionReveal(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.RightUp
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -464,11 +500,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionReveal(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.RightDown
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -477,11 +513,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionReveal(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.Up
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -490,11 +526,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionReveal(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.Down
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -503,11 +539,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionSlide(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.Left
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -516,11 +552,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionSlide(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.LeftUp
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -529,11 +565,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionSlide(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.LeftDown
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -542,11 +578,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionSlide(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.Right
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -555,11 +591,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionSlide(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.RightUp
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -568,11 +604,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionSlide(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.RightDown
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -581,11 +617,11 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionSlide(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.Up
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
@@ -594,25 +630,34 @@ export class SurfacePane extends SurfaceLayer {
                         const t = new PaneTransitionSlide(
                             this,
                             newChild,
-                            callback,
+                            onTransitionComplete,
                             duration,
                             PaneTransitionDirection.Down
                         );
-                        t.start();
+                        this.startTransition(t);
                     }
                     break;
 
-                default:
-                    {
-                        const t = new PaneTransitionNone(this, newChild, callback);
-                        t.start();
-                    }
-                    break;
+                    default:
+                        {
+                            const t = new PaneTransitionNone(this, newChild, onTransitionComplete);
+                            this.startTransition(t);
+                        }
+                        break;
+                }
+            }
+            else {
+                const t = new PaneTransitionNone(this, newChild, onTransitionComplete);
+                this.startTransition(t);
             }
         }
-        else {
-            const t = new PaneTransitionNone(this, newChild, callback);
-            t.start();
+        catch (error) {
+            this.activeTransition = undefined;
+            if (this.childSurface !== oldChild) {
+                this.childSurface.unbind();
+                this.childSurface = oldChild;
+            }
+            throw error;
         }
 
         /*
@@ -637,6 +682,7 @@ export class SurfacePane extends SurfaceLayer {
      * Unloads child surface element
      */
     public destroy() {
+        this.cancelTransition();
         if (this.childSurface) {
             this.childSurface.unbind();
         }
@@ -703,3 +749,4 @@ export class SurfacePane extends SurfaceLayer {
         return this;
     }
 }
+

@@ -63,8 +63,8 @@ export class Component {
         let dragRect = model.elementWithId('dragrect');
         if (!dragRect) {
             dragRect = RectangleElement.create(0, 0, size.width, size.height)
-                .setStroke('#88ff0000,9')
-                .setFill('#88ffd700')
+                .setStroke('#ff000088,9')
+                .setFill('#ffd70088')
                 .addTo(model);
             dragRect.id = 'dragrect';
         }

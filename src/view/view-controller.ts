@@ -19,11 +19,6 @@ const log = Logging.log;
  */
 export class ViewController implements IController {
     /**
-     * Captured view controller for mouse event routing when mouse is down
-     */
-    public static captured: ViewController | undefined;
-
-    /**
      * Create a new view controller and canvas and bind to host DIV element
      * @param hostDiv - Host div element
      * @param model - Drawing model
@@ -267,6 +262,11 @@ export class ViewController implements IController {
     public timerParameters: TimerParameters;
 
     /**
+     * Reused point buffer for mouse coordinate translation
+     */
+    public pointerBuffer: Point;
+
+    /**
      * Animation timer pause time
      */
     public pauseTime?: number;
@@ -319,6 +319,7 @@ export class ViewController implements IController {
         this.elapsedTime = this.elapsedTime.bind(this);
         this.timerPhase = this.timerPhase.bind(this);
         this.bindTarget = this.bindTarget.bind(this);
+        this.windowToCanvasWithOutput = this.windowToCanvasWithOutput.bind(this);
 
         this.enabled = true;
         this.scale = 1;
@@ -329,6 +330,7 @@ export class ViewController implements IController {
         this.eventDelay = 0;
 
         this.timerParameters = new TimerParameters(0, 0);
+        this.pointerBuffer = new Point(0, 0);
     }
 
     /**
@@ -467,6 +469,12 @@ export class ViewController implements IController {
      * Detaches and destroys current canvas
      */
     public detach(): void {
+        if (this.eventTimer) {
+            clearTimeout(this.eventTimer);
+            this.eventTimer = undefined;
+        }
+        window.removeEventListener('mouseup', this.windowMouseUp, true);
+        window.removeEventListener('mousemove', this.windowMouseMove, true);
         this.stopTimer();
         if (this.model) {
             this.model.controllerDetached.trigger(this.model, this);
@@ -510,7 +518,23 @@ export class ViewController implements IController {
      * @param y - Raw y coordinate
      */
     public windowToCanvas(x: number, y: number): Point {
+        return this.windowToCanvasWithOutput(x, y);
+    }
+
+    /**
+     * Translates raw window coordinates to model coordinates and writes to
+     * the provided output point when supplied.
+     * @param x - Raw x coordinate
+     * @param y - Raw y coordinate
+     * @param out - Optional output point to avoid allocations
+     */
+    public windowToCanvasWithOutput(x: number, y: number, out?: Point): Point {
         if (!this.canvas || !this.model) {
+            if (out) {
+                out.x = x;
+                out.y = y;
+                return out;
+            }
             return new Point(x, y);
         }
         const bounds = this.canvas.getBoundingClientRect();
@@ -548,6 +572,11 @@ export class ViewController implements IController {
         }
         x1 = x1 + this.offsetX;
         y1 = y1 + this.offsetY;
+        if (out) {
+            out.x = x1;
+            out.y = y1;
+            return out;
+        }
         return new Point(x1, y1);
     }
 
@@ -556,15 +585,10 @@ export class ViewController implements IController {
      * @param e - Window mouse up event
      */
     public windowMouseUp(e: MouseEvent) {
-        const captured = ViewController.captured;
-        if (captured) {
+        if (this.isMouseDown) {
             log(`Window mouse up ${e.clientX}:${e.clientY}`);
-            // const canvas = captured.canvas;
-            captured.onCanvasMouseUp(e);
-            captured.drawIfNeeded();
-            window.removeEventListener('mouseup', captured.windowMouseUp, true);
-            window.removeEventListener('mousemove', captured.windowMouseMove, true);
-            ViewController.captured = undefined;
+            this.onCanvasMouseUp(e);
+            this.drawIfNeeded();
         }
     }
 
@@ -573,13 +597,12 @@ export class ViewController implements IController {
      * @param e - Window mouse up event
      */
     public windowMouseMove(e: MouseEvent) {
-        const captured = ViewController.captured;
-        if (captured) {
+        if (this.isMouseDown) {
             log(`Window mouse move ${e.clientX}:${e.clientY}`);
             e.preventDefault();
             e.stopPropagation();
-            captured.onCanvasMouseMove(e);
-            captured.drawIfNeeded();
+            this.onCanvasMouseMove(e);
+            this.drawIfNeeded();
         }
     }
 
@@ -622,7 +645,6 @@ export class ViewController implements IController {
     public onCanvasMouseDown(e: MouseEvent) {
         const self = this;
         log(`Canvas mouse down ${e.clientX}:${e.clientY}`);
-        ViewController.captured = self;
         window.addEventListener('mouseup', self.windowMouseUp, true);
         window.addEventListener('mousemove', self.windowMouseMove, true);
 
@@ -637,7 +659,7 @@ export class ViewController implements IController {
         }
         self.lastClientX = e.clientX;
         self.lastClientY = e.clientY;
-        const p = self.windowToCanvas(e.clientX, e.clientY);
+        const p = self.windowToCanvasWithOutput(e.clientX, e.clientY, self.pointerBuffer);
         const context = self.canvas.getContext('2d');
         if (!context) {
             throw new Error(ErrorMessages.CanvasContextIsNull);
@@ -686,7 +708,7 @@ export class ViewController implements IController {
                 this.clickCancelled = true;
             }
         }
-        const p = this.windowToCanvas(e.clientX, e.clientY);
+        const p = this.windowToCanvasWithOutput(e.clientX, e.clientY, this.pointerBuffer);
         if (p.x === this.currentX && this.currentY === p.y) {
             return;
         }
@@ -710,7 +732,6 @@ export class ViewController implements IController {
      */
     public onCanvasMouseUp(e: MouseEvent | MousePositionInfo) {
         log(`Canvas mouse up ${e.clientX}:${e.clientY}`);
-        ViewController.captured = undefined;
         window.removeEventListener('mouseup', this.windowMouseUp, true);
         window.removeEventListener('mousemove', this.windowMouseMove, true);
 
@@ -722,7 +743,7 @@ export class ViewController implements IController {
         }
         this.lastClientX = e.clientX;
         this.lastClientY = e.clientY;
-        const p = this.windowToCanvas(e.clientX, e.clientY);
+        const p = this.windowToCanvasWithOutput(e.clientX, e.clientY, this.pointerBuffer);
         this.currentX = p.x;
         this.currentY = p.y;
         this.isMouseDown = false;
@@ -1044,16 +1065,25 @@ export class ViewController implements IController {
     public tick() {
         const controller = this;
         if (controller.timerEnabled) {
-            this.timerParameters.elapsedTime = controller.elapsedTime();
-            if (controller.lastTick !== undefined) {
-                this.timerParameters.tickDelta = this.timerParameters.elapsedTime - controller.lastTick;
+            try {
+                this.timerParameters.elapsedTime = controller.elapsedTime();
+                if (controller.lastTick !== undefined) {
+                    this.timerParameters.tickDelta = this.timerParameters.elapsedTime - controller.lastTick;
+                }
+                else {
+                    this.timerParameters.tickDelta = 0;
+                }
+                controller.lastTick = this.timerParameters.elapsedTime;
+                controller.timer.trigger(controller, this.timerParameters);
+                controller.drawIfNeeded();
             }
-            else {
-                this.timerParameters.tickDelta = 0;
+            catch (error) {
+                controller.timerEnabled = false;
+                this.timerHandle = undefined;
+                const message = error instanceof Error ? error.message : String(error);
+                log(`Animation timer stopped due to error: ${message}`);
+                return;
             }
-            controller.lastTick = this.timerParameters.elapsedTime;
-            controller.timer.trigger(controller, this.timerParameters);
-            controller.drawIfNeeded();
             this.timerHandle = window.requestAnimationFrame(controller.tick);
         }
         else {

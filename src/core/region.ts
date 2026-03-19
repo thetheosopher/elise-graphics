@@ -39,6 +39,12 @@ export class Region {
         this.location = new Point(x, y);
 
         this.clone = this.clone.bind(this);
+        this.withX = this.withX.bind(this);
+        this.withY = this.withY.bind(this);
+        this.withWidth = this.withWidth.bind(this);
+        this.withHeight = this.withHeight.bind(this);
+        this.withLocation = this.withLocation.bind(this);
+        this.withSize = this.withSize.bind(this);
         this.containsPoint = this.containsPoint.bind(this);
         this.containsCoordinate = this.containsCoordinate.bind(this);
         this.containsRegion = this.containsRegion.bind(this);
@@ -51,6 +57,60 @@ export class Region {
      */
     public clone(): Region {
         return new Region(this.x, this.y, this.width, this.height);
+    }
+
+    /**
+     * Returns a new region with updated x coordinate.
+     * @param x - New x coordinate
+     * @returns New region instance
+     */
+    public withX(x: number): Region {
+        return new Region(x, this.y, this.width, this.height);
+    }
+
+    /**
+     * Returns a new region with updated y coordinate.
+     * @param y - New y coordinate
+     * @returns New region instance
+     */
+    public withY(y: number): Region {
+        return new Region(this.x, y, this.width, this.height);
+    }
+
+    /**
+     * Returns a new region with updated width.
+     * @param width - New width
+     * @returns New region instance
+     */
+    public withWidth(width: number): Region {
+        return new Region(this.x, this.y, width, this.height);
+    }
+
+    /**
+     * Returns a new region with updated height.
+     * @param height - New height
+     * @returns New region instance
+     */
+    public withHeight(height: number): Region {
+        return new Region(this.x, this.y, this.width, height);
+    }
+
+    /**
+     * Returns a new region with updated location.
+     * @param location - New location
+     * @returns New region instance
+     */
+    public withLocation(location: Point): Region {
+        return new Region(location.x, location.y, this.width, this.height);
+    }
+
+    /**
+     * Returns a new region with updated size.
+     * @param size - New size
+     * @returns New region instance
+     */
+    public withSize(size: Size): Region {
+        return new Region(this.x, this.y, size.width, size.height);
     }
 
     /**

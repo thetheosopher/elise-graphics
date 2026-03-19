@@ -168,6 +168,7 @@ export class ElementBase implements IPointContainer {
         this.clearBounds = this.clearBounds.bind(this);
         this.clone = this.clone.bind(this);
         this.cloneTo = this.cloneTo.bind(this);
+        this.cloneToFluent = this.cloneToFluent.bind(this);
         this.describe = this.describe.bind(this);
         this.draw = this.draw.bind(this);
         this.getBounds = this.getBounds.bind(this);
@@ -178,6 +179,7 @@ export class ElementBase implements IPointContainer {
         this.hitTest = this.hitTest.bind(this);
         this.nudgeSize = this.nudgeSize.bind(this);
         this.parse = this.parse.bind(this);
+        this.parseFluent = this.parseFluent.bind(this);
         this.pointCount = this.pointCount.bind(this);
         this.registerResources = this.registerResources.bind(this);
         this.scale = this.scale.bind(this);
@@ -221,6 +223,26 @@ export class ElementBase implements IPointContainer {
     }
 
     /**
+     * Size get accessor as typed value.
+     * @returns Size object
+     */
+    get sizeValue(): Size | undefined {
+        return this.getSize();
+    }
+
+    /**
+     * Size set accessor as typed value.
+     * @param size - Size object
+     */
+    set sizeValue(size: Size | undefined) {
+        if (!size) {
+            this._size = undefined;
+        } else {
+            this._size = Size.parse(size);
+        }
+    }
+
+    /**
      * Location set accessor as string
      * @returns Location as string
      */
@@ -240,6 +262,26 @@ export class ElementBase implements IPointContainer {
             this._location = undefined;
         } else {
             this._location = Point.parse(locationString);
+        }
+    }
+
+    /**
+     * Location get accessor as typed value.
+     * @returns Location as point
+     */
+    get locationValue(): Point | undefined {
+        return this.getLocation();
+    }
+
+    /**
+     * Location set accessor as typed value.
+     * @param location - Location as point
+     */
+    set locationValue(location: Point | undefined) {
+        if (!location) {
+            this._location = undefined;
+        } else {
+            this._location = Point.parse(location);
         }
     }
 
@@ -329,6 +371,16 @@ export class ElementBase implements IPointContainer {
     }
 
     /**
+     * Fluent parse wrapper that returns this instance.
+     * @param o - Serialized element data
+     * @returns This element
+     */
+    public parseFluent(o: SerializedData): this {
+        this.parse(o);
+        return this;
+    }
+
+    /**
      * Serializes persistent properties to new object instance
      * @returns Serialized element
      */
@@ -338,10 +390,10 @@ export class ElementBase implements IPointContainer {
             o.id = String(this.id);
         }
         if (this.size) {
-            o.size = this.size.toString();
+            o.size = this.size;
         }
         if (this.location) {
-            o.location = this.location.toString();
+            o.location = this.location;
         }
         if (this.locked) {
             o.locked = this.locked;
@@ -407,10 +459,10 @@ export class ElementBase implements IPointContainer {
             e.id = this.id;
         }
         if (this.size) {
-            e.size = this.size.toString();
+            e.size = this.size;
         }
         if (this.location) {
-            e.location = this.location.toString();
+            e.location = this.location;
         }
         if (this.locked) {
             e.locked = this.locked;
@@ -451,6 +503,16 @@ export class ElementBase implements IPointContainer {
         if (this.click) {
             e.click = this.click;
         }
+    }
+
+    /**
+     * Fluent clone wrapper that returns the provided target element.
+     * @param e - Target element instance
+     * @returns Target element
+     */
+    public cloneToFluent<T extends ElementBase>(e: T): T {
+        this.cloneTo(e);
+        return e;
     }
 
     /**

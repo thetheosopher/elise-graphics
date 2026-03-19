@@ -369,6 +369,18 @@ export class ResourceManager {
     }
 
     /**
+     * Loads all resources registered for download and resolves when loading completes.
+     * @returns Promise resolving true when all resources load successfully, otherwise false
+     */
+    public loadAsync(): Promise<boolean> {
+        return new Promise(resolve => {
+            this.load(result => {
+                resolve(result);
+            });
+        });
+    }
+
+    /**
      * Request next registered resource
      */
     public loadNext(): void {

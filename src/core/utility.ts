@@ -1,3 +1,5 @@
+import { Logging } from './logging';
+
 /**
  * Exposes shared utility methods
  */
@@ -23,14 +25,27 @@ export class Utility {
             }
         };
         request.onabort = () => {
-            console.log('Request Aborted: ' + url);
+            Logging.log('Request Aborted: ' + url);
             callback(undefined);
         };
         request.onerror = () => {
-            console.log('Request Error: ' + url + '\r' + request.responseText);
+            Logging.log('Request Error: ' + url + '\r' + request.responseText);
             callback(undefined);
         };
         request.send(null);
+    }
+
+    /**
+     * Retrieves text content via async ajax call as a Promise.
+     * @param url - URL to be retrieved
+     * @returns Promise resolving to response text or undefined on failure
+     */
+    public static getRemoteTextAsync(url: string): Promise<string | undefined> {
+        return new Promise(resolve => {
+            Utility.getRemoteText(url, result => {
+                resolve(result);
+            });
+        });
     }
 
     /**
@@ -55,14 +70,27 @@ export class Utility {
             }
         };
         request.onabort = () => {
-            console.log('Request Aborted: ' + url);
+            Logging.log('Request Aborted: ' + url);
             callback(undefined);
         };
         request.onerror = () => {
-            console.log('Request Error: ' + url + '\r' + request.responseText);
+            Logging.log('Request Error: ' + url + '\r' + request.responseText);
             callback(undefined);
         };
         request.send(null);
+    }
+
+    /**
+     * Retrieves binary content via async ajax call as a Promise.
+     * @param url - URL to be retrieved
+     * @returns Promise resolving to bytes or undefined on failure
+     */
+    public static getRemoteBytesAsync(url: string): Promise<Uint8Array | undefined> {
+        return new Promise(resolve => {
+            Utility.getRemoteBytes(url, result => {
+                resolve(result);
+            });
+        });
     }
 
     /**
@@ -86,14 +114,27 @@ export class Utility {
             }
         };
         request.onabort = () => {
-            console.log('Request Aborted: ' + url);
+            Logging.log('Request Aborted: ' + url);
             callback(undefined);
         };
         request.onerror = () => {
-            console.log('Request Error: ' + url + '\r' + request.responseText);
+            Logging.log('Request Error: ' + url + '\r' + request.responseText);
             callback(undefined);
         };
         request.send(null);
+    }
+
+    /**
+     * Retrieves binary blob content via async ajax call as a Promise.
+     * @param url - URL to be retrieved
+     * @returns Promise resolving to blob or undefined on failure
+     */
+    public static getRemoteBlobAsync(url: string): Promise<Blob | undefined> {
+        return new Promise(resolve => {
+            Utility.getRemoteBlob(url, result => {
+                resolve(result);
+            });
+        });
     }
 
     /**
@@ -103,7 +144,7 @@ export class Utility {
      * @returns True if string ends with suffix
      */
     public static endsWith(str: string, suffix: string): boolean {
-        return str.indexOf(suffix, str.length - suffix.length) !== -1;
+        return str.endsWith(suffix);
     }
 
     /**
@@ -113,7 +154,7 @@ export class Utility {
      * @returns True if string starts with prefix
      */
     public static startsWith(string: string, prefix: string): boolean {
-        return string.lastIndexOf(prefix, 0) === 0;
+        return string.startsWith(prefix);
     }
 
     /**

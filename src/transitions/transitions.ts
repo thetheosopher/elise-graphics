@@ -134,7 +134,7 @@ export class TransitionRenderer {
             }
             sprite.c1index = sourceFrame;
         }
-        if (sprite.c2index !== undefined || sprite.c2index !== targetFrame) {
+        if (sprite.c2index === undefined || sprite.c2index !== targetFrame) {
             const c = sprite.c2.getContext('2d');
             const f = sprite.frames[targetFrame];
             const r = sprite.model.resourceManager.get(f.source) as BitmapResource;
@@ -147,16 +147,18 @@ export class TransitionRenderer {
         sprite.transition = TransitionRenderer.getRenderFunction(transition);
         // sprite.transitionOffset = spriteState.offset;
 
-        // Animate on timer
+        // Animate on frame callback
         if (sprite.timerHandle) {
-            clearInterval(sprite.timerHandle);
+            cancelAnimationFrame(sprite.timerHandle);
         }
-        let offset = 0;
-        sprite.timerHandle = setInterval(() => {
-            offset += 0.075;
+        const durationMs = 200;
+        const startTime = performance.now();
+        const tick = () => {
+            const elapsed = performance.now() - startTime;
+            const offset = elapsed / durationMs;
             if (offset >= 1.0) {
                 if (sprite.timerHandle !== undefined) {
-                    clearInterval(sprite.timerHandle);
+                    cancelAnimationFrame(sprite.timerHandle);
                     sprite.timerHandle = undefined;
                 }
                 sprite.frameIndex = targetFrame;
@@ -171,8 +173,10 @@ export class TransitionRenderer {
             else {
                 sprite.transitionOffset = TransitionRenderer.getEasingFunction('easeInOutCubic')(offset);
                 controller.draw();
+                sprite.timerHandle = requestAnimationFrame(tick);
             }
-        }, 15);
+        };
+        sprite.timerHandle = requestAnimationFrame(tick);
     }
 
     public static pushFrameTransition(

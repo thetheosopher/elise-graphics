@@ -79,6 +79,8 @@ export class Point {
         this.x = x;
         this.y = y;
         this.clone = this.clone.bind(this);
+        this.withX = this.withX.bind(this);
+        this.withY = this.withY.bind(this);
         this.equals = this.equals.bind(this);
         this.toString = this.toString.bind(this);
     }
@@ -89,6 +91,24 @@ export class Point {
      */
     public clone(): Point {
         return new Point(this.x, this.y);
+    }
+
+    /**
+     * Returns a new point with updated x coordinate.
+     * @param x - New x coordinate
+     * @returns New point instance
+     */
+    public withX(x: number): Point {
+        return new Point(x, this.y);
+    }
+
+    /**
+     * Returns a new point with updated y coordinate.
+     * @param y - New y coordinate
+     * @returns New point instance
+     */
+    public withY(y: number): Point {
+        return new Point(this.x, y);
     }
 
     /**
@@ -105,6 +125,6 @@ export class Point {
      * @returns Description of point
      */
     public toString(): string {
-        return this.x.toFixed(0) + ',' + this.y.toFixed(0);
+        return this.x + ',' + this.y;
     }
 }

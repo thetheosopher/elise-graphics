@@ -28,7 +28,6 @@ export class Logging {
             for (const handler of Logging.handlers) {
                 handler(message);
             }
-            console.log(message);
         }
     }
 

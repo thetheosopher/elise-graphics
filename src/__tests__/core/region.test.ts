@@ -32,6 +32,50 @@ test('region clone', () => {
     expect(c.height).toBe(200);
 });
 
+test('region withX/withY', () => {
+    const r = Region.create(10, 20, 100, 200);
+    const moved = r.withX(30).withY(40);
+    expect(moved.x).toBe(30);
+    expect(moved.y).toBe(40);
+    expect(moved.width).toBe(100);
+    expect(moved.height).toBe(200);
+    expect(r.x).toBe(10);
+    expect(r.y).toBe(20);
+});
+
+test('region withWidth/withHeight', () => {
+    const r = Region.create(10, 20, 100, 200);
+    const resized = r.withWidth(120).withHeight(220);
+    expect(resized.x).toBe(10);
+    expect(resized.y).toBe(20);
+    expect(resized.width).toBe(120);
+    expect(resized.height).toBe(220);
+    expect(r.width).toBe(100);
+    expect(r.height).toBe(200);
+});
+
+test('region withLocation', () => {
+    const r = Region.create(10, 20, 100, 200);
+    const relocated = r.withLocation(Point.create(1, 2));
+    expect(relocated.x).toBe(1);
+    expect(relocated.y).toBe(2);
+    expect(relocated.width).toBe(100);
+    expect(relocated.height).toBe(200);
+    expect(r.x).toBe(10);
+    expect(r.y).toBe(20);
+});
+
+test('region withSize', () => {
+    const r = Region.create(10, 20, 100, 200);
+    const resized = r.withSize(r.size.withWidth(150).withHeight(250));
+    expect(resized.x).toBe(10);
+    expect(resized.y).toBe(20);
+    expect(resized.width).toBe(150);
+    expect(resized.height).toBe(250);
+    expect(r.width).toBe(100);
+    expect(r.height).toBe(200);
+});
+
 test('region containsPoint inside', () => {
     const r = Region.create(10, 20, 100, 200);
     expect(r.containsPoint(Point.create(50, 100))).toBe(true);

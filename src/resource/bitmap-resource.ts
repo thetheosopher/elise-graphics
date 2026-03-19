@@ -169,7 +169,7 @@ export class BitmapResource extends Resource {
             // Image Resource Assumed
             const imagePath = self.uri;
             if (!imagePath) {
-                throw new Error('Image path is undefined.');
+                throw new Error(ErrorMessages.BitmapResourceSourceIsUndefined);
             }
             const imagePathLowered = imagePath.toLowerCase();
 

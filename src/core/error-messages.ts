@@ -13,6 +13,7 @@ export class ErrorMessages {
     public static HostElementUndefined = 'Host element is undefined.';
     public static ImageUndefined = 'Image is undefined';
     public static InvalidColorString = 'Invalid color string.';
+    public static InvalidGradientStopOffset = 'Invalid gradient stop offset.';
     public static InvalidFrameIndex = 'Invalid frame index.';
     public static InvalidResourceType = 'Invalid resource type.';
     public static InvalidPointIndex = 'Invalid point index: ';

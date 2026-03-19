@@ -30,6 +30,15 @@ test('gradient stop cloneStops', () => {
     expect(cloned[2].color).toBe('Blue');
 });
 
+test('gradient stop throws on invalid color', () => {
+    expect(() => GradientFillStop.create('not-a-color', 0.5)).toThrow();
+});
+
+test('gradient stop throws on invalid offset', () => {
+    expect(() => GradientFillStop.create('Red', -0.1)).toThrow();
+    expect(() => GradientFillStop.create('Red', 1.1)).toThrow();
+});
+
 // --- LinearGradientFill ---
 
 test('linear gradient create', () => {

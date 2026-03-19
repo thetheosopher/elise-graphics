@@ -1,6 +1,7 @@
 import { Model } from '../../core/model';
 import { Point } from '../../core/point';
 import { Size } from '../../core/size';
+import { ErrorMessages } from '../../core/error-messages';
 import { ElementCreationProps } from '../../elements/element-creation-props';
 import { ElementSizeProps } from '../../elements/element-size-props';
 import { RectangleElement } from '../../elements/rectangle-element';
@@ -56,7 +57,7 @@ export class UploadComponentProps extends ImageBasedComponentProps {
         const resource = BitmapResource.create(this.imageTag, imageSource).addTo(m);
         resource.image = this.fillImage;
         m.stroke = 'Black';
-        // m.fill = '#c0ffffff';
+        // m.fill = '#ffffffc0';
         const rect = RectangleElement.create(0, 0, props.width, props.height)
             .setFill('image(0.75;' + this.imageTag + ')')
             .addTo(m);
@@ -87,15 +88,15 @@ export class UploadComponentProps extends ImageBasedComponentProps {
     protected onSize(c: Component, props: ElementSizeProps) {
         const el = props.element;
         if (!el.model) {
-            throw new Error('Model is undefined.');
+            throw new Error(ErrorMessages.ModelUndefined);
         }
         if (!el.id) {
-            throw new Error('Element ID is undefined.');
+            throw new Error(ErrorMessages.ElementIdUndefined);
         }
         const size = props.size;
         const res = el.model.resourceManager.get(el.id) as ModelResource;
         if (!res.model) {
-            throw new Error('Model is undefined.');
+            throw new Error(ErrorMessages.ModelUndefined);
         }
         res.model.setSize(size);
         const r = res.model.elementWithId('r');
@@ -114,18 +115,18 @@ export class UploadComponentProps extends ImageBasedComponentProps {
 
     protected onUploadStart(c: Component, el: ComponentElement) {
         if (!el.model) {
-            throw new Error('Model is undefined.');
+            throw new Error(ErrorMessages.ModelUndefined);
         }
         if (!el.id) {
-            throw new Error('Element ID is undefined.');
+            throw new Error(ErrorMessages.ElementIdUndefined);
         }
         const res = el.model.resourceManager.get(el.id) as ModelResource;
         if (!res.model) {
-            throw new Error('Model is undefined.');
+            throw new Error(ErrorMessages.ModelUndefined);
         }
         const upframe = res.model.elementWithId('upframe');
         if (upframe) {
-            upframe.setStroke('Black').setFill('#80000080');
+            upframe.setStroke('Black').setFill('#00008080');
         }
         const upind = res.model.elementWithId('upind') as ProgressRectangle;
         upind.setSize(Size.create(0, 8));
@@ -135,14 +136,14 @@ export class UploadComponentProps extends ImageBasedComponentProps {
     protected onUploadComplete(c: Component, props: UploadCompletionProps) {
         const el = props.element;
         if (!el.model) {
-            throw new Error('Model is undefined.');
+            throw new Error(ErrorMessages.ModelUndefined);
         }
         if (!el.id) {
-            throw new Error('Element ID is undefined.');
+            throw new Error(ErrorMessages.ElementIdUndefined);
         }
         const res = el.model.resourceManager.get(el.id) as ModelResource;
         if (!res.model) {
-            throw new Error('Model is undefined.');
+            throw new Error(ErrorMessages.ModelUndefined);
         }
         const upframe = res.model.elementWithId('upframe');
         if (upframe) {
@@ -157,12 +158,15 @@ export class UploadComponentProps extends ImageBasedComponentProps {
 
     protected onUploadProgress(c: Component, props: UploadProgressProps) {
         const el = props.element;
-        if (!el.model || !el.id) {
-            throw new Error('Model is undefined.');
+        if (!el.model) {
+            throw new Error(ErrorMessages.ModelUndefined);
+        }
+        if (!el.id) {
+            throw new Error(ErrorMessages.ElementIdUndefined);
         }
         const res = el.model.resourceManager.get(el.id) as ModelResource;
         if (!res.model) {
-            throw new Error('Model is undefined.');
+            throw new Error(ErrorMessages.ModelUndefined);
         }
         const upind = res.model.elementWithId('upind') as ProgressRectangle;
         const upframe = res.model.elementWithId('upframe');

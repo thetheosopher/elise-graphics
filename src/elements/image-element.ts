@@ -1,4 +1,5 @@
 import { ErrorMessages } from '../core/error-messages';
+import { Logging } from '../core/logging';
 import type { SerializedData } from '../core/serialization';
 import { Point } from '../core/point';
 import { Size } from '../core/size';
@@ -168,7 +169,8 @@ export class ImageElement extends ElementBase {
             try {
                 c.drawImage(res.image, this._location.x, this._location.y, this._size.width, this._size.height);
             } catch {
-                console.log('Error rendering image in ImageElement.draw.');
+                Logging.log('Error rendering image in ImageElement.draw.');
+                throw new Error(ErrorMessages.CanvasDrawImageError);
             }
         }
         if (model.setElementStroke(c, this)) {

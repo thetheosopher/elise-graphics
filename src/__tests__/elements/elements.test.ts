@@ -10,6 +10,7 @@ import { SpriteElement } from '../../elements/sprite-element';
 import { ModelElement } from '../../elements/model-element';
 import { Point } from '../../core/point';
 import { PointDepth } from '../../core/point-depth';
+import { Size } from '../../core/size';
 
 // --- RectangleElement ---
 
@@ -82,6 +83,42 @@ test('rectangle fluent setters', () => {
     expect(rect.fill).toBe('Green');
     expect(rect.stroke).toBe('Red');
     expect(rect.interactive).toBe(true);
+});
+
+test('rectangle typed locationValue accessor', () => {
+    const rect = RectangleElement.create(0, 0, 50, 50);
+    rect.locationValue = Point.create(12, 34);
+    expect(rect.locationValue!.x).toBe(12);
+    expect(rect.locationValue!.y).toBe(34);
+    expect(rect.location).toBe('12,34');
+});
+
+test('rectangle typed sizeValue accessor', () => {
+    const rect = RectangleElement.create(0, 0, 50, 50);
+    rect.sizeValue = Size.create(80, 90);
+    expect(rect.sizeValue!.width).toBe(80);
+    expect(rect.sizeValue!.height).toBe(90);
+    expect(rect.size).toBe('80x90');
+});
+
+test('rectangle parseFluent', () => {
+    const serialized = RectangleElement.create(10, 20, 30, 40).serialize();
+    const rect = new RectangleElement().parseFluent(serialized).setFill('Blue');
+    expect(rect.getLocation()!.x).toBe(10);
+    expect(rect.getLocation()!.y).toBe(20);
+    expect(rect.getSize()!.width).toBe(30);
+    expect(rect.getSize()!.height).toBe(40);
+    expect(rect.fill).toBe('Blue');
+});
+
+test('rectangle cloneToFluent', () => {
+    const source = RectangleElement.create(1, 2, 3, 4).setFill('Green');
+    const target = source.cloneToFluent(new RectangleElement());
+    expect(target.getLocation()!.x).toBe(1);
+    expect(target.getLocation()!.y).toBe(2);
+    expect(target.getSize()!.width).toBe(3);
+    expect(target.getSize()!.height).toBe(4);
+    expect(target.fill).toBe('Green');
 });
 
 // --- EllipseElement ---

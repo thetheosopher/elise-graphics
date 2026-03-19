@@ -55,7 +55,7 @@ export class FillFactory {
         }
         const fill = FillFactory.fillForElement(el);
         if (!fill || (typeof fill === 'string' && fill === 'no')) {
-            c.fillStyle = 'rgba(0,0,0,0)';
+            c.fillStyle = Color.Transparent.toStyleString();
             return false;
         }
         if (fill instanceof LinearGradientFill) {

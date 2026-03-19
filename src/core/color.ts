@@ -152,6 +152,25 @@ export class Color {
      */
     public static NamedColors: NamedColor[] = [];
 
+    private static namedColorLookup: Map<string, NamedColor> = new Map<string, NamedColor>();
+    private static namedHueLookup: Map<string, string> = new Map<string, string>();
+
+    private static hueKey(r: number, g: number, b: number): string {
+        return r + ',' + g + ',' + b;
+    }
+
+    public static rebuildNamedColorLookup(): void {
+        Color.namedColorLookup.clear();
+        Color.namedHueLookup.clear();
+        Color.NamedColors.forEach(namedColor => {
+            Color.namedColorLookup.set(namedColor.name.toLowerCase(), namedColor);
+            const key = Color.hueKey(namedColor.color.r, namedColor.color.g, namedColor.color.b);
+            if (!Color.namedHueLookup.has(key)) {
+                Color.namedHueLookup.set(key, namedColor.name);
+            }
+        });
+    }
+
     /**
      * Color factory function
      * @param a - Alpha component (0-255)
@@ -167,10 +186,16 @@ export class Color {
     /**
      * Parses a string representation of a color into a color instance,
      * handling known color names and hex formatted color strings
-     * @param color - String representation of color
+     * @param color - String representation of color or color instance to clone
      * @returns Parsed color instance
      */
-    public static parse(color: string): Color {
+    public static parse(color: string): Color;
+    public static parse(color: Color): Color;
+    public static parse(color: string | Color): Color {
+        if (color instanceof Color) {
+            return color.clone();
+        }
+
         let a: number;
         let r: number;
         let g: number;
@@ -179,6 +204,21 @@ export class Color {
         // Parse hex prefixed color
         if (color.charAt(0) === '#') {
             switch (color.length) {
+                // Three digits shorthand (#RGB → #RRGGBB)
+                case 4:
+                    r = parseInt(color.charAt(1) + color.charAt(1), 16);
+                    g = parseInt(color.charAt(2) + color.charAt(2), 16);
+                    b = parseInt(color.charAt(3) + color.charAt(3), 16);
+                    return new Color(255, r, g, b);
+
+                // Four digits shorthand (#RGBA → #RRGGBBAA)
+                case 5:
+                    r = parseInt(color.charAt(1) + color.charAt(1), 16);
+                    g = parseInt(color.charAt(2) + color.charAt(2), 16);
+                    b = parseInt(color.charAt(3) + color.charAt(3), 16);
+                    a = parseInt(color.charAt(4) + color.charAt(4), 16);
+                    return new Color(a, r, g, b);
+
                 // Six digits
                 case 7:
                     r = parseInt(color.substring(1, 3), 16);
@@ -199,6 +239,16 @@ export class Color {
             }
         }
 
+        // Parse rgb(r,g,b) or rgba(r,g,b,a) format
+        const rgbaMatch = color.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)$/);
+        if (rgbaMatch) {
+            r = parseInt(rgbaMatch[1], 10);
+            g = parseInt(rgbaMatch[2], 10);
+            b = parseInt(rgbaMatch[3], 10);
+            a = rgbaMatch[4] !== undefined ? Math.round(parseFloat(rgbaMatch[4]) * 255) : 255;
+            return new Color(a, r, g, b);
+        }
+
         let evalString = color.toLowerCase();
         let alpha = 1;
         if (color.indexOf(';') !== -1) {
@@ -215,19 +265,18 @@ export class Color {
 
         // Lookup known color
         if (evalString === 'transparent') {
-            return Color.Transparent;
+            return new Color(0, 255, 255, 255);
         }
-        for (const namedColor of Color.NamedColors) {
-            if (namedColor.name.toLowerCase() === evalString) {
-                if (alpha === 255) {
-                    return new Color(namedColor.color.a, namedColor.color.r, namedColor.color.g, namedColor.color.b);
-                }
-                else {
-                    return new Color(alpha * 255, namedColor.color.r, namedColor.color.g, namedColor.color.b);
-                }
+        const namedColor = Color.namedColorLookup.get(evalString);
+        if (namedColor) {
+            if (alpha === 1) {
+                return new Color(namedColor.color.a, namedColor.color.r, namedColor.color.g, namedColor.color.b);
+            }
+            else {
+                return new Color(Math.round(alpha * 255), namedColor.color.r, namedColor.color.g, namedColor.color.b);
             }
         }
-        return Color.Transparent;
+        throw new Error(ErrorMessages.InvalidColorString + ': ' + color);
     }
 
     /**
@@ -290,14 +339,13 @@ export class Color {
         }
 
         // Check for known color
-        for (const namedColor of Color.NamedColors) {
-            if (this.equalsHue(namedColor.color)) {
-                if (this.a === 255) {
-                    return namedColor.name;
-                }
-                else {
-                    return (this.a / 255).toFixed(4) + ';' + namedColor.name;
-                }
+        const namedColor = Color.namedHueLookup.get(Color.hueKey(this.r, this.g, this.b));
+        if (namedColor) {
+            if (this.a === 255) {
+                return namedColor;
+            }
+            else {
+                return (this.a / 255).toFixed(4) + ';' + namedColor;
             }
         }
 
@@ -337,25 +385,22 @@ export class Color {
     }
 
     /**
-     * Compares this color to another color for hue equality
+     * Compares this color to another color for RGB equality, ignoring alpha.
+     * Note: Two colors with identical RGB but different alpha values will be considered equal.
      * @param that - Color of interest
-     * @returns True if color of interest equals this without regard to alpha
+     * @returns True if RGB components of color of interest equal this
      */
     public equalsHue(that: { r: number; g: number; b: number }): boolean {
         return this.r === that.r && this.g === that.g && this.b === that.b;
     }
 
     /**
-     * Determines if this color is a named color hue
+     * Determines if this color's RGB components match any named color, ignoring alpha.
+     * A fully transparent red (a=0, r=255, g=0, b=0) returns true because its RGB matches Red.
      * @returns True if this is a named color hue
      */
     public isNamedColor(): boolean {
-        for (const namedColor of Color.NamedColors) {
-            if (this.equalsHue(namedColor.color)) {
-                return true;
-            }
-        }
-        return false;
+        return Color.namedHueLookup.has(Color.hueKey(this.r, this.g, this.b));
     }
 
     public clone() {
@@ -516,3 +561,5 @@ Color.NamedColors.push(new NamedColor('WhiteSmoke', Color.WhiteSmoke));
 Color.NamedColors.push(new NamedColor('Yellow', Color.Yellow));
 Color.NamedColors.push(new NamedColor('YellowGreen', Color.Yellow));
 Color.NamedColors.push(new NamedColor('Transparent', Color.Transparent));
+
+Color.rebuildNamedColorLookup();

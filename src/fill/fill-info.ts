@@ -133,12 +133,7 @@ export class FillInfo {
                 }
                 else {
                     const color = Color.parse(fill);
-                    let opacity = 255;
-                    if (color.a !== 255) {
-                        opacity = color.a;
-                        color.a = 255;
-                    }
-                    return FillInfo.getColorFillInfo(color.toHexString(), opacity);
+                    return FillInfo.getColorFillInfo(color.toHexString(), color.a);
                 }
             }
         }

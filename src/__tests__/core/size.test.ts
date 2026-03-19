@@ -42,6 +42,24 @@ test('size clone', () => {
     expect(cloned.height).toBe(4);
 });
 
+test('size withWidth', () => {
+    const size = Size.create(3, 4);
+    const updated = size.withWidth(10);
+    expect(updated.width).toBe(10);
+    expect(updated.height).toBe(4);
+    expect(size.width).toBe(3);
+    expect(size.height).toBe(4);
+});
+
+test('size withHeight', () => {
+    const size = Size.create(3, 4);
+    const updated = size.withHeight(11);
+    expect(updated.width).toBe(3);
+    expect(updated.height).toBe(11);
+    expect(size.width).toBe(3);
+    expect(size.height).toBe(4);
+});
+
 test('size equals', () => {
     const size1 = Size.create(3, 4);
     const size2 = Size.create(3, 4);
