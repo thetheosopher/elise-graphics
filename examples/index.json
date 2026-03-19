@@ -70,5 +70,11 @@
         "id": "star",
         "description": "Generates a five pointed start polygon.",
         "displayModelJson": true
+    },
+    {
+        "name": "Lava Lamp",
+        "id": "lava-lamp",
+        "description": "Lava lamp simulation with morphing blobs.",
+        "displayModelJson": false
     }
 ]
