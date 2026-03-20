@@ -60,6 +60,12 @@
         "displayModelJson": false
     },
     {
+        "name": "Fourier Flower",
+        "id": "fourier-flower",
+        "description": "Layered Fourier harmonics rendered as luminous radial floral curves.",
+        "displayModelJson": false
+    },
+    {
         "name": "Fractal Zoom",
         "id": "fractal-zoom",
         "description": "Progressive Mandelbrot rendering with continuous zoom.",
@@ -81,6 +87,12 @@
         "name": "Heartbeat Monitor",
         "id": "heartbeat-monitor",
         "description": "ECG heartbeat monitor with scanning green trace and BPM readout.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Harmonograph",
+        "id": "harmonograph",
+        "description": "Damped pendulum harmonograph drawing evolving mirrored Lissajous trails.",
         "displayModelJson": false
     },
     {
@@ -231,6 +243,18 @@
         "name": "Stargate Tunnel",
         "id": "stargate-tunnel",
         "description": "Warp tunnel with zooming octagonal rings and streaking stars.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Superformula Bloom",
+        "id": "superformula-bloom",
+        "description": "Animated superformula petals with nested contours and chromatic bloom.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Times Table Cardioid",
+        "id": "times-table-cardioid",
+        "description": "Multiplication circle weaving cardioid-like chord webs with dynamic factors.",
         "displayModelJson": false
     },
     {
