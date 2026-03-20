@@ -1,80 +1,8 @@
 [
     {
-        "name": "Model Grid",
-        "id": "model-grid",
-        "description": "Demonstrates a grid of model elements.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Ellipse Animation",
-        "id": "ellipse-animation",
-        "description": "Demonstrates animation of an array of ellipses.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Line Animation",
-        "id": "line-animation",
-        "description": "Demonstrates animation of an array of lines.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Particle Animation",
-        "id": "particle-animation",
-        "description": "Particle animation with collision detection.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Snow Simulation",
-        "id": "snow-animation",
-        "description": "Snow simulation.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Digital Rain Simulation",
-        "id": "digital-rain",
-        "description": "'The Matrix' Digital Rain Simulation.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Gradient Animation",
-        "id": "gradient-animation",
-        "description": "Radial gradient fill stop color animation",
-        "displayModelJson": false
-    },
-    {
-        "name": "Sprite Image Transition",
-        "id": "sprite-transitions",
-        "description": "Demonstrates sprite transition library.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Rotation Animation",
-        "id": "rotation-animation",
-        "description": "Demonstrates animation timer callback function.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Sprite Sheet Animation",
-        "id": "sprite-animation",
-        "description": "Demonstrates sprite sheet animation.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Multi Sprite Animation",
-        "id": "multi-sprite-animation",
-        "description": "Sprite sheet torture test.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Five Pointed Star",
-        "id": "star",
-        "description": "Generates a five pointed start polygon.",
-        "displayModelJson": true
-    },
-    {
-        "name": "Lava Lamp",
-        "id": "lava-lamp",
-        "description": "Lava lamp simulation with morphing blobs.",
+        "name": "Ant Colony Trails",
+        "id": "ant-colony-trails",
+        "description": "Ant foraging simulation with pheromone deposition and evaporation.",
         "displayModelJson": false
     },
     {
@@ -84,129 +12,9 @@
         "displayModelJson": false
     },
     {
-        "name": "Kaleidoscope",
-        "id": "kaleidoscope",
-        "description": "Symmetrical mandala with rotating, color-cycling ellipses.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Solar System Orrery",
-        "id": "solar-system",
-        "description": "Top-down solar system with orbiting planets and glowing sun.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Jellyfish Tank",
-        "id": "jellyfish-tank",
-        "description": "Translucent jellyfish pulsing and drifting through a dark ocean.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Fireworks Display",
-        "id": "fireworks",
-        "description": "Fireworks bursting over a city skyline with fading spark trails.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Pendulum Wave",
-        "id": "pendulum-wave",
-        "description": "Pendulum wave physics demo with convergence/divergence patterns.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Raindrop Ripples",
-        "id": "raindrop-ripples",
-        "description": "Expanding concentric ripple rings on a dark water surface.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Geometric Morphing",
-        "id": "geometric-morphing",
-        "description": "Shape morphing between regular polygons with gradient fills.",
-        "displayModelJson": false
-    },
-    {
-        "name": "DNA Helix",
-        "id": "dna-helix",
-        "description": "Rotating 3D double helix with color-coded base pairs.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Northern Lights Clock",
-        "id": "aurora-clock",
-        "description": "Functional analog clock with aurora background and color-shifting hands.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Stargate Tunnel",
-        "id": "stargate-tunnel",
-        "description": "Warp tunnel with zooming octagonal rings and streaking stars.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Ocean Waves",
-        "id": "ocean-waves",
-        "description": "Layered ocean waves with sunset sky and foam highlights.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Spirograph",
-        "id": "spirograph",
-        "description": "Three spirograph patterns drawn progressively with glowing pens.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Fireflies",
-        "id": "fireflies",
-        "description": "Glowing fireflies drifting through a moonlit forest clearing.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Galaxy Spiral",
-        "id": "galaxy-spiral",
-        "description": "Rotating spiral galaxy with twinkling stars and glowing core.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Plasma Effect",
-        "id": "plasma-effect",
-        "description": "Classic demoscene plasma with sine-based color cycling.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Newton's Cradle",
-        "id": "newtons-cradle",
-        "description": "Newton's Cradle desk toy with metallic gradient balls.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Tornado",
-        "id": "tornado",
-        "description": "Tornado simulation with swirling debris particles.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Heartbeat Monitor",
-        "id": "heartbeat-monitor",
-        "description": "ECG heartbeat monitor with scanning green trace and BPM readout.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Metaballs",
-        "id": "metaballs",
-        "description": "Bouncing metaball blobs that merge and separate with color blending.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Radar Traffic",
-        "id": "radar-traffic",
-        "description": "Radar screen simulation with rotating sweep and dense moving traffic returns.",
-        "displayModelJson": false
-    },
-    {
-        "name": "Flocking Swarm",
-        "id": "flocking-swarm",
-        "description": "Boids simulation with separation, alignment, and cohesion dynamics.",
+        "name": "Cloth Simulation",
+        "id": "cloth-simulation",
+        "description": "Mass-spring cloth with gravity, wind, and pinned constraints.",
         "displayModelJson": false
     },
     {
@@ -216,9 +24,219 @@
         "displayModelJson": false
     },
     {
+        "name": "Digital Rain Simulation",
+        "id": "digital-rain",
+        "description": "'The Matrix' Digital Rain Simulation.",
+        "displayModelJson": false
+    },
+    {
+        "name": "DNA Helix",
+        "id": "dna-helix",
+        "description": "Rotating 3D double helix with color-coded base pairs.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Ellipse Animation",
+        "id": "ellipse-animation",
+        "description": "Demonstrates animation of an array of ellipses.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Fireflies",
+        "id": "fireflies",
+        "description": "Glowing fireflies drifting through a moonlit forest clearing.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Fireworks Display",
+        "id": "fireworks",
+        "description": "Fireworks bursting over a city skyline with fading spark trails.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Flocking Swarm",
+        "id": "flocking-swarm",
+        "description": "Boids simulation with separation, alignment, and cohesion dynamics.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Fractal Zoom",
+        "id": "fractal-zoom",
+        "description": "Progressive Mandelbrot rendering with continuous zoom.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Geometric Morphing",
+        "id": "geometric-morphing",
+        "description": "Shape morphing between regular polygons with gradient fills.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Gradient Animation",
+        "id": "gradient-animation",
+        "description": "Radial gradient fill stop color animation",
+        "displayModelJson": false
+    },
+    {
+        "name": "Heartbeat Monitor",
+        "id": "heartbeat-monitor",
+        "description": "ECG heartbeat monitor with scanning green trace and BPM readout.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Kaleidoscope",
+        "id": "kaleidoscope",
+        "description": "Symmetrical mandala with rotating, color-cycling ellipses.",
+        "displayModelJson": false
+    },
+    {
+        "name": "L-Systems Garden",
+        "id": "lsystems-garden",
+        "description": "Procedural plant growth generated with recursive L-systems.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Lava Lamp",
+        "id": "lava-lamp",
+        "description": "Lava lamp simulation with morphing blobs.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Line Animation",
+        "id": "line-animation",
+        "description": "Demonstrates animation of an array of lines.",
+        "displayModelJson": false
+    },
+    {
         "name": "Lorenz Attractor",
         "id": "lorenz-attractor",
         "description": "Chaotic Lorenz system rendered as glowing evolving trails.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Metaballs",
+        "id": "metaballs",
+        "description": "Bouncing metaball blobs that merge and separate with color blending.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Multi Sprite Animation",
+        "id": "multi-sprite-animation",
+        "description": "Sprite sheet torture test.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Newton's Cradle",
+        "id": "newtons-cradle",
+        "description": "Newton's Cradle desk toy with metallic gradient balls.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Northern Lights Clock",
+        "id": "aurora-clock",
+        "description": "Functional analog clock with aurora background and color-shifting hands.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Ocean Waves",
+        "id": "ocean-waves",
+        "description": "Layered ocean waves with sunset sky and foam highlights.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Particle Animation",
+        "id": "particle-animation",
+        "description": "Particle animation with collision detection.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Pendulum Wave",
+        "id": "pendulum-wave",
+        "description": "Pendulum wave physics demo with convergence/divergence patterns.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Plasma Effect",
+        "id": "plasma-effect",
+        "description": "Classic demoscene plasma with sine-based color cycling.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Radar Traffic",
+        "id": "radar-traffic",
+        "description": "Radar screen simulation with rotating sweep and dense moving traffic returns.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Raindrop Ripples",
+        "id": "raindrop-ripples",
+        "description": "Expanding concentric ripple rings on a dark water surface.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Reaction-Diffusion",
+        "id": "reaction-diffusion",
+        "description": "Gray-Scott style reaction-diffusion pattern evolution.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Rotation Animation",
+        "id": "rotation-animation",
+        "description": "Demonstrates animation timer callback function.",
+        "displayModelJson": false
+    },
+    {
+        "name": "RRT Pathfinding",
+        "id": "rrt-pathfinding",
+        "description": "Rapidly-exploring random tree pathfinding around obstacles.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Snow Simulation",
+        "id": "snow-animation",
+        "description": "Snow simulation.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Soft Body Blobs",
+        "id": "soft-body-blobs",
+        "description": "Elastic jelly blobs with spring-like perimeter deformation.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Solar System Orrery",
+        "id": "solar-system",
+        "description": "Top-down solar system with orbiting planets and glowing sun.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Spirograph",
+        "id": "spirograph",
+        "description": "Three spirograph patterns drawn progressively with glowing pens.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Sprite Image Transition",
+        "id": "sprite-transitions",
+        "description": "Demonstrates sprite transition library.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Sprite Sheet Animation",
+        "id": "sprite-animation",
+        "description": "Demonstrates sprite sheet animation.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Stargate Tunnel",
+        "id": "stargate-tunnel",
+        "description": "Warp tunnel with zooming octagonal rings and streaking stars.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Tornado",
+        "id": "tornado",
+        "description": "Tornado simulation with swirling debris particles.",
         "displayModelJson": false
     }
 ]

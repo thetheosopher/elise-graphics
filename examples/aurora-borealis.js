@@ -52,7 +52,7 @@ var ribbonColors = [
     { r: 120, g: 160, b: 255 },
     { r: 180, g: 80, b: 220 }
 ];
-var segCount = 20;
+var segCount = 34;
 
 for (var r = 0; r < ribbonCount; r++) {
     var ribbon = elise.polyline();
@@ -74,7 +74,9 @@ for (var r = 0; r < ribbonCount; r++) {
         baseY: baseY,
         color: rc,
         baseAlpha: alpha,
-        points: pts
+        points: pts,
+        driftPhase: Math.random() * Math.PI * 2,
+        curtainPhase: Math.random() * Math.PI * 2
     };
     ribbons.push(ribbon);
     model.add(ribbon);
@@ -93,7 +95,9 @@ for (var r = 0; r < ribbonCount; r++) {
         color: rc,
         baseAlpha: Math.floor(alpha * 0.3),
         points: pts,
-        isGlow: true
+        isGlow: true,
+        driftPhase: ribbon.tag.driftPhase,
+        curtainPhase: ribbon.tag.curtainPhase
     };
     ribbons.push(glow);
     model.add(glow);
@@ -113,18 +117,32 @@ model.controllerAttached.add(function (model, controller) {
     });
 
     commandHandler.addHandler('tick', function (controller, el, command, trigger, parameters) {
-        var phase = parameters.elapsedTime * 1.0;
+        var phase = parameters.elapsedTime;
         var tag = el.tag;
         var r = tag.index;
-        var pts = tag.points;
         var newPoints = [];
 
+        // Real aurora motion is mostly a slow bulk drift with layered curtain ripples.
+        var drift = phase * 0.28 + tag.driftPhase;
+        var curtain = phase * 0.95 + tag.curtainPhase;
+
         for (var s = 0; s <= segCount; s++) {
-            var px = (s / segCount) * width;
-            var wave1 = Math.sin(phase * 1.2 + s * 0.3 + r * 1.5) * 40;
-            var wave2 = Math.sin(phase * 0.7 + s * 0.15 + r * 2.0) * 25;
-            var wave3 = Math.sin(phase * 2.0 + s * 0.6 + r * 0.8) * 12;
-            var py = tag.baseY + wave1 + wave2 + wave3;
+            var nx = s / segCount;
+            var pxBase = nx * width;
+
+            // Lateral shearing makes curtains feel like flowing plasma sheets.
+            var shear = Math.sin(drift + nx * 7.5 + r * 0.9) * 10;
+            var px = pxBase + shear;
+
+            var waveLong = Math.sin(drift + nx * 6.3 + r * 1.2) * 26;
+            var waveMid = Math.sin(drift * 1.35 + nx * 12.8 + r * 0.8) * 16;
+            var flutter = Math.sin(curtain * 2.0 + nx * 20.0 + r * 1.6) * 7;
+
+            // Vertical curtain droop profile: stronger displacement near middle width.
+            var curtainProfile = Math.sin(nx * Math.PI) * Math.sin(nx * Math.PI);
+            var droop = Math.sin(curtain + nx * 9.0 + r * 1.1) * (18 * curtainProfile);
+
+            var py = tag.baseY + waveLong + waveMid + flutter + droop;
             newPoints.push({ x: px, y: py });
         }
         tag.points = newPoints;
@@ -138,12 +156,12 @@ model.controllerAttached.add(function (model, controller) {
         el.setPoints(pointStr);
 
         // Animate color cycling
-        var colorShift = Math.sin(phase * 0.4 + r) * 0.3;
+        var colorShift = Math.sin(drift * 0.55 + r * 0.8) * 0.2;
         var rc = tag.color;
-        var cr = Math.floor(Math.max(0, Math.min(255, rc.r + colorShift * 60)));
-        var cg = Math.floor(Math.max(0, Math.min(255, rc.g + colorShift * 30)));
-        var cb = Math.floor(Math.max(0, Math.min(255, rc.b - colorShift * 40)));
-        var alphaWave = Math.sin(phase * 0.5 + r * 1.3) * 0.3 + 0.7;
+        var cr = Math.floor(Math.max(0, Math.min(255, rc.r + colorShift * 44)));
+        var cg = Math.floor(Math.max(0, Math.min(255, rc.g + colorShift * 24)));
+        var cb = Math.floor(Math.max(0, Math.min(255, rc.b - colorShift * 28)));
+        var alphaWave = Math.sin(drift * 0.7 + r * 1.1) * 0.2 + 0.8;
         var a = Math.floor(tag.baseAlpha * alphaWave);
         a = Math.max(0, Math.min(255, a));
 

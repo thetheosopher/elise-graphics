@@ -10,9 +10,9 @@ var maxRange = 300;
 // Radar backdrop
 var bg = elise.rectangle(0, 0, width, height);
 var bgGrad = elise.radialGradientFill(cx + ',' + cy, cx + ',' + cy, width / 2, width / 2);
-bgGrad.stops.push(elise.gradientFillStop('#032214', 0));
-bgGrad.stops.push(elise.gradientFillStop('#02150d', 0.6));
-bgGrad.stops.push(elise.gradientFillStop('#010a06', 1.0));
+bgGrad.stops.push(elise.gradientFillStop('#0a1f13', 0));
+bgGrad.stops.push(elise.gradientFillStop('#06160e', 0.62));
+bgGrad.stops.push(elise.gradientFillStop('#030b07', 1.0));
 bg.setFill(bgGrad);
 model.add(bg);
 
@@ -20,7 +20,7 @@ model.add(bg);
 for (var r = 1; r <= 6; r++) {
     var rr = (maxRange / 6) * r;
     var ring = elise.ellipse(cx, cy, rr, rr);
-    ring.setStroke(elise.color(65, 70, 255, 120).toHexString() + ',1');
+    ring.setStroke(elise.color(70, 90, 255, 145).toHexString() + ',1');
     model.add(ring);
 }
 
@@ -30,13 +30,13 @@ for (var a = 0; a < 12; a++) {
     var x2 = cx + Math.cos(angle) * maxRange;
     var y2 = cy + Math.sin(angle) * maxRange;
     var spoke = elise.line(cx, cy, x2, y2);
-    spoke.setStroke(elise.color(45, 70, 255, 120).toHexString() + ',1');
+    spoke.setStroke(elise.color(42, 80, 220, 120).toHexString() + ',1');
     model.add(spoke);
 }
 
 // Outer bezel
 var bezel = elise.ellipse(cx, cy, maxRange + 12, maxRange + 12);
-bezel.setStroke('#1c5f3a,3');
+bezel.setStroke('#2d7049,3');
 model.add(bezel);
 
 function buildSweepSectorCommands(centerX, centerY, radius, angle, halfWidth) {
@@ -68,81 +68,106 @@ function buildSweepSectorCommands(centerX, centerY, radius, angle, halfWidth) {
 
 // Sweep cone and line
 var sweepCone = elise.path();
-sweepCone.setCommands(buildSweepSectorCommands(cx, cy, maxRange, 0, 0.24));
-sweepCone.setFill(elise.color(40, 80, 255, 130).toHexString());
+sweepCone.setCommands(buildSweepSectorCommands(cx, cy, maxRange, 0, 0.12));
+sweepCone.setFill(elise.color(38, 95, 255, 130).toHexString());
 sweepCone.timer = 'tick';
 sweepCone.tag = { kind: 'sweepCone' };
 model.add(sweepCone);
 
 var sweepLine = elise.line(cx, cy, cx + maxRange, cy);
-sweepLine.setStroke(elise.color(190, 120, 255, 170).toHexString() + ',2');
+sweepLine.setStroke(elise.color(210, 130, 255, 170).toHexString() + ',1.5');
 sweepLine.timer = 'tick';
 sweepLine.tag = { kind: 'sweepLine' };
 model.add(sweepLine);
 
 var centerDot = elise.ellipse(cx, cy, 4, 4);
-centerDot.setFill(elise.color(255, 160, 255, 180).toHexString());
+centerDot.setFill(elise.color(255, 175, 255, 190).toHexString());
 model.add(centerDot);
 
 var readout = elise.text('TRAFFIC 0  |  SWEEP 0\u00b0', 16, 16, 280, 24);
 readout.setTypeface('Consolas, monospace');
 readout.setTypesize(16);
-readout.setFill('#74ffb0');
+readout.setFill('#9cffbf');
 readout.timer = 'tick';
 readout.tag = { kind: 'readout' };
 model.add(readout);
 
-var targetCount = 30;
+var targetCount = 5;
 var targets = [];
 
-for (var i = 0; i < targetCount; i++) {
-    var baseR = 35 + Math.random() * (maxRange - 45);
-    var turn = (Math.random() * 0.42 - 0.21);
-    if (Math.abs(turn) < 0.05) {
-        turn = turn < 0 ? -0.07 : 0.07;
-    }
+function randomInt(min, max) {
+    return Math.floor(min + Math.random() * (max - min + 1));
+}
 
-    var target = {
-        id: 'AC' + (100 + i),
-        baseR: baseR,
-        baseTheta: Math.random() * Math.PI * 2,
-        turnRate: turn,
-        radialAmp: 8 + Math.random() * 22,
-        radialFreq: 0.3 + Math.random() * 1.1,
-        wobblePhase: Math.random() * Math.PI * 2,
-        blinkFreq: 1.0 + Math.random() * 2.2,
-        blinkPhase: Math.random() * Math.PI * 2
+function makeTailNumber() {
+    var letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    return 'N' + randomInt(10, 999) + letters.charAt(randomInt(0, 25)) + letters.charAt(randomInt(0, 25));
+}
+
+function makeAircraft() {
+    // Spawn near edge and aim mostly inward to emulate traffic crossing the scope.
+    var edgeAngle = Math.random() * Math.PI * 2;
+    var spawnRange = maxRange + 18;
+    var x = cx + Math.cos(edgeAngle) * spawnRange;
+    var y = cy + Math.sin(edgeAngle) * spawnRange;
+
+    var inbound = Math.atan2(cy - y, cx - x);
+    var heading = inbound + (Math.random() - 0.5) * 0.35;
+    var speed = 48 + Math.random() * 36; // px/sec on scope
+
+    return {
+        tail: makeTailNumber(),
+        flightLevel: randomInt(180, 410),
+        groundspeed: randomInt(260, 470),
+        x: x,
+        y: y,
+        prevX: x,
+        prevY: y,
+        vx: Math.cos(heading) * speed,
+        vy: Math.sin(heading) * speed,
+        speed: speed
     };
-    targets.push(target);
+}
+
+function respawnAircraft(index) {
+    targets[index] = makeAircraft();
+}
+
+for (var i = 0; i < targetCount; i++) {
+    targets.push(makeAircraft());
 
     var trail = elise.line(cx, cy, cx, cy);
-    trail.setStroke(elise.color(20, 120, 255, 170).toHexString() + ',1');
+    trail.setStroke(elise.color(14, 105, 245, 150).toHexString() + ',1');
     trail.timer = 'tick';
     trail.tag = { kind: 'trail', targetIndex: i };
     model.add(trail);
 
-    var glow = elise.ellipse(cx, cy, 10, 10);
-    glow.setFill(elise.color(0, 120, 255, 180).toHexString());
+    var glow = elise.ellipse(cx, cy, 8, 8);
+    glow.setFill(elise.color(0, 115, 235, 150).toHexString());
     glow.timer = 'tick';
     glow.tag = { kind: 'glow', targetIndex: i };
     model.add(glow);
 
-    var dot = elise.ellipse(cx, cy, 2.5, 2.5);
-    dot.setFill(elise.color(255, 170, 255, 200).toHexString());
+    var dot = elise.ellipse(cx, cy, 2.2, 2.2);
+    dot.setFill(elise.color(255, 185, 255, 215).toHexString());
     dot.timer = 'tick';
     dot.tag = { kind: 'dot', targetIndex: i };
     model.add(dot);
+
+    var label = elise.text('', cx + 6, cy - 14, 180, 16);
+    label.setTypeface('Consolas, monospace');
+    label.setTypesize(11);
+    label.setFill('#a8ffca');
+    label.timer = 'tick';
+    label.tag = { kind: 'label', targetIndex: i };
+    model.add(label);
 }
 
-function targetPos(index, t) {
-    var tr = targets[index];
-    var wobble = Math.sin(t * tr.radialFreq + tr.wobblePhase) * 0.17;
-    var theta = tr.baseTheta + t * tr.turnRate + wobble;
-    var range = tr.baseR + Math.sin(t * tr.radialFreq * 0.65 + tr.wobblePhase * 0.7) * tr.radialAmp;
-    var x = cx + Math.cos(theta) * range;
-    var y = cy + Math.sin(theta) * range;
-    return { x: x, y: y, theta: theta, range: range };
-}
+var driver = elise.ellipse(-20, -20, 2, 2);
+driver.setFill('#00000000');
+driver.timer = 'tick';
+driver.tag = { kind: 'driver' };
+model.add(driver);
 
 model.controllerAttached.add(function (model, controller) {
     var commandHandler = new elise.ElementCommandHandler();
@@ -150,9 +175,29 @@ model.controllerAttached.add(function (model, controller) {
 
     commandHandler.addHandler('tick', function (controller, el, command, trigger, parameters) {
         var t = parameters.elapsedTime;
-        var sweepAngle = (t * 1.45) % (Math.PI * 2);
-        var beamWidth = 0.24;
+        var sweepAngle = (t * 0.92) % (Math.PI * 2);
+        var beamWidth = 0.12;
         var tag = el.tag;
+
+        if (tag.kind === 'driver') {
+            var dt = Math.max(0.01, Math.min(0.04, parameters.tickDelta));
+            for (var ai = 0; ai < targetCount; ai++) {
+                var ac = targets[ai];
+                ac.prevX = ac.x;
+                ac.prevY = ac.y;
+                ac.x += ac.vx * dt;
+                ac.y += ac.vy * dt;
+
+                var dxOut = ac.x - cx;
+                var dyOut = ac.y - cy;
+                var rOut = Math.sqrt(dxOut * dxOut + dyOut * dyOut);
+                if (rOut > maxRange + 26) {
+                    respawnAircraft(ai);
+                }
+            }
+            controller.invalidate();
+            return;
+        }
 
         if (tag.kind === 'sweepLine') {
             var sx = cx + Math.cos(sweepAngle) * maxRange;
@@ -173,7 +218,7 @@ model.controllerAttached.add(function (model, controller) {
             var deg = Math.round((sweepAngle * 180) / Math.PI);
             var busy = 0;
             for (var bi = 0; bi < targetCount; bi++) {
-                var bp = targetPos(bi, t);
+                var bp = targets[bi];
                 var bearing = Math.atan2(bp.y - cy, bp.x - cx);
                 var delta = Math.abs(Math.atan2(Math.sin(bearing - sweepAngle), Math.cos(bearing - sweepAngle)));
                 if (delta < beamWidth * 0.75) {
@@ -186,45 +231,58 @@ model.controllerAttached.add(function (model, controller) {
         }
 
         var i = tag.targetIndex;
-        var now = targetPos(i, t);
-        var prev = targetPos(i, t - 0.45);
         var tr = targets[i];
+        var now = { x: tr.x, y: tr.y };
+        var prev = { x: tr.prevX, y: tr.prevY };
 
-        var bearing = Math.atan2(now.y - cy, now.x - cx);
+        var dxr = now.x - cx;
+        var dyr = now.y - cy;
+        var range = Math.sqrt(dxr * dxr + dyr * dyr);
+
+        var bearing = Math.atan2(dyr, dxr);
         var deltaA = Math.abs(Math.atan2(Math.sin(bearing - sweepAngle), Math.cos(bearing - sweepAngle)));
         var lock = Math.max(0, 1 - deltaA / beamWidth);
-        var rangeFade = 1 - (now.range / maxRange) * 0.55;
+        var rangeFade = 1 - (range / maxRange) * 0.55;
         var flash = lock * lock * rangeFade;
-        var ambient = 0.12 + 0.1 * Math.sin(t * tr.blinkFreq + tr.blinkPhase);
-        var intensity = Math.max(0.06, Math.min(1, ambient + flash * 1.35));
+        var ambient = 0.03;
+        var intensity = Math.max(0.03, Math.min(1, ambient + flash * 1.1));
 
         if (tag.kind === 'trail') {
-            var ta = Math.floor(20 + flash * 160);
+            var ta = Math.floor(12 + flash * 120);
             el.setP1(elise.point(prev.x, prev.y));
             el.setP2(elise.point(now.x, now.y));
-            el.setStroke(elise.color(ta, 120, 255, 170).toHexString() + ',1');
+            el.setStroke(elise.color(ta, 105, 245, 155).toHexString() + ',1');
             controller.invalidate();
             return;
         }
 
         if (tag.kind === 'glow') {
-            var ga = Math.floor(20 + intensity * 95);
-            var rad = 8 + intensity * 8;
+            var ga = Math.floor(10 + intensity * 78);
+            var rad = 5 + intensity * 7;
             el.setCenter(elise.point(now.x, now.y));
             el.radiusX = rad;
             el.radiusY = rad;
-            el.setFill(elise.color(ga, 120, 255, 170).toHexString());
+            el.setFill(elise.color(ga, 115, 240, 160).toHexString());
             controller.invalidate();
             return;
         }
 
         if (tag.kind === 'dot') {
-            var da = Math.floor(150 + intensity * 105);
-            var dr = 2 + intensity * 1.8;
+            var da = Math.floor(110 + intensity * 125);
+            var dr = 1.8 + intensity * 1.6;
             el.setCenter(elise.point(now.x, now.y));
             el.radiusX = dr;
             el.radiusY = dr;
-            el.setFill(elise.color(da, 180, 255, 205).toHexString());
+            el.setFill(elise.color(da, 170, 255, 198).toHexString());
+            controller.invalidate();
+            return;
+        }
+
+        if (tag.kind === 'label') {
+            var la = Math.floor(50 + flash * 180);
+            el.setLocation(elise.point(now.x + 8, now.y - 13));
+            el.setText(tr.tail + ' FL' + tr.flightLevel + ' ' + tr.groundspeed + 'KT');
+            el.setFill(elise.color(la, 175, 255, 202).toHexString());
             controller.invalidate();
             return;
         }
