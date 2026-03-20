@@ -117,7 +117,7 @@ model.controllerAttached.add(function (model, controller) {
     commandHandler.attachController(controller);
     commandHandler.addHandler('tick', function (controller, el, command, trigger, parameters) {
         var cfg = el.tag;
-        var phase = controller.timerPhase(0.045);
+        var phase = parameters.elapsedTime * 0.28;
 
         // Smooth vertical oscillation
         var y = cfg.baseY - cfg.amp * Math.sin(phase + cfg.phase);

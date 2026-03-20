@@ -106,7 +106,7 @@ model.controllerAttached.add(function (model, controller) {
     var commandHandler = new elise.ElementCommandHandler();
     commandHandler.attachController(controller);
     commandHandler.addHandler('tick', function (controller, el, command, trigger, parameters) {
-        var phase = controller.timerPhase(0.04);
+        var phase = parameters.elapsedTime * 0.25;
         var tag = el.tag;
 
         // Helper: compute x position for a helix strand at node index i
@@ -135,8 +135,12 @@ model.controllerAttached.add(function (model, controller) {
             // Depth-based alpha for the overall backbone
             var midZ = helixZ(Math.floor(numNodes / 2), offset);
             var alpha = Math.floor(120 + midZ * 60);
-            var c = tag.side === 'left' ? '204,68,68' : '68,68,204';
-            el.setStroke('rgba(' + c + ',' + (alpha / 255).toFixed(2) + '),2');
+            alpha = Math.max(10, Math.min(255, alpha));
+            if (tag.side === 'left') {
+                el.setStroke(elise.color(alpha, 204, 68, 68).toHexString() + ',2');
+            } else {
+                el.setStroke(elise.color(alpha, 68, 68, 204).toHexString() + ',2');
+            }
             controller.invalidate();
             return;
         }

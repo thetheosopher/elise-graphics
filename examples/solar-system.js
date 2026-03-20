@@ -106,7 +106,7 @@ model.controllerAttached.add(function (model, controller) {
     var commandHandler = new elise.ElementCommandHandler();
     commandHandler.attachController(controller);
     commandHandler.addHandler('tick', function (controller, el, command, trigger, parameters) {
-        var phase = controller.timerPhase(0.015);
+        var phase = parameters.elapsedTime * 0.094;
         var tag = el.tag;
 
         if (tag.isMoon) {

@@ -91,7 +91,7 @@ model.controllerAttached.add(function (model, controller) {
     var commandHandler = new elise.ElementCommandHandler();
     commandHandler.attachController(controller);
     commandHandler.addHandler('tick', function (controller, el, command, trigger, parameters) {
-        var phase = controller.timerPhase(1 / T);
+        var phase = parameters.elapsedTime * (2 * Math.PI / T);
         var tag = el.tag;
         var i = tag.index;
 

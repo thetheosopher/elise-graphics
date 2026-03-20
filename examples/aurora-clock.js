@@ -8,11 +8,11 @@ var cy = height / 2;
 var clockRadius = 240;
 
 // --- Aurora background shimmer ---
-var auroraRibbons = 4;
+var auroraRibbons = 6;
 for (var a = 0; a < auroraRibbons; a++) {
     var ribbon = elise.polyline();
     ribbon.smoothPoints = true;
-    var baseY = 80 + a * 140;
+    var baseY = 70 + a * 95;
     for (var s = 0; s <= 12; s++) {
         ribbon.addPoint(elise.point((s / 12) * width, baseY));
     }
@@ -20,10 +20,12 @@ for (var a = 0; a < auroraRibbons; a++) {
         { r: 40, g: 200, b: 100 },
         { r: 30, g: 160, b: 180 },
         { r: 80, g: 120, b: 200 },
-        { r: 140, g: 80, b: 180 }
+        { r: 140, g: 80, b: 180 },
+        { r: 80, g: 220, b: 160 },
+        { r: 170, g: 110, b: 220 }
     ];
     var ac = aColors[a];
-    ribbon.setStroke(elise.color(30, ac.r, ac.g, ac.b).toHexString() + ',20');
+    ribbon.setStroke(elise.color(70, ac.r, ac.g, ac.b).toHexString() + ',34');
     ribbon.timer = 'bg';
     ribbon.tag = { auroraIndex: a, baseY: baseY, color: ac };
     model.add(ribbon);
@@ -110,14 +112,14 @@ model.controllerAttached.add(function (model, controller) {
     commandHandler.attachController(controller);
 
     commandHandler.addHandler('bg', function (controller, el, command, trigger, parameters) {
-        var phase = controller.timerPhase(0.015);
+        var phase = parameters.elapsedTime * 0.094;
         var tag = el.tag;
         var a = tag.auroraIndex;
         var pts = '';
         for (var s = 0; s <= 12; s++) {
             var px = (s / 12) * width;
-            var wave1 = Math.sin(phase * 1.0 + s * 0.4 + a * 1.5) * 35;
-            var wave2 = Math.sin(phase * 0.5 + s * 0.2 + a * 2.5) * 20;
+            var wave1 = Math.sin(phase * 1.0 + s * 0.4 + a * 1.5) * 50;
+            var wave2 = Math.sin(phase * 0.5 + s * 0.2 + a * 2.5) * 30;
             var py = tag.baseY + wave1 + wave2;
             if (s > 0) pts += ' ';
             pts += Math.round(px) + ',' + Math.round(py);
@@ -125,11 +127,11 @@ model.controllerAttached.add(function (model, controller) {
         el.setPoints(pts);
 
         // Shift alpha based on time of day simulation
-        var hourPhase = controller.timerPhase(1 / 86400);
-        var timeAlpha = Math.sin(hourPhase) * 0.3 + 0.7;
-        var baseAlpha = Math.floor(30 * timeAlpha);
+        var hourPhase = parameters.elapsedTime * 7.27e-5;
+        var timeAlpha = Math.sin(hourPhase) * 0.25 + 0.75;
+        var baseAlpha = Math.floor(95 * timeAlpha);
         var c = tag.color;
-        el.setStroke(elise.color(baseAlpha, c.r, c.g, c.b).toHexString() + ',20');
+        el.setStroke(elise.color(baseAlpha, c.r, c.g, c.b).toHexString() + ',34');
         controller.invalidate();
     });
 

@@ -88,7 +88,7 @@ model.controllerAttached.add(function (model, controller) {
     commandHandler.attachController(controller);
 
     commandHandler.addHandler('shimmer', function (controller, el, command, trigger, parameters) {
-        var phase = controller.timerPhase(0.15);
+        var phase = parameters.elapsedTime * 0.94;
         var tag = el.tag;
         var shimmer = Math.sin(phase * 2 + tag.phase) * 0.5 + 0.5;
         var a = Math.floor(tag.baseAlpha * (0.5 + shimmer));

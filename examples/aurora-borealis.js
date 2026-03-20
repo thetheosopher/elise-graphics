@@ -67,7 +67,7 @@ for (var r = 0; r < ribbonCount; r++) {
     }
     var rc = ribbonColors[r];
     var alpha = 140 - r * 15;
-    ribbon.setStroke(elise.color(alpha, rc.r, rc.g, rc.b).toHexString() + ',4');
+    ribbon.setStroke(elise.color(alpha, rc.r, rc.g, rc.b).toHexString() + ',14');
     ribbon.timer = 'tick';
     ribbon.tag = {
         index: r,
@@ -85,7 +85,7 @@ for (var r = 0; r < ribbonCount; r++) {
     for (var s = 0; s <= segCount; s++) {
         glow.addPoint(elise.point(pts[s].x, pts[s].y));
     }
-    glow.setStroke(elise.color(Math.floor(alpha * 0.3), rc.r, rc.g, rc.b).toHexString() + ',18');
+    glow.setStroke(elise.color(Math.floor(alpha * 0.3), rc.r, rc.g, rc.b).toHexString() + ',40');
     glow.timer = 'tick';
     glow.tag = {
         index: r,
@@ -104,7 +104,7 @@ model.controllerAttached.add(function (model, controller) {
     commandHandler.attachController(controller);
 
     commandHandler.addHandler('twinkle', function (controller, el, command, trigger, parameters) {
-        var phase = controller.timerPhase(0.3);
+        var phase = parameters.elapsedTime * 1.9;
         var tag = el.tag;
         var flicker = Math.sin(phase * 2.5 + tag.phase) * 0.4 + 0.6;
         var a = Math.floor(tag.baseAlpha * flicker);
@@ -113,7 +113,7 @@ model.controllerAttached.add(function (model, controller) {
     });
 
     commandHandler.addHandler('tick', function (controller, el, command, trigger, parameters) {
-        var phase = controller.timerPhase(0.02);
+        var phase = parameters.elapsedTime * 1.0;
         var tag = el.tag;
         var r = tag.index;
         var pts = tag.points;
@@ -147,7 +147,7 @@ model.controllerAttached.add(function (model, controller) {
         var a = Math.floor(tag.baseAlpha * alphaWave);
         a = Math.max(0, Math.min(255, a));
 
-        var strokeWidth = tag.isGlow ? 18 : 4;
+        var strokeWidth = tag.isGlow ? 40 : 14;
         el.setStroke(elise.color(a, cr, cg, cb).toHexString() + ',' + strokeWidth);
 
         controller.invalidate();

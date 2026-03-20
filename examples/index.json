@@ -136,5 +136,89 @@
         "id": "aurora-clock",
         "description": "Functional analog clock with aurora background and color-shifting hands.",
         "displayModelJson": false
+    },
+    {
+        "name": "Stargate Tunnel",
+        "id": "stargate-tunnel",
+        "description": "Warp tunnel with zooming octagonal rings and streaking stars.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Ocean Waves",
+        "id": "ocean-waves",
+        "description": "Layered ocean waves with sunset sky and foam highlights.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Spirograph",
+        "id": "spirograph",
+        "description": "Three spirograph patterns drawn progressively with glowing pens.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Fireflies",
+        "id": "fireflies",
+        "description": "Glowing fireflies drifting through a moonlit forest clearing.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Galaxy Spiral",
+        "id": "galaxy-spiral",
+        "description": "Rotating spiral galaxy with twinkling stars and glowing core.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Plasma Effect",
+        "id": "plasma-effect",
+        "description": "Classic demoscene plasma with sine-based color cycling.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Newton's Cradle",
+        "id": "newtons-cradle",
+        "description": "Newton's Cradle desk toy with metallic gradient balls.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Tornado",
+        "id": "tornado",
+        "description": "Tornado simulation with swirling debris particles.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Heartbeat Monitor",
+        "id": "heartbeat-monitor",
+        "description": "ECG heartbeat monitor with scanning green trace and BPM readout.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Metaballs",
+        "id": "metaballs",
+        "description": "Bouncing metaball blobs that merge and separate with color blending.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Radar Traffic",
+        "id": "radar-traffic",
+        "description": "Radar screen simulation with rotating sweep and dense moving traffic returns.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Flocking Swarm",
+        "id": "flocking-swarm",
+        "description": "Boids simulation with separation, alignment, and cohesion dynamics.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Conway Life Lab",
+        "id": "conway-life-lab",
+        "description": "Conway's Game of Life with live generation and population readout.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Lorenz Attractor",
+        "id": "lorenz-attractor",
+        "description": "Chaotic Lorenz system rendered as glowing evolving trails.",
+        "displayModelJson": false
     }
 ]
