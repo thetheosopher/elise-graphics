@@ -96,6 +96,12 @@
         "displayModelJson": false
     },
     {
+        "name": "Hypotrochoid Weave",
+        "id": "hypotrochoid-weave",
+        "description": "Interlaced hypotrochoid families forming rotating guilloche-like ribbons.",
+        "displayModelJson": false
+    },
+    {
         "name": "Kaleidoscope",
         "id": "kaleidoscope",
         "description": "Symmetrical mandala with rotating, color-cycling ellipses.",
@@ -126,9 +132,21 @@
         "displayModelJson": false
     },
     {
+        "name": "Maurer Rose",
+        "id": "maurer-rose",
+        "description": "Dynamic Maurer rose chords woven over a morphing sinusoidal bloom.",
+        "displayModelJson": false
+    },
+    {
         "name": "Metaballs",
         "id": "metaballs",
         "description": "Bouncing metaball blobs that merge and separate with color blending.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Moire Lattice",
+        "id": "moire-lattice",
+        "description": "Multi-frequency sine bands producing animated moire interference lattices.",
         "displayModelJson": false
     },
     {
@@ -174,6 +192,12 @@
         "displayModelJson": false
     },
     {
+        "name": "Polar Harmonic Mesh",
+        "id": "polar-harmonic-mesh",
+        "description": "Nested polar harmonics braided into animated resonant contour meshes.",
+        "displayModelJson": false
+    },
+    {
         "name": "Radar Traffic",
         "id": "radar-traffic",
         "description": "Radar screen simulation with rotating sweep and dense moving traffic returns.",
@@ -213,6 +237,12 @@
         "name": "Soft Body Blobs",
         "id": "soft-body-blobs",
         "description": "Elastic jelly blobs with spring-like perimeter deformation.",
+        "displayModelJson": false
+    },
+    {
+        "name": "Sine Lissajous Field",
+        "id": "sine-lissajous-field",
+        "description": "Layered Lissajous wave rows creating a synchronized harmonic interference field.",
         "displayModelJson": false
     },
     {

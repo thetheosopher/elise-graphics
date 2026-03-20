@@ -111,7 +111,7 @@ model.controllerAttached.add(function (model, controller) {
         }
 
         // Rotation animation
-        var rotAngle = phase * 0.3;
+        var rotAngle = time * 0.3;
 
         // Color cycling
         var hue = time * 30;
@@ -120,7 +120,7 @@ model.controllerAttached.add(function (model, controller) {
         var b = Math.floor(128 + 127 * Math.sin((hue + 240) * Math.PI / 180));
 
         // Scale pulse
-        var scalePulse = 1.0 + Math.sin(phase * 2) * 0.05;
+        var scalePulse = 1.0 + Math.sin(time * 2) * 0.05;
 
         // Sample both shapes at numPoints evenly spaced parameters and lerp
         var pointStr = '';
