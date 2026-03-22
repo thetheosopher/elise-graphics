@@ -517,7 +517,8 @@ export class PolylineElement extends ElementBase implements IPointContainer {
      * @param depth - Not applicable
      * @returns Requested point
      */
-    public getPointAt(index: number, _depth?: PointDepth): Point {
+    public getPointAt(index: number, depth?: PointDepth): Point {
+        void depth;
         if (!this._points) {
             throw new Error(ErrorMessages.NoPointsAreDefined);
         }
@@ -533,7 +534,8 @@ export class PolylineElement extends ElementBase implements IPointContainer {
      * @param value - New point value
      * @param depth - Not applicable to this element
      */
-    public setPointAt(index: number, value: Point, _depth: PointDepth) {
+    public setPointAt(index: number, value: Point, depth: PointDepth) {
+        void depth;
         if (!this._points) {
             throw new Error(ErrorMessages.NoPointsAreDefined);
         }

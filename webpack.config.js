@@ -1,5 +1,6 @@
 var path = require('path');
 var webpack = require('webpack');
+var TerserPlugin = require('terser-webpack-plugin');
 
 var PATHS = {
     entryPoint: path.resolve(__dirname, 'src/index.ts'),
@@ -51,7 +52,16 @@ var config = {
         ]
     },
     optimization: {
-        minimizer: []
+        minimize: true,
+        minimizer: [
+            new TerserPlugin({
+                include: /\.min\.js$/,
+                extractComments: false
+            })
+        ]
+    },
+    performance: {
+        hints: false
     }
 };
 

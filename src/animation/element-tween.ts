@@ -7,6 +7,9 @@ import { AnimationEasing, type AnimationEasingFunction, type AnimationEasingName
 
 export type TweenColorValue = string | Color;
 
+/**
+ * Property targets supported by `ElementBase.animate(...)`.
+ */
 export interface TweenTargetValues {
     x?: number;
     y?: number;
@@ -32,6 +35,9 @@ export interface TweenTargetValues {
 
 export type TweenPropertyName = keyof TweenTargetValues;
 
+/**
+ * Options used to configure tween timing and lifecycle callbacks.
+ */
 export interface TweenOptions {
     duration?: number;
     delay?: number;
@@ -592,10 +598,21 @@ export class ElementTween {
     }
 }
 
+/**
+ * Static coordinator for all active element tweens.
+ */
 export class ElementAnimator {
     private static activeTweens: ElementTween[] = [];
     private static animationHandle?: number;
 
+    /**
+     * Starts a tween for the provided element.
+     * Any active tween on the same element and property names is cancelled first.
+     * @param element - Target element
+     * @param values - Target property values
+     * @param options - Timing and callback options
+     * @returns Active tween instance
+     */
     public static animate(element: ElementBase, values: TweenTargetValues, options?: TweenOptions): ElementTween {
         const tween = new ElementTween(element, values, options);
         ElementAnimator.cancel(element, tween.propertyNames);
@@ -605,6 +622,11 @@ export class ElementAnimator {
         return tween;
     }
 
+    /**
+     * Cancels active tweens for an element.
+     * @param element - Target element
+     * @param propertyNames - Optional property subset to cancel
+     */
     public static cancel(element: ElementBase, propertyNames?: TweenPropertyName[]): void {
         for (const tween of ElementAnimator.activeTweens) {
             if (tween.element !== element) {
@@ -616,6 +638,9 @@ export class ElementAnimator {
         }
     }
 
+    /**
+     * Cancels every active tween across the animator.
+     */
     public static stopAll(): void {
         ElementAnimator.activeTweens.forEach(tween => tween.cancel());
         ElementAnimator.activeTweens = [];

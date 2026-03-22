@@ -536,7 +536,8 @@ export class PolygonElement extends ElementBase implements IPointContainer {
      * @param depth - Not applicable
      * @returns Requested point
      */
-    public getPointAt(index: number, _depth?: PointDepth): Point {
+    public getPointAt(index: number, depth?: PointDepth): Point {
+        void depth;
         if (!this._points) {
             throw new Error(ErrorMessages.NoPointsAreDefined);
         }
@@ -553,7 +554,8 @@ export class PolygonElement extends ElementBase implements IPointContainer {
      * @param depth - Not applicable to this element
      * @returns This polygon
      */
-    public setPointAt(index: number, value: Point, _depth: PointDepth) {
+    public setPointAt(index: number, value: Point, depth: PointDepth) {
+        void depth;
         if (!this._points) {
             throw new Error(ErrorMessages.NoPointsAreDefined);
         }

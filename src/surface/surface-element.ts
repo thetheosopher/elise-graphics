@@ -81,7 +81,8 @@ export class SurfaceElement {
      * Adds item to surface model
      * @param model - Surface model
      */
-    public addToModel(_model: Model): ElementBase | undefined {
+    public addToModel(model: Model): ElementBase | undefined {
+        void model;
         return undefined;
     }
 }

@@ -1,5 +1,8 @@
 export type AnimationEasingFunction = (t: number) => number;
 
+/**
+ * Names of the built-in easing functions available to element tweens.
+ */
 export type AnimationEasingName =
     | 'easeLinear'
     | 'easeInQuad'
@@ -15,6 +18,9 @@ export type AnimationEasingName =
     | 'easeOutQuint'
     | 'easeInOutQuint';
 
+/**
+ * Collection of easing functions used by element property tweens.
+ */
 export class AnimationEasing {
     public static easeLinear(t: number): number {
         return t;
@@ -71,6 +77,12 @@ export class AnimationEasing {
         return t < 0.5 ? 16 * t * t * t * t * t : 1 + 16 * Math.pow(t - 1, 5);
     }
 
+    /**
+     * Resolves an easing name to a concrete easing function.
+     * Falls back to `easeInOutCubic` when the name is unknown.
+     * @param name - Built-in easing name
+     * @returns Easing function
+     */
     public static get(name: AnimationEasingName | string): AnimationEasingFunction {
         switch (name) {
             case 'easeLinear':

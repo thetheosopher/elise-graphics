@@ -679,7 +679,8 @@ export class ElementBase implements IPointContainer {
      * Render the element to the HTML5 rendering context provided
      * @param c - Rendering context
      */
-    public draw(_c: CanvasRenderingContext2D) {
+    public draw(c: CanvasRenderingContext2D) {
+        void c;
         return;
     }
 
@@ -1069,7 +1070,9 @@ export class ElementBase implements IPointContainer {
      * @param depth - Point depth (simple or complex)
      * @returns Point at index
      */
-    public getPointAt(_index: number, _depth?: PointDepth): Point {
+    public getPointAt(index: number, depth?: PointDepth): Point {
+        void index;
+        void depth;
         throw new Error(ErrorMessages.NotImplemented);
     }
 
@@ -1079,7 +1082,10 @@ export class ElementBase implements IPointContainer {
      * @param value - New point value
      * @param depth - Point depth (simple or complex)
      */
-    public setPointAt(_index: number, _value: Point, _depth: PointDepth) {
+    public setPointAt(index: number, value: Point, depth: PointDepth) {
+        void index;
+        void value;
+        void depth;
         throw new Error(ErrorMessages.NotImplemented);
     }
 

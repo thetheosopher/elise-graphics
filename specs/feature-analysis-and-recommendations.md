@@ -205,7 +205,7 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Sprite animation | ✅ (excellent) | ❌ | ✅ | ❌ | ✅ |
 | Spritesheet support | ✅ | ❌ | ✅ | ❌ | ✅ |
 | Frame transitions | ✅ (40+ types) | ❌ | ❌ | ❌ | ❌ |
-| Property tweening | ❌ | ✅ | ✅ (Tween) | ✅ | ✅ |
+| Property tweening | ✅ | ✅ | ✅ (Tween) | ✅ | ✅ |
 | Keyframe animation | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Motion paths | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Easing functions | ✅ (13) | ✅ (31) | ✅ (31) | ❌ | ❌ |
@@ -213,9 +213,9 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Sketch animation | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Timer events | ✅ | ❌ | ❌ | ✅ | ✅ |
 | RAF loop | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Custom animation duration | ❌ (hardcoded 200ms) | ✅ | ✅ | N/A | ✅ |
+| Custom animation duration | ✅ (property tweens) / ❌ (hardcoded transitions) | ✅ | ✅ | N/A | ✅ |
 
-**Analysis:** Elise has the **strongest sprite/transition animation system** of any library in this class — 40+ frame transitions with easing are unmatched. However, it completely lacks **property tweening** (animating position, opacity, color over time), which is table-stakes for all competitors. The hardcoded 200ms transition duration is a significant limitation.
+**Analysis:** Elise now combines its strong sprite and transition system with a shipped property tweening API for animating geometry, color, opacity, fill transforms, and text properties. That closes one of the most important competitive gaps identified in this analysis. The remaining animation weakness is that transition renderer durations are still effectively fixed, so sprite and pane transitions remain less configurable than the new tween API.
 
 ### 3.8 Interactivity & Events
 
@@ -363,7 +363,6 @@ Elise has **zero SVG capability** in any form:
 | Gap | Impact | Difficulty | Competitors with feature |
 |-----|--------|------------|--------------------------|
 | No SVG import/export | Blocks integration with design tools and icon libraries | High | Fabric.js, Paper.js, Two.js |
-| No property tweening | Cannot animate position, color, opacity over time — the #1 animation use case | Medium | Fabric.js, Konva.js, Paper.js, Two.js |
 | No touch events | Library unusable on mobile/tablet | Medium | Fabric.js, Konva.js, Paper.js |
 | No undo/redo | Design surface unusable for production | Medium | (few have built-in, but expected) |
 | No PNG/image export | Cannot save render output | Low | Fabric.js, Konva.js, Paper.js |
@@ -398,7 +397,6 @@ Elise has **zero SVG capability** in any form:
 | No text decoration (underline, etc.) | Text styling limited | Low |
 | No letter/line spacing control | Typography limited | Low |
 | No text on path | Missing creative text capability | Medium |
-| No color interpolation | Cannot lerp between colors | Low |
 | No schema versioning | forward/backward compat risk | Low |
 | No copy/paste in design mode | Missing standard editing feature | Medium |
 | No alignment/distribute tools | Design surface less capable | Medium |
@@ -410,26 +408,31 @@ Elise has **zero SVG capability** in any form:
 ### Tier 1: High Impact, Achievable — Do First
 
 #### R1. Add Property Tweening / Animation System
-**Why:** Every competitor offers this. Without it, dynamic apps require manual requestAnimationFrame loops.
+**Status:** Completed
+
+Elise now ships a property tweening API through `ElementBase.animate(...)`, `ElementBase.cancelAnimations(...)`, `ElementAnimator`, `ElementTween`, and `AnimationEasing`.
 
 ```typescript
-// Proposed API
-element.animate({
-    x: 200, y: 100, opacity: 0.5, fill: '#FF0000'
-}, {
+element.animate(
+  {
+    x: 200,
+    y: 100,
+    opacity: 0.5,
+    fill: '#FF0000'
+  },
+  {
     duration: 1000,
     easing: 'easeInOutCubic',
-    onComplete: () => { /* done */ }
-});
-
-// Or timeline-based
-const timeline = elise.Timeline.create();
-timeline.add(rect, { x: 200 }, { duration: 500, delay: 0 });
-timeline.add(circle, { opacity: 0 }, { duration: 300, delay: 200 });
-timeline.play();
+    onComplete: () => {
+      element.animate({ x: 80, y: 80, opacity: 1, fill: '#6F8FB8' }, { duration: 700 });
+    }
+  }
+);
 ```
 
-**Scope:** New `animation/` module. ~500-800 lines. Leverage existing easing functions and timer system.
+**Delivered scope:** New `animation/` module, built-in easing catalog, controller-driven redraw during tweens, color interpolation for fill and stroke, support for bounds, center, radius, endpoint, fill transform, opacity, rotation, and text property animation, element-level opacity support, and a complete example in `examples/animation-system-showcase.*`.
+
+**Follow-on work:** A higher-level timeline or keyframe composition API is still optional future work, but the core competitor gap is closed.
 
 #### R2. Add Touch Event Support
 **Why:** Mobile/tablet is non-negotiable. Touch event mapping is straightforward since the hit-testing infrastructure exists.

@@ -15,7 +15,7 @@ from simpler elements.
 
 * Rich set of 2D drawing primitives including line, rectangle, ellipse, polyline, polygon, path, image, text, and sprites.
 * Shared resource library for indirect referenced to bitmap, model, and text resources with support for localization.
-* Support for element interactivity and animation.
+* Support for element interactivity, property tweening, and animation.
 * Support for sprite and image transitions.
 * Design surface and component library for interactive model creation and editing.
 * Higher level surface library for creation of graphical applications with integration of video and other HTML content.
@@ -104,6 +104,61 @@ The example above does the following:
 
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;![](images/blue_model_red_ellipse.png)
 
+## Property Tween Animation
+
+Elise includes a property tweening API for animating element bounds, centers, radii, endpoints, fill transforms, opacity, rotation, type size, fill color, and stroke color without writing a manual `requestAnimationFrame` loop.
+
+```javascript
+    var rect = elise.rectangle(40, 40, 120, 72)
+        .setFill('#6f8fb8')
+        .setStroke('#8caad0');
+
+    model.add(rect);
+
+    rect.animate({
+        x: 96,
+        y: 84,
+        width: 180,
+        opacity: 0.65,
+        fill: '#d4875d'
+    }, {
+        duration: 900,
+        easing: 'easeInOutCubic',
+        onComplete: function () {
+            rect.animate({
+                x: 40,
+                y: 40,
+                width: 120,
+                opacity: 1,
+                fill: '#6f8fb8'
+            }, {
+                duration: 700,
+                easing: 'easeInOutQuart'
+            });
+        }
+    });
+```
+
+### Animation API
+
+* `element.animate(targets, options)` starts a tween and returns an `ElementTween` instance.
+* `element.cancelAnimations()` stops all active tweens for the element.
+* `element.cancelAnimations(['x', 'opacity'])` stops only the listed properties.
+* `AnimationEasing` exposes the built-in easing functions and lookup helper.
+
+Supported tween targets include:
+
+* `x`, `y`, `width`, `height`
+* `centerX`, `centerY`, `radiusX`, `radiusY`
+* `x1`, `y1`, `x2`, `y2`
+* `fillScale`, `fillOffsetX`, `fillOffsetY`
+* `rotation`, `opacity`, `typesize`
+* `fill`, `stroke`
+
+When a new tween starts on a property that is already animating on the same element, Elise cancels the older tween for that property and keeps the newer one. This makes replay and interruption predictable for interactive scenes.
+
+See `examples/animation-system-showcase.html` and `examples/animation-system-showcase.js` for a complete browser example.
+
 ## Example Projects
 
 * [Simple Example Project](https://github.com/thetheosopher/elise-simple-demo)
@@ -157,6 +212,7 @@ Colors are specified with a text string using one of the following forms:
 * **Named Color** - One of the known named colors (e.g. Red, Blue, Yellow)
 * **#rrggbb** - Six digit hexadecimal RGB form with # prefix
 * **#aarrggbb** - Eight digit hexadecimal ARGB form with # prefix
+* **rgb(r,g,b)** / **rgba(r,g,b,a)** - CSS RGB and RGBA forms supported anywhere fill or stroke colors are parsed
 
 ## Building and Packaging
 

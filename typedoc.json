@@ -11,5 +11,21 @@
   ],
   "excludePrivate": true,
   "excludeProtected": false,
+  "excludeInternal": true,
+  "intentionallyNotExported": [
+    "ColorLike",
+    "ComponentLike",
+    "ControllerCommandHandler",
+    "ElementResourceManager",
+    "EmbeddedModel",
+    "ResourceManagerLike",
+    "ResourceModelLike",
+    "ResourceOwner",
+    "SourceModelResourceLike",
+    "Surface",
+    "SurfaceAnimationLayer",
+    "SurfaceRadioStrip",
+    "ViewControllerLike"
+  ],
   "skipErrorChecking": false
 }

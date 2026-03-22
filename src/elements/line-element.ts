@@ -444,7 +444,8 @@ export class LineElement extends ElementBase implements IPointContainer {
      * @param depth - Not applicable
      * @returns Requested point
      */
-    public getPointAt(index: number, _depth?: PointDepth): Point {
+    public getPointAt(index: number, depth?: PointDepth): Point {
+        void depth;
         if (index === 0 && this._p1) {
             return this._p1;
         }
@@ -460,7 +461,8 @@ export class LineElement extends ElementBase implements IPointContainer {
      * @param value - New point value
      * @param depth - Not applicable
      */
-    public setPointAt(index: number, value: Point, _depth: PointDepth) {
+    public setPointAt(index: number, value: Point, depth: PointDepth) {
+        void depth;
         if (index === 0) {
             this._p1 = new Point(value.x, value.y);
             return this;
