@@ -34,6 +34,30 @@ function installInteractiveSurface(controller: ViewController, activeElement: un
     } as unknown as any;
 }
 
+function createTouch(identifier: number, clientX: number, clientY: number) {
+    return { identifier, clientX, clientY } as Touch;
+}
+
+function createTouchList(touches: Touch[]): TouchList {
+    const touchList = {
+        length: touches.length,
+        item: (index: number) => touches[index] ?? null,
+    } as Record<string, unknown>;
+    touches.forEach((touch, index) => {
+        touchList[index] = touch;
+    });
+    return touchList as unknown as TouchList;
+}
+
+function createTouchEvent(touches: Touch[], changedTouches: Touch[] = touches) {
+    return {
+        touches: createTouchList(touches),
+        changedTouches: createTouchList(changedTouches),
+        preventDefault: jest.fn(),
+        stopPropagation: jest.fn(),
+    } as unknown as TouchEvent;
+}
+
 test('view controller tick stops timer when timer event throws', () => {
     const controller = new ViewController();
     controller.timerEnabled = true;
@@ -204,4 +228,36 @@ test('view controller delayed mouse down sets pending element after timer', () =
 
     fakeWindowScope.restore();
     jest.useRealTimers();
+});
+
+test('view controller touch events route through mouse handlers', () => {
+    const controller = new ViewController();
+    const fakeWindowScope = installFakeWindow();
+    const element = { id: 'touch-el' } as any;
+
+    installInteractiveSurface(controller, element);
+
+    const touchStart = createTouchEvent([createTouch(7, 10, 12)]);
+    const touchMove = createTouchEvent([createTouch(7, 28, 12)]);
+    const touchEnd = createTouchEvent([], [createTouch(7, 28, 12)]);
+
+    controller.onCanvasTouchStart(touchStart);
+
+    expect(controller.activeTouchId).toBe(7);
+    expect(controller.isMouseDown).toBe(true);
+
+    controller.onCanvasTouchMove(touchMove);
+
+    expect(controller.clickCancelled).toBe(true);
+    expect(touchMove.preventDefault).toHaveBeenCalled();
+
+    controller.mouseOverElement = element;
+    controller.clickCancelled = false;
+    controller.onCanvasTouchEnd(touchEnd);
+
+    expect(controller.activeTouchId).toBeUndefined();
+    expect(controller.isMouseDown).toBe(false);
+    expect(touchEnd.preventDefault).toHaveBeenCalled();
+
+    fakeWindowScope.restore();
 });

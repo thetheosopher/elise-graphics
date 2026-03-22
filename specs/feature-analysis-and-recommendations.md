@@ -226,8 +226,8 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Mouse enter/leave | ✅ | ✅ | ✅ | ✅ |
 | Mouse move (element) | ✅ | ✅ | ✅ | ✅ |
 | Drag & drop | ✅ | ✅ | ✅ | ❌ |
-| Touch events | ❌ | ✅ | ✅ | ✅ |
-| Multi-touch/pinch | ❌ | ✅ | ✅ | ❌ |
+| Touch events | ✅ | ✅ | ✅ | ✅ |
+| Multi-touch/pinch | ✅ (design) | ✅ | ✅ | ❌ |
 | Keyboard events | ❌ | ✅ | ✅ | ✅ |
 | Cursor management | ✅ (design) | ✅ | ✅ | ✅ |
 | Hit regions | ✅ | ✅ | ✅ | ✅ |
@@ -236,7 +236,7 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Command dispatch | ✅ | ❌ | ❌ | ❌ |
 | File drop | ✅ (design) | ❌ | ❌ | ❌ |
 
-**Analysis:** Elise has solid mouse interaction but is **missing touch support entirely**, which is critical for mobile/tablet. No keyboard events and no event bubbling through the model hierarchy are also notable gaps. The command dispatch pattern is unique and powerful for building interactive applications.
+**Analysis:** Elise now covers the core mobile interaction gap with single-touch routing in runtime and design controllers plus pinch support on the design surface. Keyboard events and event bubbling through the model hierarchy remain notable gaps. The command dispatch pattern is unique and powerful for building interactive applications.
 
 ### 3.9 Design Surface (Interactive Editing)
 
@@ -363,7 +363,6 @@ Elise has **zero SVG capability** in any form:
 | Gap | Impact | Difficulty | Competitors with feature |
 |-----|--------|------------|--------------------------|
 | No SVG import/export | Blocks integration with design tools and icon libraries | High | Fabric.js, Paper.js, Two.js |
-| No touch events | Library unusable on mobile/tablet | Medium | Fabric.js, Konva.js, Paper.js |
 | No undo/redo | Design surface unusable for production | Medium | (few have built-in, but expected) |
 | No PNG/image export | Cannot save render output | Low | Fabric.js, Konva.js, Paper.js |
 | No arc path command | Cannot represent circles/arcs in paths | Medium | All competitors |
@@ -435,9 +434,13 @@ element.animate(
 **Follow-on work:** A higher-level timeline or keyframe composition API is still optional future work, but the core competitor gap is closed.
 
 #### R2. Add Touch Event Support
-**Why:** Mobile/tablet is non-negotiable. Touch event mapping is straightforward since the hit-testing infrastructure exists.
+**Status:** Completed
 
-**Scope:** Extend `ViewController` and `DesignController` to handle `touchstart`, `touchmove`, `touchend`, `touchcancel`. Map single-touch to mouse equivalents. Add pinch-to-zoom and two-finger pan for `DesignController`.
+Elise now supports `touchstart`, `touchmove`, `touchend`, and `touchcancel` in both `ViewController` and `DesignController`.
+
+**Delivered scope:** Single-touch input is mapped into the existing mouse interaction path so existing hit-testing, hover, click, drag, selection, and tool flows continue to work without duplicate controller logic. `DesignController` also supports two-finger pinch zoom and pans the nearest scroll container during two-finger gestures.
+
+**Notes:** This closes the core mobile/tablet usability gap. Future work can refine gesture ergonomics further, but the base touch feature set is now present.
 
 #### R3. Add PNG/Canvas Export
 **Why:** Quick win — `canvas.toDataURL()` and `canvas.toBlob()` are trivial to implement and immediately useful.
@@ -594,7 +597,7 @@ Add an invisible DOM overlay synchronized with canvas elements, providing ARIA r
 
 Elise occupies a **unique niche** that no single competitor fills: a retained-mode graphics library with a **built-in design surface**, **application framework** (Surface/Pane system with video/HTML integration), and **sprite animation with transitions**. The closest competitor combining editing + rendering is Fabric.js, but Fabric lacks Elise's Surface system, component registry, and transition effects.
 
-Elise's primary competitive weakness is **ecosystem isolation** — the lack of SVG import/export, property animation, and touch support means that for many common use cases, developers will choose a more mature alternative despite Elise's unique strengths.
+Elise's primary competitive weakness is now **ecosystem isolation** around interchange and export rather than runtime interactivity. SVG import/export remains the largest missing capability for many common use cases despite Elise's unique strengths in design-time editing, surfaces, animation, and touch support.
 
 The recommended path forward is:
 1. **Close critical gaps** (Tier 1) to make Elise viable for common use cases

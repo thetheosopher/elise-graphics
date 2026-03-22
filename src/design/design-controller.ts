@@ -384,6 +384,31 @@ export class DesignController implements IController {
     public lastClientY: number;
 
     /**
+     * Active touch identifier while single-touch interaction is in progress
+     */
+    public activeTouchId?: number;
+
+    /**
+     * True while a two-finger gesture is active
+     */
+    public touchGestureActive: boolean;
+
+    /**
+     * Starting distance for the active pinch gesture
+     */
+    public gestureStartDistance?: number;
+
+    /**
+     * Starting scale for the active pinch gesture
+     */
+    public gestureStartScale?: number;
+
+    /**
+     * Last gesture center in client coordinates for panning
+     */
+    public gestureLastCenter?: Point;
+
+    /**
      * True when mouse is down and captured over view
      */
     public isMouseDown: boolean;
@@ -631,11 +656,18 @@ export class DesignController implements IController {
         this.windowToCanvas = this.windowToCanvas.bind(this);
         this.windowMouseUp = this.windowMouseUp.bind(this);
         this.windowMouseMove = this.windowMouseMove.bind(this);
+        this.windowTouchEnd = this.windowTouchEnd.bind(this);
+        this.windowTouchMove = this.windowTouchMove.bind(this);
+        this.windowTouchCancel = this.windowTouchCancel.bind(this);
         this.onCanvasMouseEnter = this.onCanvasMouseEnter.bind(this);
         this.onCanvasMouseLeave = this.onCanvasMouseLeave.bind(this);
         this.onCanvasMouseDown = this.onCanvasMouseDown.bind(this);
         this.onCanvasMouseMove = this.onCanvasMouseMove.bind(this);
         this.onCanvasMouseUp = this.onCanvasMouseUp.bind(this);
+        this.onCanvasTouchStart = this.onCanvasTouchStart.bind(this);
+        this.onCanvasTouchMove = this.onCanvasTouchMove.bind(this);
+        this.onCanvasTouchEnd = this.onCanvasTouchEnd.bind(this);
+        this.onCanvasTouchCancel = this.onCanvasTouchCancel.bind(this);
         this.onCanvasKeyDown = this.onCanvasKeyDown.bind(this);
         this.onCanvasDragEnter = this.onCanvasDragEnter.bind(this);
         this.onCanvasDragOver = this.onCanvasDragOver.bind(this);
@@ -714,6 +746,8 @@ export class DesignController implements IController {
         this.isDragging = false;
         this.lastClientX = -1;
         this.lastClientY = -1;
+        this.activeTouchId = undefined;
+        this.touchGestureActive = false;
         this.selecting = false;
         this.rubberBandActive = false;
         this.snapToGrid = false;
@@ -763,6 +797,11 @@ export class DesignController implements IController {
         this.dragOverElement = undefined;
         this.lastDeltaX = -1;
         this.lastDeltaY = -1;
+        this.activeTouchId = undefined;
+        this.touchGestureActive = false;
+        this.gestureStartDistance = undefined;
+        this.gestureStartScale = undefined;
+        this.gestureLastCenter = undefined;
 
         this.selectedElements = [];
         this.selecting = false;
@@ -993,11 +1032,16 @@ export class DesignController implements IController {
         canvas.width = size.width * self.scale;
         canvas.height = size.height * self.scale;
         canvas.setAttribute('tabindex', '0');
+        canvas.style.touchAction = 'none';
 
         canvas.addEventListener('mouseenter', self.onCanvasMouseEnter);
         canvas.addEventListener('mouseleave', self.onCanvasMouseLeave);
         canvas.addEventListener('mousedown', self.onCanvasMouseDown);
         canvas.addEventListener('mousemove', self.onCanvasMouseMove);
+        canvas.addEventListener('touchstart', self.onCanvasTouchStart, { passive: false });
+        canvas.addEventListener('touchmove', self.onCanvasTouchMove, { passive: false });
+        canvas.addEventListener('touchend', self.onCanvasTouchEnd, { passive: false });
+        canvas.addEventListener('touchcancel', self.onCanvasTouchCancel, { passive: false });
         canvas.addEventListener('keydown', self.onCanvasKeyDown);
         canvas.addEventListener('dragenter', self.onCanvasDragEnter);
         canvas.addEventListener('dragover', self.onCanvasDragOver);
@@ -1020,6 +1064,9 @@ export class DesignController implements IController {
             this.model.controllerDetached.clear();
             this.model.controllerAttached.clear();
         }
+        window.removeEventListener('touchend', this.windowTouchEnd, true);
+        window.removeEventListener('touchmove', this.windowTouchMove, true);
+        window.removeEventListener('touchcancel', this.windowTouchCancel, true);
         if (!this.canvas) {
             return;
         }
@@ -1028,6 +1075,10 @@ export class DesignController implements IController {
         this.canvas.removeEventListener('mouseleave', this.onCanvasMouseLeave);
         this.canvas.removeEventListener('mousedown', this.onCanvasMouseDown);
         this.canvas.removeEventListener('mousemove', this.onCanvasMouseMove);
+        this.canvas.removeEventListener('touchstart', this.onCanvasTouchStart);
+        this.canvas.removeEventListener('touchmove', this.onCanvasTouchMove);
+        this.canvas.removeEventListener('touchend', this.onCanvasTouchEnd);
+        this.canvas.removeEventListener('touchcancel', this.onCanvasTouchCancel);
         this.canvas.removeEventListener('keydown', this.onCanvasKeyDown);
         this.canvas.removeEventListener('dragenter', this.onCanvasDragEnter);
         this.canvas.removeEventListener('dragover', this.onCanvasDragOver);
@@ -1181,6 +1232,35 @@ export class DesignController implements IController {
     }
 
     /**
+     * Handles captured touch end event.
+     * @param e - Window touch end event
+     */
+    public windowTouchEnd(e: TouchEvent): void {
+        this.onCanvasTouchEnd(e);
+        this.drawIfNeeded();
+    }
+
+    /**
+     * Handles captured touch move event.
+     * @param e - Window touch move event
+     */
+    public windowTouchMove(e: TouchEvent): void {
+        e.preventDefault();
+        e.stopPropagation();
+        this.onCanvasTouchMove(e);
+        this.drawIfNeeded();
+    }
+
+    /**
+     * Handles captured touch cancel event.
+     * @param e - Window touch cancel event
+     */
+    public windowTouchCancel(e: TouchEvent): void {
+        this.onCanvasTouchCancel(e);
+        this.drawIfNeeded();
+    }
+
+    /**
      * Handles canvas mouse enter event
      * @param e - DOM mouse event
      */
@@ -1214,7 +1294,7 @@ export class DesignController implements IController {
      * Handles canvas mouse down event
      * @param e - Mouse event
      */
-    public onCanvasMouseDown(e: MouseEvent): void {
+    public onCanvasMouseDown(e: MouseEvent | IMouseEvent): void {
         if (!this.model) {
             throw new Error(ErrorMessages.ModelUndefined);
         }
@@ -1250,8 +1330,8 @@ export class DesignController implements IController {
             // If it's creating and right button pressed, cancel and return
             if (this.activeTool.isCreating && button === 2) {
                 this.activeTool.cancel();
-                e.preventDefault();
-                e.stopPropagation();
+                e.preventDefault?.();
+                e.stopPropagation?.();
                 this.isMouseDown = false;
                 this.draw();
                 return;
@@ -1516,7 +1596,7 @@ export class DesignController implements IController {
      * Handles canvas mouse move event
      * @param e - Mouse event
      */
-    public onCanvasMouseMove(e: MouseEvent): void {
+    public onCanvasMouseMove(e: MouseEvent | IMouseEvent): void {
         if (!this.enabled) {
             return;
         }
@@ -2173,6 +2253,119 @@ export class DesignController implements IController {
             this.pressedElement = undefined;
         }
         this.drawIfNeeded();
+    }
+
+    /**
+     * Handles canvas touch start.
+     * Single-touch gestures route through the existing mouse editing path.
+     * Two-touch gestures start pinch zoom and pan mode.
+     * @param e - Touch event
+     */
+    public onCanvasTouchStart(e: TouchEvent): void {
+        if (!this.enabled) {
+            return;
+        }
+        if (!this.canvas) {
+            return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        window.addEventListener('touchend', this.windowTouchEnd, true);
+        window.addEventListener('touchmove', this.windowTouchMove, true);
+        window.addEventListener('touchcancel', this.windowTouchCancel, true);
+
+        if (e.touches.length >= 2) {
+            const primary = e.touches[0];
+            if (this.isMouseDown) {
+                this.cancelAction = true;
+                this.onCanvasMouseUp(this.createTouchMouseEvent(primary, e));
+            }
+            this.activeTouchId = undefined;
+            this.beginTouchGesture(e);
+            return;
+        }
+
+        if (this.touchGestureActive || e.touches.length !== 1) {
+            return;
+        }
+        const touch = e.touches[0];
+        this.activeTouchId = touch.identifier;
+        this.onCanvasMouseDown(this.createTouchMouseEvent(touch, e));
+    }
+
+    /**
+     * Handles canvas touch move.
+     * @param e - Touch event
+     */
+    public onCanvasTouchMove(e: TouchEvent): void {
+        if (!this.enabled) {
+            return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (e.touches.length >= 2 || this.touchGestureActive) {
+            if (!this.touchGestureActive) {
+                this.beginTouchGesture(e);
+            }
+            this.updateTouchGesture(e);
+            return;
+        }
+
+        if (this.activeTouchId === undefined) {
+            return;
+        }
+        const touch = this.findTouchById(e.touches, this.activeTouchId);
+        if (!touch) {
+            return;
+        }
+        this.onCanvasMouseMove(this.createTouchMouseEvent(touch, e));
+    }
+
+    /**
+     * Handles canvas touch end.
+     * @param e - Touch event
+     */
+    public onCanvasTouchEnd(e: TouchEvent): void {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (this.touchGestureActive) {
+            if (e.touches.length >= 2) {
+                this.updateTouchGesture(e);
+                return;
+            }
+            this.endTouchGesture();
+            return;
+        }
+
+        if (this.activeTouchId === undefined) {
+            return;
+        }
+
+        const touch = this.findTouchById(e.changedTouches, this.activeTouchId);
+        if (!touch) {
+            return;
+        }
+
+        window.removeEventListener('touchend', this.windowTouchEnd, true);
+        window.removeEventListener('touchmove', this.windowTouchMove, true);
+        window.removeEventListener('touchcancel', this.windowTouchCancel, true);
+        this.activeTouchId = undefined;
+        this.onCanvasMouseUp(this.createTouchMouseEvent(touch, e));
+    }
+
+    /**
+     * Handles canvas touch cancel.
+     * @param e - Touch event
+     */
+    public onCanvasTouchCancel(e: TouchEvent): void {
+        if (this.touchGestureActive) {
+            this.endTouchGesture();
+            return;
+        }
+        this.cancelAction = true;
+        this.onCanvasTouchEnd(e);
     }
 
     /**
@@ -3831,5 +4024,130 @@ export class DesignController implements IController {
             this.model.controllerAttached.trigger(this.model, this);
         }
         return this;
+    }
+
+    /**
+     * Starts a two-finger gesture for zoom and pan.
+     * @param e - Touch event
+     */
+    private beginTouchGesture(e: TouchEvent): void {
+        const info = this.getTouchGestureInfo(e.touches);
+        if (!info) {
+            return;
+        }
+        this.touchGestureActive = true;
+        this.gestureStartDistance = info.distance;
+        this.gestureStartScale = this.scale;
+        this.gestureLastCenter = new Point(info.centerX, info.centerY);
+    }
+
+    /**
+     * Applies pinch zoom and host scrolling pan for a two-finger gesture.
+     * @param e - Touch event
+     */
+    private updateTouchGesture(e: TouchEvent): void {
+        const info = this.getTouchGestureInfo(e.touches);
+        if (!info || !this.gestureStartDistance || !this.gestureStartScale) {
+            return;
+        }
+        const scale = Math.max(0.25, Math.min(8, this.gestureStartScale * (info.distance / this.gestureStartDistance)));
+        this.setScale(scale);
+        if (this.gestureLastCenter) {
+            const panContainer = this.getGesturePanContainer();
+            if (panContainer) {
+                panContainer.scrollLeft -= info.centerX - this.gestureLastCenter.x;
+                panContainer.scrollTop -= info.centerY - this.gestureLastCenter.y;
+            }
+        }
+        this.gestureLastCenter = new Point(info.centerX, info.centerY);
+    }
+
+    /**
+     * Clears the active two-finger gesture state.
+     */
+    private endTouchGesture(): void {
+        this.touchGestureActive = false;
+        this.gestureStartDistance = undefined;
+        this.gestureStartScale = undefined;
+        this.gestureLastCenter = undefined;
+        this.activeTouchId = undefined;
+        window.removeEventListener('touchend', this.windowTouchEnd, true);
+        window.removeEventListener('touchmove', this.windowTouchMove, true);
+        window.removeEventListener('touchcancel', this.windowTouchCancel, true);
+    }
+
+    /**
+     * Computes pinch distance and center for the first two touches.
+     * @param touches - Active touches
+     * @returns Gesture information or undefined when fewer than two touches exist
+     */
+    private getTouchGestureInfo(touches: TouchList): { distance: number; centerX: number; centerY: number } | undefined {
+        if (touches.length < 2) {
+            return undefined;
+        }
+        const t1 = touches[0];
+        const t2 = touches[1];
+        const dx = t2.clientX - t1.clientX;
+        const dy = t2.clientY - t1.clientY;
+        return {
+            distance: Math.sqrt(dx * dx + dy * dy),
+            centerX: (t1.clientX + t2.clientX) / 2,
+            centerY: (t1.clientY + t2.clientY) / 2,
+        };
+    }
+
+    /**
+     * Gets the nearest scroll container that can be used for two-finger panning.
+     * @returns Pan container or undefined
+     */
+    private getGesturePanContainer(): HTMLElement | undefined {
+        if (!this.canvas) {
+            return undefined;
+        }
+        const host = this.canvas.parentElement;
+        if (!host) {
+            return undefined;
+        }
+        const parent = host.parentElement;
+        if (parent) {
+            return parent;
+        }
+        return host;
+    }
+
+    /**
+     * Finds a touch by identifier.
+     * @param touches - Touch list
+     * @param identifier - Touch identifier
+     * @returns Matching touch or undefined
+     */
+    private findTouchById(touches: TouchList, identifier: number): Touch | undefined {
+        for (let i = 0; i < touches.length; i++) {
+            const touch = touches.item(i);
+            if (touch && touch.identifier === identifier) {
+                return touch;
+            }
+        }
+        return undefined;
+    }
+
+    /**
+     * Creates a synthetic mouse-like event from a touch.
+     * @param touch - Touch instance
+     * @param source - Source touch event
+     * @returns Synthetic pointer event
+     */
+    private createTouchMouseEvent(touch: Touch, source: TouchEvent): IMouseEvent {
+        return {
+            clientX: touch.clientX,
+            clientY: touch.clientY,
+            button: 0,
+            ctrlKey: false,
+            metaKey: false,
+            shiftKey: false,
+            altKey: false,
+            preventDefault: () => source.preventDefault(),
+            stopPropagation: () => source.stopPropagation(),
+        };
     }
 }

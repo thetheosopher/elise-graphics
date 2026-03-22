@@ -1,3 +1,4 @@
+import { IMouseEvent } from './mouse-event';
 import { MousePositionInfo } from './mouse-position-info';
 import { Point } from './point';
 /**
@@ -12,16 +13,14 @@ export class PointEventParameters {
     /**
      * DOM source event
      */
-    public event?: Event | MousePositionInfo;
+    public event?: Event | MousePositionInfo | IMouseEvent;
 
     /**
      * @param event - Source DOM event
      * @param point - Model scale adjusted point at which event occurred
      */
-    constructor(event: Event | MousePositionInfo, point?: Point) {
-        if (event instanceof Event) {
-            this.event = event;
-        }
+    constructor(event: Event | MousePositionInfo | IMouseEvent, point?: Point) {
+        this.event = event;
         if (point !== undefined) {
             this.point = point;
         }

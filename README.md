@@ -15,7 +15,7 @@ from simpler elements.
 
 * Rich set of 2D drawing primitives including line, rectangle, ellipse, polyline, polygon, path, image, text, and sprites.
 * Shared resource library for indirect referenced to bitmap, model, and text resources with support for localization.
-* Support for element interactivity, property tweening, and animation.
+* Support for element interactivity, property tweening, touch interaction, and animation.
 * Support for sprite and image transitions.
 * Design surface and component library for interactive model creation and editing.
 * Higher level surface library for creation of graphical applications with integration of video and other HTML content.
@@ -158,6 +158,17 @@ Supported tween targets include:
 When a new tween starts on a property that is already animating on the same element, Elise cancels the older tween for that property and keeps the newer one. This makes replay and interruption predictable for interactive scenes.
 
 See `examples/animation-system-showcase.html` and `examples/animation-system-showcase.js` for a complete browser example.
+
+## Touch Interaction
+
+Elise now routes single-touch input through the same interaction path as mouse input in both `ViewController` and `DesignController`, so existing click, drag, selection, and tool workflows work on touch devices without separate event wiring.
+
+For design surfaces, two-finger gestures are also supported:
+
+* Pinch to zoom the design canvas.
+* Two-finger pan the nearest scroll container around the design surface.
+
+Touch listeners are registered with `touchAction = 'none'` so the canvas can capture gesture intent directly instead of competing with browser scrolling.
 
 ## Example Projects
 

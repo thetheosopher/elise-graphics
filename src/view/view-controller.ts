@@ -2,6 +2,7 @@ import { ElementCommandHandler } from '../command/element-command-handler';
 import { IController } from '../controller/controller';
 import { ControllerEvent } from '../controller/controller-event';
 import { ErrorMessages } from '../core/error-messages';
+import { IMouseEvent } from '../core/mouse-event';
 import { Logging } from '../core/logging';
 import { Model } from '../core/model';
 import { MouseEventArgs } from '../core/mouse-event-args';
@@ -202,6 +203,11 @@ export class ViewController implements IController {
     public pendingMouseDownElement?: ElementBase;
 
     /**
+     * Active touch identifier while touch interaction is in progress
+     */
+    public activeTouchId?: number;
+
+    /**
      * Click cancelled flag
      */
     public clickCancelled: boolean = false;
@@ -299,11 +305,18 @@ export class ViewController implements IController {
         this.windowToCanvas = this.windowToCanvas.bind(this);
         this.windowMouseUp = this.windowMouseUp.bind(this);
         this.windowMouseMove = this.windowMouseMove.bind(this);
+        this.windowTouchEnd = this.windowTouchEnd.bind(this);
+        this.windowTouchMove = this.windowTouchMove.bind(this);
+        this.windowTouchCancel = this.windowTouchCancel.bind(this);
         this.onCanvasMouseEnter = this.onCanvasMouseEnter.bind(this);
         this.onCanvasMouseLeave = this.onCanvasMouseLeave.bind(this);
         this.onCanvasMouseDown = this.onCanvasMouseDown.bind(this);
         this.onCanvasMouseUp = this.onCanvasMouseUp.bind(this);
         this.onCanvasMouseMove = this.onCanvasMouseMove.bind(this);
+        this.onCanvasTouchStart = this.onCanvasTouchStart.bind(this);
+        this.onCanvasTouchMove = this.onCanvasTouchMove.bind(this);
+        this.onCanvasTouchEnd = this.onCanvasTouchEnd.bind(this);
+        this.onCanvasTouchCancel = this.onCanvasTouchCancel.bind(this);
         this.setMouseDownElement = this.setMouseDownElement.bind(this);
         this.setMouseOverElement = this.setMouseOverElement.bind(this);
         this.setScale = this.setScale.bind(this);
@@ -328,6 +341,7 @@ export class ViewController implements IController {
         this.lastDeltaX = -1;
         this.lastDeltaY = -1;
         this.eventDelay = 0;
+        this.activeTouchId = undefined;
 
         this.timerParameters = new TimerParameters(0, 0);
         this.pointerBuffer = new Point(0, 0);
@@ -356,6 +370,7 @@ export class ViewController implements IController {
         this.mouseDownPosition = undefined;
         this.mouseOverElement = undefined;
         this.pressedElement = undefined;
+        this.activeTouchId = undefined;
         this.lastDeltaX = -1;
         this.lastDeltaY = -1;
         this.offsetX = 0;
@@ -460,10 +475,15 @@ export class ViewController implements IController {
         const canvas = document.createElement('canvas');
         canvas.width = size.width * self.scale;
         canvas.height = size.height * self.scale;
+        canvas.style.touchAction = 'none';
         canvas.addEventListener('mouseenter', self.onCanvasMouseEnter);
         canvas.addEventListener('mouseleave', self.onCanvasMouseLeave);
         canvas.addEventListener('mousedown', self.onCanvasMouseDown);
         canvas.addEventListener('mousemove', self.onCanvasMouseMove);
+        canvas.addEventListener('touchstart', self.onCanvasTouchStart, { passive: false });
+        canvas.addEventListener('touchmove', self.onCanvasTouchMove, { passive: false });
+        canvas.addEventListener('touchend', self.onCanvasTouchEnd, { passive: false });
+        canvas.addEventListener('touchcancel', self.onCanvasTouchCancel, { passive: false });
 
         self.canvas = canvas;
         self.renderer = new ViewRenderer(self);
@@ -479,6 +499,9 @@ export class ViewController implements IController {
         }
         window.removeEventListener('mouseup', this.windowMouseUp, true);
         window.removeEventListener('mousemove', this.windowMouseMove, true);
+        window.removeEventListener('touchend', this.windowTouchEnd, true);
+        window.removeEventListener('touchmove', this.windowTouchMove, true);
+        window.removeEventListener('touchcancel', this.windowTouchCancel, true);
         this.stopTimer();
         if (this.model) {
             if (this.model.controller === this) {
@@ -496,6 +519,10 @@ export class ViewController implements IController {
         this.canvas.removeEventListener('mouseleave', this.onCanvasMouseLeave);
         this.canvas.removeEventListener('mousedown', this.onCanvasMouseDown);
         this.canvas.removeEventListener('mousemove', this.onCanvasMouseMove);
+        this.canvas.removeEventListener('touchstart', this.onCanvasTouchStart);
+        this.canvas.removeEventListener('touchmove', this.onCanvasTouchMove);
+        this.canvas.removeEventListener('touchend', this.onCanvasTouchEnd);
+        this.canvas.removeEventListener('touchcancel', this.onCanvasTouchCancel);
         const element = this.canvas.parentElement;
         if (element) {
             element.removeChild(this.canvas);
@@ -614,6 +641,41 @@ export class ViewController implements IController {
     }
 
     /**
+     * Handles captured touch end event
+     * @param e - Window touch end event
+     */
+    public windowTouchEnd(e: TouchEvent) {
+        if (this.activeTouchId !== undefined) {
+            this.onCanvasTouchEnd(e);
+            this.drawIfNeeded();
+        }
+    }
+
+    /**
+     * Handles captured touch move event
+     * @param e - Window touch move event
+     */
+    public windowTouchMove(e: TouchEvent) {
+        if (this.activeTouchId !== undefined) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.onCanvasTouchMove(e);
+            this.drawIfNeeded();
+        }
+    }
+
+    /**
+     * Handles captured touch cancel event
+     * @param e - Window touch cancel event
+     */
+    public windowTouchCancel(e: TouchEvent) {
+        if (this.activeTouchId !== undefined) {
+            this.onCanvasTouchCancel(e);
+            this.drawIfNeeded();
+        }
+    }
+
+    /**
      * Handles canvas mouse enter event
      * @param e - DOM event
      */
@@ -649,7 +711,7 @@ export class ViewController implements IController {
      * Handles canvas mouse down event
      * @param e - Mouse event
      */
-    public onCanvasMouseDown(e: MouseEvent) {
+    public onCanvasMouseDown(e: MouseEvent | IMouseEvent) {
         const self = this;
         log(`Canvas mouse down ${e.clientX}:${e.clientY}`);
         window.addEventListener('mouseup', self.windowMouseUp, true);
@@ -700,7 +762,7 @@ export class ViewController implements IController {
      * Handles canvas mouse move event
      * @param e - Mouse event
      */
-    public onCanvasMouseMove(e: MouseEvent): void {
+    public onCanvasMouseMove(e: MouseEvent | IMouseEvent): void {
         log(`Canvas mouse move ${e.clientX}:${e.clientY}`);
 
         if (!this.enabled) {
@@ -773,6 +835,73 @@ export class ViewController implements IController {
             this.pendingMouseDownElement = undefined;
         }
         this.drawIfNeeded();
+    }
+
+    /**
+     * Handles canvas touch start by routing the primary touch through the existing mouse path.
+     * @param e - Touch event
+     */
+    public onCanvasTouchStart(e: TouchEvent): void {
+        if (e.touches.length !== 1) {
+            return;
+        }
+        const touch = e.touches[0];
+        this.activeTouchId = touch.identifier;
+        this.isMouseOver = true;
+        e.preventDefault();
+        e.stopPropagation();
+        window.addEventListener('touchend', this.windowTouchEnd, true);
+        window.addEventListener('touchmove', this.windowTouchMove, true);
+        window.addEventListener('touchcancel', this.windowTouchCancel, true);
+        this.onCanvasMouseDown(this.createTouchMouseEvent(touch, e));
+    }
+
+    /**
+     * Handles canvas touch move for the active touch.
+     * @param e - Touch event
+     */
+    public onCanvasTouchMove(e: TouchEvent): void {
+        if (this.activeTouchId === undefined) {
+            return;
+        }
+        const touch = this.findTouchById(e.touches, this.activeTouchId);
+        if (!touch) {
+            return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        this.onCanvasMouseMove(this.createTouchMouseEvent(touch, e));
+    }
+
+    /**
+     * Handles canvas touch end for the active touch.
+     * @param e - Touch event
+     */
+    public onCanvasTouchEnd(e: TouchEvent): void {
+        if (this.activeTouchId === undefined) {
+            return;
+        }
+        const touch = this.findTouchById(e.changedTouches, this.activeTouchId);
+        if (!touch) {
+            return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        window.removeEventListener('touchend', this.windowTouchEnd, true);
+        window.removeEventListener('touchmove', this.windowTouchMove, true);
+        window.removeEventListener('touchcancel', this.windowTouchCancel, true);
+        this.activeTouchId = undefined;
+        this.isMouseOver = false;
+        this.onCanvasMouseUp(this.createTouchMouseEvent(touch, e));
+    }
+
+    /**
+     * Handles canvas touch cancel for the active touch.
+     * @param e - Touch event
+     */
+    public onCanvasTouchCancel(e: TouchEvent): void {
+        this.clickCancelled = true;
+        this.onCanvasTouchEnd(e);
     }
 
     /**
@@ -1135,6 +1264,42 @@ export class ViewController implements IController {
         this.draw();
         this.model.controllerAttached.trigger(this.model, this);
         return this;
+    }
+
+    /**
+     * Finds a touch by its identifier in the provided touch list.
+     * @param touches - Touch list
+     * @param identifier - Touch identifier
+     * @returns Matching touch or undefined
+     */
+    private findTouchById(touches: TouchList, identifier: number): Touch | undefined {
+        for (let i = 0; i < touches.length; i++) {
+            const touch = touches.item(i);
+            if (touch && touch.identifier === identifier) {
+                return touch;
+            }
+        }
+        return undefined;
+    }
+
+    /**
+     * Creates a synthetic mouse-like event from a touch event.
+     * @param touch - Active touch
+     * @param source - Source touch event
+     * @returns Synthetic mouse-like event
+     */
+    private createTouchMouseEvent(touch: Touch, source: TouchEvent): IMouseEvent {
+        return {
+            clientX: touch.clientX,
+            clientY: touch.clientY,
+            button: 0,
+            ctrlKey: false,
+            metaKey: false,
+            shiftKey: false,
+            altKey: false,
+            preventDefault: () => source.preventDefault(),
+            stopPropagation: () => source.stopPropagation(),
+        };
     }
 
     /**
