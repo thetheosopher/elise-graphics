@@ -178,6 +178,7 @@ export class EllipseElement extends ElementBase {
                 new Point(this._center.x - this.radiusX, this._center.y - this.radiusY)
             );
         }
+        this.applyRenderOpacity(c);
         const scaleY = this.radiusY / this.radiusX;
         c.save();
         c.beginPath();

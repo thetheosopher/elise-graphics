@@ -190,6 +190,7 @@ export class PolygonElement extends ElementBase implements IPointContainer {
         if (this.transform) {
             model.setRenderTransform(c, this.transform, bounds.location);
         }
+        this.applyRenderOpacity(c);
         c.beginPath();
         c.moveTo(this._points[0].x, this._points[0].y);
         const pl = this._points.length;

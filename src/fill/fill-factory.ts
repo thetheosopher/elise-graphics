@@ -94,7 +94,7 @@ export class FillFactory {
                 if (key.indexOf(';') !== -1) {
                     const parts = key.split(';');
                     const opacity = parseFloat(parts[0]);
-                    c.globalAlpha = opacity;
+                    c.globalAlpha *= opacity;
                     key = parts[1];
                 }
                 const res = model.resourceManager.get(key) as BitmapResource;
@@ -134,7 +134,7 @@ export class FillFactory {
                 if (key.indexOf(';') !== -1) {
                     const parts = key.split(';');
                     const opacity = parseFloat(parts[0]);
-                    c.globalAlpha = opacity;
+                    c.globalAlpha *= opacity;
                     key = parts[1];
                 }
                 const res = model.resourceManager.get(key) as ModelFillResource;

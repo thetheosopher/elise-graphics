@@ -164,6 +164,7 @@ export class PathElement extends ElementBase implements IPointContainer {
         if (this.transform) {
             model.setRenderTransform(c, this.transform, bounds.location);
         }
+        this.applyRenderOpacity(c);
         c.beginPath();
         for (const command of this._commands) {
             if (command.charAt(0) === 'm') {

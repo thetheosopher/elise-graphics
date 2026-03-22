@@ -50,15 +50,8 @@ export class ImageElement extends ElementBase {
      */
     public source?: string;
 
-    /**
-     *  Image opacity 0 (transparent) to 1 (opaque)
-     */
-    public opacity: number;
-
     constructor() {
         super('image');
-        this.setOpacity = this.setOpacity.bind(this);
-        this.opacity = 1.0;
     }
 
     /**
@@ -69,9 +62,6 @@ export class ImageElement extends ElementBase {
         super.parse(o);
         if (o.source) {
             this.source = o.source as string;
-        }
-        if (o.opacity !== undefined) {
-            this.opacity = o.opacity as number;
         }
         if (!this._location) {
             this._location = new Point(0, 0);
@@ -86,9 +76,6 @@ export class ImageElement extends ElementBase {
         const o = super.serialize();
         if (this.source) {
             o.source = this.source;
-        }
-        if (this.opacity !== undefined && this.opacity !== 1) {
-            o.opacity = this.opacity;
         }
         if (this._location) {
             o.location = this._location.toString();
@@ -105,9 +92,6 @@ export class ImageElement extends ElementBase {
         super.cloneTo(e);
         if (this.source) {
             e.source = this.source;
-        }
-        if (this.opacity !== undefined) {
-            e.opacity = this.opacity;
         }
         return e;
     }
@@ -157,15 +141,8 @@ export class ImageElement extends ElementBase {
         if (this.transform) {
             model.setRenderTransform(c, this.transform, this._location);
         }
-        if (this.opacity !== undefined && this.opacity > 0 && this.opacity < 1.0) {
-            const o = c.globalAlpha;
-            c.globalAlpha = this.opacity;
-            if (res.image) {
-                c.drawImage(res.image, this._location.x, this._location.y, this._size.width, this._size.height);
-            }
-            c.globalAlpha = o;
-        }
-        else if (res.image !== undefined) {
+        this.applyRenderOpacity(c);
+        if (res.image !== undefined) {
             try {
                 c.drawImage(res.image, this._location.x, this._location.y, this._size.width, this._size.height);
             } catch {
@@ -177,16 +154,6 @@ export class ImageElement extends ElementBase {
             c.strokeRect(this._location.x, this._location.y, this._size.width, this._size.height);
         }
         c.restore();
-    }
-
-    /**
-     * Set image opacity
-     * @param opacity - Image opacity in the range of 0-1
-     * @returns This element
-     */
-    public setOpacity(opacity: number) {
-        this.opacity = opacity;
-        return this;
     }
 
     /**

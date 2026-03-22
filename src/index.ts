@@ -4,6 +4,8 @@ import { ElementCommandHandler } from './command/element-command-handler';
 import { ElementCommandHandlerRegistration } from './command/element-command-handler-registration';
 import { ControllerEvent } from './controller/controller-event';
 import { ControllerEventArgs } from './controller/controller-event-args';
+import { AnimationEasing } from './animation/animation-easing';
+import { ElementAnimator, ElementTween } from './animation/element-tween';
 import { Color } from './core/color';
 import { CommonEvent } from './core/common-event';
 import { ErrorMessages } from './core/error-messages';
@@ -143,6 +145,8 @@ import { ViewController } from './view/view-controller';
 import { ViewRenderer } from './view/view-renderer';
 
 // Exports
+export { AnimationEasing } from './animation/animation-easing';
+export { ElementAnimator, ElementTween } from './animation/element-tween';
 export { CommandEventTrigger } from './command/command-event-trigger';
 export { ElementCommand } from './command/element-command';
 export { ElementCommandHandler } from './command/element-command-handler';
@@ -383,6 +387,7 @@ const requestAnimationFrameCompat =
 
 export default {
     BitmapResource: BitmapResource,
+    AnimationEasing: AnimationEasing,
     Color: Color,
     CommandEventTrigger: CommandEventTrigger,
     CommonEvent: CommonEvent,
@@ -396,7 +401,9 @@ export default {
     DesignController: DesignController,
     DesignRenderer: DesignRenderer,
     DesignTool: DesignTool,
+    ElementAnimator: ElementAnimator,
     ElementBase: ElementBase,
+    ElementTween: ElementTween,
     ElementCommand: ElementCommand,
     ElementCommandHandler: ElementCommandHandler,
     ElementCommandHandlerRegistration: ElementCommandHandlerRegistration,

@@ -6,6 +6,12 @@
         "displayModelJson": false
     },
     {
+        "name": "Animation System Showcase",
+        "id": "animation-system-showcase",
+        "description": "Extensive demo of animate(), easing, callbacks, cancellation, and fill offset animation.",
+        "displayModelJson": false
+    },
+    {
         "name": "Aurora Borealis",
         "id": "aurora-borealis",
         "description": "Northern Lights with undulating ribbon polylines over a starfield.",

@@ -191,6 +191,7 @@ export class LineElement extends ElementBase implements IPointContainer {
         if (this.transform) {
             model.setRenderTransform(c, this.transform, this._p1);
         }
+        this.applyRenderOpacity(c);
         c.beginPath();
         c.moveTo(this._p1.x, this._p1.y);
         c.lineTo(this._p2.x, this._p2.y);

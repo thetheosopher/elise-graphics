@@ -738,9 +738,13 @@ export class DesignController implements IController {
         }
         if (this.model) {
             this.model.controllerDetached.trigger(this.model, this);
+            if (this.model.controller === this) {
+                this.model.controller = undefined;
+            }
         }
         log('Setting design controller model');
         this.model = model;
+        this.model.controller = this;
         this.currentX = undefined;
         this.currentY = undefined;
         this.currentWidth = undefined;
@@ -1009,6 +1013,9 @@ export class DesignController implements IController {
      */
     public detach(): void {
         if (this.model) {
+            if (this.model.controller === this) {
+                this.model.controller = undefined;
+            }
             this.model.controllerDetached.trigger(this.model, this);
             this.model.controllerDetached.clear();
             this.model.controllerAttached.clear();

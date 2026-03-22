@@ -38,3 +38,30 @@ test('stroke info no stroke returns none', () => {
     const info = StrokeInfo.getStrokeInfo(el);
     expect(info.strokeType).toBe('none');
 });
+
+test('stroke info parse rgb color without width', () => {
+    const el = RectangleElement.create(0, 0, 100, 100);
+    el.setStroke('rgb(95,145,210)');
+    const info = StrokeInfo.getStrokeInfo(el);
+    expect(info.strokeType).toBe('color');
+    expect(info.strokeWidth).toBe(1);
+    expect(info.strokeColor).toBe('#5f91d2');
+});
+
+test('stroke info parse rgba color without width', () => {
+    const el = RectangleElement.create(0, 0, 100, 100);
+    el.setStroke('rgba(95,145,210,0.5)');
+    const info = StrokeInfo.getStrokeInfo(el);
+    expect(info.strokeType).toBe('color');
+    expect(info.strokeWidth).toBe(1);
+    expect(info.strokeOpacity).toBe(128);
+});
+
+test('stroke info parse rgba color with width suffix', () => {
+    const el = RectangleElement.create(0, 0, 100, 100);
+    el.setStroke('rgba(95,145,210,0.5),4');
+    const info = StrokeInfo.getStrokeInfo(el);
+    expect(info.strokeType).toBe('color');
+    expect(info.strokeWidth).toBe(4);
+    expect(info.strokeOpacity).toBe(128);
+});

@@ -14,6 +14,7 @@ import { Point } from './point';
 import { ScalingInfo } from './scaling-info';
 import type { SerializedData } from './serialization';
 import { Size } from './size';
+import { StrokeInfo } from './stroke-info';
 import { Utility } from './utility';
 
 /**
@@ -454,24 +455,15 @@ export class Model extends ElementBase {
      * @returns True if stroke was applied for element
      */
     public setElementStroke(c: CanvasRenderingContext2D, el: ElementBase): boolean {
-        let color: Color;
         const stroke = this.strokeForElement(el);
         if (!stroke || stroke === 'no') {
             c.strokeStyle = Color.Transparent.toStyleString();
             return false;
         }
-        if (stroke.indexOf(',') !== -1) {
-            const parts = stroke.split(',');
-            color = Color.parse(parts[0]);
-            const width = parseFloat(parts[1]);
-            c.lineWidth = width;
-        }
-        else {
-            color = Color.parse(stroke);
-            c.lineWidth = 1;
-        }
+        const parsedStroke = StrokeInfo.parseStroke(stroke);
+        const color = parsedStroke.color;
+        c.lineWidth = parsedStroke.width;
         c.strokeStyle = color.toStyleString();
-        c.globalAlpha = 1;
         return true;
     }
 

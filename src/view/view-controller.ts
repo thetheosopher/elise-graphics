@@ -343,9 +343,13 @@ export class ViewController implements IController {
         }
         if (this.model) {
             this.model.controllerDetached.trigger(this.model, this);
+            if (this.model.controller === this) {
+                this.model.controller = undefined;
+            }
         }
         log('Setting view controller model');
         this.model = model;
+        this.model.controller = this;
         this.currentX = undefined;
         this.currentY = undefined;
         this.isMouseDown = false;
@@ -477,6 +481,9 @@ export class ViewController implements IController {
         window.removeEventListener('mousemove', this.windowMouseMove, true);
         this.stopTimer();
         if (this.model) {
+            if (this.model.controller === this) {
+                this.model.controller = undefined;
+            }
             this.model.controllerDetached.trigger(this.model, this);
             this.model.controllerDetached.clear();
             this.model.controllerAttached.clear();

@@ -59,19 +59,12 @@ export class ModelElement extends ElementBase {
     public source?: string;
 
     /**
-     * Rendering opacity (0-1)
-     */
-    public opacity: number;
-
-    /**
      * Directly embedded source model
      */
     public sourceModel?: EmbeddedModel;
 
     constructor() {
         super('model');
-        this.setOpacity = this.setOpacity.bind(this);
-        this.opacity = 1;
     }
 
     /**
@@ -82,9 +75,6 @@ export class ModelElement extends ElementBase {
         super.parse(o);
         if (o.source) {
             this.source = o.source as string;
-        }
-        if (o.opacity !== undefined) {
-            this.opacity = o.opacity as number;
         }
         if (!this._location) {
             this._location = new Point(0, 0);
@@ -100,9 +90,6 @@ export class ModelElement extends ElementBase {
         if (this.source) {
             o.source = this.source;
         }
-        if (this.opacity !== undefined && this.opacity !== 1) {
-            o.opacity = this.opacity;
-        }
         return o;
     }
 
@@ -116,19 +103,7 @@ export class ModelElement extends ElementBase {
         if (this.source) {
             e.source = this.source;
         }
-        if (this.opacity !== undefined) {
-            e.opacity = this.opacity;
-        }
         return e;
-    }
-
-    /**
-     * Sets rendering opacity in the range of 0-1
-     * @param opacity - Rendering opacity
-     */
-    public setOpacity(opacity: number) {
-        this.opacity = opacity;
-        return this;
     }
 
     /**
@@ -207,38 +182,19 @@ export class ModelElement extends ElementBase {
         c.clip();
         */
 
-        // If not full opacity, then render to intermediate canvas
-        if (this.opacity !== undefined && this.opacity > 0 && this.opacity < 1.0) {
-            const offscreen = document.createElement('canvas') as HTMLCanvasElement;
-            offscreen.width = w;
-            offscreen.height = h;
-            const c2 = offscreen.getContext('2d');
-            if (c2) {
-                c2.scale(rx, ry);
-                innerModel.renderToContext(c2);
-            }
-            c.save();
-            c.globalAlpha = this.opacity;
-            if (this.transform) {
-                model.setRenderTransform(c, this.transform, new Point(x, y));
-            }
-            c.drawImage(offscreen, x, y);
-            c.restore();
+        c.save();
+        if (this.transform) {
+            model.setRenderTransform(c, this.transform, new Point(x, y));
         }
-        else {
-            c.save();
-            if (this.transform) {
-                model.setRenderTransform(c, this.transform, new Point(x, y));
-            }
-            c.save();
-            c.translate(x, y);
-            if (rx !== 1 || ry !== 1) {
-                c.scale(rx, ry);
-            }
-            innerModel.renderToContext(c);
-            c.restore();
-            c.restore();
+        this.applyRenderOpacity(c);
+        c.save();
+        c.translate(x, y);
+        if (rx !== 1 || ry !== 1) {
+            c.scale(rx, ry);
         }
+        innerModel.renderToContext(c);
+        c.restore();
+        c.restore();
 
         // Restore from clip
         // c.restore();

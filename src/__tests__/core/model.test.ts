@@ -105,3 +105,27 @@ test('model prepareResources parses model() fill references', () => {
     registerSpy.mockRestore();
     loadSpy.mockRestore();
 });
+
+test('setElementStroke supports rgba stroke strings without width suffix', () => {
+    const model = Model.create(10, 10);
+    const element = RectangleElement.create(0, 0, 5, 5).setStroke('rgba(95,145,210,0.5)');
+    const context = {} as CanvasRenderingContext2D;
+
+    const applied = model.setElementStroke(context, element);
+
+    expect(applied).toBe(true);
+    expect(context.lineWidth).toBe(1);
+    expect(context.strokeStyle).toBe('rgba(95,145,210,' + 128 / 255 + ')');
+});
+
+test('setElementStroke supports rgba stroke strings with width suffix', () => {
+    const model = Model.create(10, 10);
+    const element = RectangleElement.create(0, 0, 5, 5).setStroke('rgba(95,145,210,0.5),4');
+    const context = {} as CanvasRenderingContext2D;
+
+    const applied = model.setElementStroke(context, element);
+
+    expect(applied).toBe(true);
+    expect(context.lineWidth).toBe(4);
+    expect(context.strokeStyle).toBe('rgba(95,145,210,' + 128 / 255 + ')');
+});

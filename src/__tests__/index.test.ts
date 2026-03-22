@@ -56,4 +56,14 @@ describe('index api surface', () => {
 
         expect(logSpy).toHaveBeenCalledWith('hello');
     });
+
+    test('animation exports are available from named and default api surfaces', () => {
+        const indexModule = loadIndexModule();
+
+        expect(typeof indexModule.AnimationEasing.easeInOutCubic).toBe('function');
+        expect(typeof indexModule.ElementAnimator.animate).toBe('function');
+        expect(indexModule.default.AnimationEasing).toBe(indexModule.AnimationEasing);
+        expect(indexModule.default.ElementAnimator).toBe(indexModule.ElementAnimator);
+        expect(indexModule.default.ElementTween).toBe(indexModule.ElementTween);
+    });
 });

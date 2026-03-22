@@ -7,6 +7,7 @@ import { Region } from '../core/region';
 import type { SerializedData } from '../core/serialization';
 import type { ScalingInfo } from '../core/scaling-info';
 import { Size } from '../core/size';
+import { ElementAnimator, ElementTween, type TweenOptions, type TweenPropertyName, type TweenTargetValues } from '../animation/element-tween';
 import { LinearGradientFill } from '../fill/linear-gradient-fill';
 import { RadialGradientFill } from '../fill/radial-gradient-fill';
 
@@ -78,6 +79,11 @@ export class ElementBase implements IPointContainer {
      * Stroke property
      */
     public stroke?: string;
+
+    /**
+     * Element opacity (0 transparent to 1 opaque)
+     */
+    public opacity: number = 1;
 
     /**
      * Transform property
@@ -190,10 +196,14 @@ export class ElementBase implements IPointContainer {
         this.setFillScale = this.setFillScale.bind(this);
         this.setInteractive = this.setInteractive.bind(this);
         this.setLocation = this.setLocation.bind(this);
+        this.setOpacity = this.setOpacity.bind(this);
         this.setPointAt = this.setPointAt.bind(this);
         this.setSize = this.setSize.bind(this);
         this.setStroke = this.setStroke.bind(this);
         this.setTransform = this.setTransform.bind(this);
+        this.applyRenderOpacity = this.applyRenderOpacity.bind(this);
+        this.animate = this.animate.bind(this);
+        this.cancelAnimations = this.cancelAnimations.bind(this);
         this.toString = this.toString.bind(this);
         this.translate = this.translate.bind(this);
     }
@@ -345,6 +355,9 @@ export class ElementBase implements IPointContainer {
         if (o.stroke) {
             this.stroke = o.stroke as string;
         }
+        if (o.opacity !== undefined) {
+            this.opacity = o.opacity as number;
+        }
         if (o.transform) {
             this.transform = o.transform as string;
         }
@@ -416,6 +429,9 @@ export class ElementBase implements IPointContainer {
         if (this.stroke) {
             o.stroke = this.stroke;
         }
+        if (this.opacity !== 1) {
+            o.opacity = this.opacity;
+        }
         if (this.transform) {
             o.transform = this.transform;
         }
@@ -485,6 +501,7 @@ export class ElementBase implements IPointContainer {
         if (this.stroke) {
             e.stroke = this.stroke;
         }
+        e.opacity = this.opacity;
         if (this.transform) {
             e.transform = this.transform;
         }
@@ -894,12 +911,63 @@ export class ElementBase implements IPointContainer {
     }
 
     /**
+     * Sets element opacity in the range of 0-1.
+     * @param opacity - Rendering opacity
+     * @returns This element
+     */
+    public setOpacity(opacity: number) {
+        if (opacity < 0) {
+            this.opacity = 0;
+        }
+        else if (opacity > 1) {
+            this.opacity = 1;
+        }
+        else {
+            this.opacity = opacity;
+        }
+        return this;
+    }
+
+    /**
      * Sets affine transform used for rendering element
      * @param transform - Transform definition
      * @returns This element
      */
     public setTransform(transform: string) {
         this.transform = transform;
+        return this;
+    }
+
+    /**
+     * Applies this element's opacity to the current canvas state.
+     * @param c - Rendering context
+     */
+    public applyRenderOpacity(c: CanvasRenderingContext2D): void {
+        if (this.opacity >= 0 && this.opacity < 1) {
+            c.globalAlpha *= this.opacity;
+        }
+        else if (this.opacity <= 0) {
+            c.globalAlpha = 0;
+        }
+    }
+
+    /**
+     * Creates and starts a property tween for this element.
+     * @param properties - Target property values
+     * @param options - Tween options
+     * @returns Running tween instance
+     */
+    public animate(properties: TweenTargetValues, options?: TweenOptions): ElementTween {
+        return ElementAnimator.animate(this, properties, options);
+    }
+
+    /**
+     * Cancels active tweens on this element.
+     * @param propertyNames - Optional property subset to cancel
+     * @returns This element
+     */
+    public cancelAnimations(propertyNames?: TweenPropertyName[]) {
+        ElementAnimator.cancel(this, propertyNames);
         return this;
     }
 

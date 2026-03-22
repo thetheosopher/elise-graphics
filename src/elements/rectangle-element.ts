@@ -81,6 +81,7 @@ export class RectangleElement extends ElementBase {
         if (this.transform) {
             model.setRenderTransform(c, this.transform, bounds.location);
         }
+        this.applyRenderOpacity(c);
         if (FillFactory.setElementFill(c, this)) {
             if (this.fillOffsetX || this.fillOffsetY) {
                 const fillOffsetX = this.fillOffsetX || 0;

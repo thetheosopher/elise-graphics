@@ -187,6 +187,7 @@ export class PolylineElement extends ElementBase implements IPointContainer {
         if (this.transform) {
             model.setRenderTransform(c, this.transform, bounds.location);
         }
+        this.applyRenderOpacity(c);
         c.beginPath();
         if (this.smoothPoints) {
             c.moveTo(this._points[0].x, this._points[0].y);

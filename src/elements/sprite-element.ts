@@ -209,6 +209,7 @@ export class SpriteElement extends ElementBase {
             if (this.transform) {
                 model.setRenderTransform(c, this.transform, bounds.location);
             }
+            this.applyRenderOpacity(c);
             c.beginPath();
             c.rect(bounds.location.x, bounds.location.y, bounds.size.width, bounds.size.height);
             c.clip();
@@ -235,9 +236,10 @@ export class SpriteElement extends ElementBase {
             if (this.transform) {
                 model.setRenderTransform(c, this.transform, bounds.location);
             }
+            this.applyRenderOpacity(c);
             if (frame.opacity && frame.opacity > 0 && frame.opacity < 1.0) {
                 const o = c.globalAlpha;
-                c.globalAlpha = frame.opacity;
+                c.globalAlpha *= frame.opacity;
                 c.drawImage(
                     res.image,
                     frame.x,

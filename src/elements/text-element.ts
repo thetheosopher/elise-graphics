@@ -210,6 +210,7 @@ export class TextElement extends ElementBase {
         if (this.transform) {
             model.setRenderTransform(c, this.transform, new Point(bounds.location.x, bounds.location.y));
         }
+        this.applyRenderOpacity(c);
         c.beginPath();
         c.rect(bounds.location.x, bounds.location.y, bounds.size.width + 10, bounds.size.height);
         c.clip();
