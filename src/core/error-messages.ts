@@ -6,6 +6,7 @@ export class ErrorMessages {
     public static CanvasIsUndefined = 'Canvas is undefined.';
     public static ComponentTypeNotRegistered = 'Component type is not registered.';
     public static ControllerIsUndefined = 'Controller is undefined.';
+    public static DocumentIsUndefined = 'Document is undefined.';
     public static ElementAlreadyExists = 'Element already exists in collection.';
     public static ElementUndefined = 'Element is undefined';
     public static ElementIdUndefined = 'Element ID is undefined.';

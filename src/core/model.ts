@@ -17,6 +17,8 @@ import { Size } from './size';
 import { StrokeInfo } from './stroke-info';
 import { Utility } from './utility';
 
+type BlobExportCallback = (blob: Blob | null) => void;
+
 /**
  * Container for rendered drawing elements and their referenced resource collection
  */
@@ -188,6 +190,17 @@ export class Model extends ElementBase {
         this.remove = this.remove.bind(this);
         this.createCanvas = this.createCanvas.bind(this);
         this.assignCanvas = this.assignCanvas.bind(this);
+        this.toCanvas = this.toCanvas.bind(this);
+        this.toDataURL = this.toDataURL.bind(this);
+        this.toBlob = this.toBlob.bind(this);
+        this.toBlobAsync = this.toBlobAsync.bind(this);
+        this.toPNGDataURL = this.toPNGDataURL.bind(this);
+        this.toJPEGDataURL = this.toJPEGDataURL.bind(this);
+        this.toWebPDataURL = this.toWebPDataURL.bind(this);
+        this.toPNGBlobAsync = this.toPNGBlobAsync.bind(this);
+        this.toJPEGBlobAsync = this.toJPEGBlobAsync.bind(this);
+        this.toWebPBlobAsync = this.toWebPBlobAsync.bind(this);
+        this.downloadAs = this.downloadAs.bind(this);
         this.prepareResources = this.prepareResources.bind(this);
         this.setElementStroke = this.setElementStroke.bind(this);
         this.setRenderTransform = this.setRenderTransform.bind(this);
@@ -319,6 +332,180 @@ export class Model extends ElementBase {
             this.canvas.width = this._size.width * s;
             this.canvas.height = this._size.height * s;
         }
+    }
+
+    /**
+     * Renders model content to a detached canvas suitable for export.
+     * @param scale - Rendering scale factor. Default is 1.
+     * @returns Rendered canvas element
+     */
+    public toCanvas(scale?: number): HTMLCanvasElement {
+        if (!this._size) {
+            throw new Error(ErrorMessages.SizeUndefined);
+        }
+        if (typeof document === 'undefined' || !document.createElement) {
+            throw new Error(ErrorMessages.DocumentIsUndefined);
+        }
+
+        let s = 1;
+        if (scale !== undefined && scale > 0) {
+            s = scale;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = this._size.width * s;
+        canvas.height = this._size.height * s;
+
+        const context = canvas.getContext('2d');
+        if (!context) {
+            throw new Error(ErrorMessages.CanvasContextIsNull);
+        }
+
+        if (s !== 1) {
+            context.scale(s, s);
+        }
+
+        this.renderToContext(context);
+        return canvas;
+    }
+
+    /**
+     * Exports model rendering as a data URL.
+     * @param type - Export MIME type. Default is image/png.
+     * @param quality - Optional quality for formats that support it.
+     * @param scale - Optional render scale. Default is 1.
+     * @returns Encoded image data URL
+     */
+    public toDataURL(type?: string, quality?: number, scale?: number): string {
+        const canvas = this.toCanvas(scale);
+        return canvas.toDataURL(type || 'image/png', quality);
+    }
+
+    /**
+     * Exports model rendering as a Blob.
+     * @param callback - Callback receiving created Blob or null
+     * @param type - Export MIME type. Default is image/png.
+     * @param quality - Optional quality for formats that support it.
+     * @param scale - Optional render scale. Default is 1.
+     */
+    public toBlob(callback: BlobExportCallback, type?: string, quality?: number, scale?: number): void {
+        const canvas = this.toCanvas(scale);
+        if (canvas.toBlob) {
+            canvas.toBlob(callback, type || 'image/png', quality);
+            return;
+        }
+
+        callback(null);
+    }
+
+    /**
+     * Exports model rendering as a Blob Promise.
+     * @param type - Export MIME type. Default is image/png.
+     * @param quality - Optional quality for formats that support it.
+     * @param scale - Optional render scale. Default is 1.
+     * @returns Promise resolving to Blob or null when unsupported
+     */
+    public toBlobAsync(type?: string, quality?: number, scale?: number): Promise<Blob | null> {
+        return new Promise(resolve => {
+            this.toBlob(resolve, type, quality, scale);
+        });
+    }
+
+    /**
+     * Exports model rendering as a PNG data URL.
+     * @param scale - Optional render scale. Default is 1.
+     * @returns Encoded PNG data URL
+     */
+    public toPNGDataURL(scale?: number): string {
+        return this.toDataURL('image/png', undefined, scale);
+    }
+
+    /**
+     * Exports model rendering as a JPEG data URL.
+     * @param quality - Optional JPEG quality from 0.0 to 1.0.
+     * @param scale - Optional render scale. Default is 1.
+     * @returns Encoded JPEG data URL
+     */
+    public toJPEGDataURL(quality?: number, scale?: number): string {
+        return this.toDataURL('image/jpeg', quality, scale);
+    }
+
+    /**
+     * Exports model rendering as a WebP data URL.
+     * @param quality - Optional WebP quality from 0.0 to 1.0.
+     * @param scale - Optional render scale. Default is 1.
+     * @returns Encoded WebP data URL
+     */
+    public toWebPDataURL(quality?: number, scale?: number): string {
+        return this.toDataURL('image/webp', quality, scale);
+    }
+
+    /**
+     * Exports model rendering as a PNG Blob Promise.
+     * @param scale - Optional render scale. Default is 1.
+     * @returns Promise resolving to PNG Blob or null when unsupported
+     */
+    public toPNGBlobAsync(scale?: number): Promise<Blob | null> {
+        return this.toBlobAsync('image/png', undefined, scale);
+    }
+
+    /**
+     * Exports model rendering as a JPEG Blob Promise.
+     * @param quality - Optional JPEG quality from 0.0 to 1.0.
+     * @param scale - Optional render scale. Default is 1.
+     * @returns Promise resolving to JPEG Blob or null when unsupported
+     */
+    public toJPEGBlobAsync(quality?: number, scale?: number): Promise<Blob | null> {
+        return this.toBlobAsync('image/jpeg', quality, scale);
+    }
+
+    /**
+     * Exports model rendering as a WebP Blob Promise.
+     * @param quality - Optional WebP quality from 0.0 to 1.0.
+     * @param scale - Optional render scale. Default is 1.
+     * @returns Promise resolving to WebP Blob or null when unsupported
+     */
+    public toWebPBlobAsync(quality?: number, scale?: number): Promise<Blob | null> {
+        return this.toBlobAsync('image/webp', quality, scale);
+    }
+
+    /**
+     * Starts a browser download for the current model rendering.
+     * @param fileName - Download filename
+     * @param type - Export MIME type. Default is image/png.
+     * @param quality - Optional quality for formats that support it.
+     * @param scale - Optional render scale. Default is 1.
+     */
+    public downloadAs(fileName: string, type?: string, quality?: number, scale?: number): void {
+        if (typeof document === 'undefined' || !document.createElement) {
+            throw new Error(ErrorMessages.DocumentIsUndefined);
+        }
+
+        const canvas = this.toCanvas(scale);
+        const link = document.createElement('a');
+        link.download = fileName;
+
+        const fallbackHref = canvas.toDataURL(type || 'image/png', quality);
+        const urlApi = typeof URL === 'undefined' ? undefined : URL;
+
+        if (canvas.toBlob && urlApi && typeof urlApi.createObjectURL === 'function' && typeof urlApi.revokeObjectURL === 'function') {
+            canvas.toBlob(blob => {
+                if (!blob) {
+                    link.href = fallbackHref;
+                    link.click();
+                    return;
+                }
+
+                const objectUrl = urlApi.createObjectURL(blob);
+                link.href = objectUrl;
+                link.click();
+                urlApi.revokeObjectURL(objectUrl);
+            }, type || 'image/png', quality);
+            return;
+        }
+
+        link.href = fallbackHref;
+        link.click();
     }
 
     /**

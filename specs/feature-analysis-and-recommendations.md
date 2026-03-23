@@ -443,16 +443,24 @@ Elise now supports `touchstart`, `touchmove`, `touchend`, and `touchcancel` in b
 **Notes:** This closes the core mobile/tablet usability gap. Future work can refine gesture ergonomics further, but the base touch feature set is now present.
 
 #### R3. Add PNG/Canvas Export
-**Why:** Quick win — `canvas.toDataURL()` and `canvas.toBlob()` are trivial to implement and immediately useful.
+**Status:** Completed
+
+Elise now supports model-level raster export through `Model.toCanvas(...)`, `Model.toDataURL(...)`, `Model.toBlob(...)`, `Model.toBlobAsync(...)`, and `Model.downloadAs(...)`, along with MIME-specific convenience helpers for PNG, JPEG, and WebP.
 
 ```typescript
-// Proposed API
-model.toDataURL('image/png');           // returns base64 string
-model.toBlob('image/png', callback);    // returns Blob
-model.downloadAs('output.png');         // triggers browser download
+const canvas = model.toCanvas(2);                 // detached export canvas at 2x scale
+const pngUrl = model.toDataURL('image/png');      // returns base64 string
+model.toBlob(blob => save(blob), 'image/png');    // returns Blob via callback
+const jpegBlob = await model.toJPEGBlobAsync(0.9, 2);
+const webpUrl = model.toWebPDataURL(0.85, 2);
+model.downloadAs('output.png');                   // triggers browser download
 ```
 
-**Scope:** ~50 lines in `Model` or new `export/` module.
+**Delivered scope:** Model-scoped export methods render into a detached offscreen canvas so export works without an attached controller or live design/view canvas. Export supports optional render scaling, callback-based and Promise-based Blob generation, direct browser download initiation, and MIME-specific helpers for the most common raster formats.
+
+**Format notes:** PNG is the default lossless export path. JPEG and WebP helper APIs accept an optional quality value from `0.0` to `1.0`; browser support for WebP encoding still depends on the runtime canvas implementation.
+
+**Surface export:** `Surface` now mirrors the export API for composed surface capture, rasterizing the base model plus supported layered media (`SurfaceImageLayer`, `SurfaceVideoLayer`, `SurfaceAnimationLayer`). DOM-only layers such as hidden overlays and HTML iframes are intentionally skipped during export.
 
 #### R4. Expand Path Commands (SVG Compatibility)
 **Why:** Prerequisite for SVG import/export. Enables standard SVG path strings.

@@ -13,10 +13,43 @@ import { ResourceState } from '../resource/resource-state';
 import { SurfaceButtonElement } from './surface-button-element';
 import { SurfaceElement } from './surface-element';
 import { SurfaceElementStates } from './surface-element-states';
+import { SurfaceAnimationLayer } from './surface-animation-layer';
+import { SurfaceHiddenLayer } from './surface-hidden-layer';
+import { SurfaceHtmlLayer } from './surface-html-layer';
+import { SurfaceImageLayer } from './surface-image-layer';
 import { SurfaceLayer } from './surface-layer';
 import { SurfaceTextElement } from './surface-text-element';
 import { SurfaceVideoLayer } from './surface-video-layer';
 import { SurfaceViewController } from './surface-view-controller';
+
+type BlobExportCallback = (blob: Blob | null) => void;
+
+function drawSurfaceLayerToContext(c: CanvasRenderingContext2D, surface: Surface, layer: SurfaceLayer, scale: number): void {
+    if (layer instanceof SurfaceHtmlLayer || layer instanceof SurfaceHiddenLayer) {
+        return;
+    }
+
+    const source = layer.element as CanvasImageSource | undefined;
+    if (!source) {
+        return;
+    }
+
+    c.save();
+    c.globalAlpha = surface.opacity * layer.opacity;
+    try {
+        c.drawImage(
+            source,
+            (layer.left + layer.translateX) * scale,
+            (layer.top + layer.translateY) * scale,
+            layer.width * scale,
+            layer.height * scale
+        );
+    }
+    catch (_error) {
+        surface.onErrorInternal(ErrorMessages.CanvasDrawImageError);
+    }
+    c.restore();
+}
 
 /**
  * Renders elements derived from surface images and layered media elements
@@ -189,6 +222,17 @@ export class Surface {
         this.setTranslateX = this.setTranslateX.bind(this);
         this.setTranslateY = this.setTranslateY.bind(this);
         this.startVideos = this.startVideos.bind(this);
+        this.toCanvas = this.toCanvas.bind(this);
+        this.toDataURL = this.toDataURL.bind(this);
+        this.toBlob = this.toBlob.bind(this);
+        this.toBlobAsync = this.toBlobAsync.bind(this);
+        this.toPNGDataURL = this.toPNGDataURL.bind(this);
+        this.toJPEGDataURL = this.toJPEGDataURL.bind(this);
+        this.toWebPDataURL = this.toWebPDataURL.bind(this);
+        this.toPNGBlobAsync = this.toPNGBlobAsync.bind(this);
+        this.toJPEGBlobAsync = this.toJPEGBlobAsync.bind(this);
+        this.toWebPBlobAsync = this.toWebPBlobAsync.bind(this);
+        this.downloadAs = this.downloadAs.bind(this);
     }
 
     public createDiv(onBottom?: boolean) {
@@ -572,5 +616,194 @@ export class Surface {
         if (this.model) {
             this.model.resourceManager.listenerEvent.add(listener);
         }
+    }
+
+    /**
+     * Renders the composed surface to a detached canvas.
+     * @param scale - Optional export scale. Defaults to current surface scale.
+     * @returns Rendered canvas element
+     */
+    public toCanvas(scale?: number): HTMLCanvasElement {
+        if (!this.model) {
+            throw new Error(ErrorMessages.ModelUndefined);
+        }
+        if (typeof document === 'undefined' || !document.createElement) {
+            throw new Error(ErrorMessages.DocumentIsUndefined);
+        }
+
+        let exportScale = this.scale;
+        if (scale !== undefined && scale > 0) {
+            exportScale = scale;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = this.width * exportScale;
+        canvas.height = this.height * exportScale;
+
+        const context = canvas.getContext('2d');
+        if (!context) {
+            throw new Error(ErrorMessages.CanvasContextIsNull);
+        }
+
+        context.clearRect(0, 0, canvas.width, canvas.height);
+
+        const baseCanvas = this.model.toCanvas(exportScale);
+        context.save();
+        context.globalAlpha = this.opacity;
+        context.drawImage(baseCanvas, 0, 0, canvas.width, canvas.height);
+        context.restore();
+
+        for (const layer of this.layers) {
+            if (
+                layer instanceof SurfaceAnimationLayer ||
+                layer instanceof SurfaceImageLayer ||
+                layer instanceof SurfaceVideoLayer ||
+                layer instanceof SurfaceHtmlLayer ||
+                layer instanceof SurfaceHiddenLayer
+            ) {
+                drawSurfaceLayerToContext(context, this, layer, exportScale);
+            }
+        }
+
+        return canvas;
+    }
+
+    /**
+     * Exports the composed surface as a data URL.
+     * @param type - Export MIME type. Default is image/png.
+     * @param quality - Optional quality for formats that support it.
+     * @param scale - Optional export scale. Defaults to current surface scale.
+     * @returns Encoded image data URL
+     */
+    public toDataURL(type?: string, quality?: number, scale?: number): string {
+        const canvas = this.toCanvas(scale);
+        return canvas.toDataURL(type || 'image/png', quality);
+    }
+
+    /**
+     * Exports the composed surface as a Blob.
+     * @param callback - Callback receiving created Blob or null
+     * @param type - Export MIME type. Default is image/png.
+     * @param quality - Optional quality for formats that support it.
+     * @param scale - Optional export scale. Defaults to current surface scale.
+     */
+    public toBlob(callback: BlobExportCallback, type?: string, quality?: number, scale?: number): void {
+        const canvas = this.toCanvas(scale);
+        if (canvas.toBlob) {
+            canvas.toBlob(callback, type || 'image/png', quality);
+            return;
+        }
+
+        callback(null);
+    }
+
+    /**
+     * Exports the composed surface as a Blob Promise.
+     * @param type - Export MIME type. Default is image/png.
+     * @param quality - Optional quality for formats that support it.
+     * @param scale - Optional export scale. Defaults to current surface scale.
+     * @returns Promise resolving to Blob or null when unsupported
+     */
+    public toBlobAsync(type?: string, quality?: number, scale?: number): Promise<Blob | null> {
+        return new Promise(resolve => {
+            this.toBlob(resolve, type, quality, scale);
+        });
+    }
+
+    /**
+     * Exports the composed surface as a PNG data URL.
+     * @param scale - Optional export scale. Defaults to current surface scale.
+     * @returns Encoded PNG data URL
+     */
+    public toPNGDataURL(scale?: number): string {
+        return this.toDataURL('image/png', undefined, scale);
+    }
+
+    /**
+     * Exports the composed surface as a JPEG data URL.
+     * @param quality - Optional JPEG quality from 0.0 to 1.0.
+     * @param scale - Optional export scale. Defaults to current surface scale.
+     * @returns Encoded JPEG data URL
+     */
+    public toJPEGDataURL(quality?: number, scale?: number): string {
+        return this.toDataURL('image/jpeg', quality, scale);
+    }
+
+    /**
+     * Exports the composed surface as a WebP data URL.
+     * @param quality - Optional WebP quality from 0.0 to 1.0.
+     * @param scale - Optional export scale. Defaults to current surface scale.
+     * @returns Encoded WebP data URL
+     */
+    public toWebPDataURL(quality?: number, scale?: number): string {
+        return this.toDataURL('image/webp', quality, scale);
+    }
+
+    /**
+     * Exports the composed surface as a PNG Blob Promise.
+     * @param scale - Optional export scale. Defaults to current surface scale.
+     * @returns Promise resolving to PNG Blob or null when unsupported
+     */
+    public toPNGBlobAsync(scale?: number): Promise<Blob | null> {
+        return this.toBlobAsync('image/png', undefined, scale);
+    }
+
+    /**
+     * Exports the composed surface as a JPEG Blob Promise.
+     * @param quality - Optional JPEG quality from 0.0 to 1.0.
+     * @param scale - Optional export scale. Defaults to current surface scale.
+     * @returns Promise resolving to JPEG Blob or null when unsupported
+     */
+    public toJPEGBlobAsync(quality?: number, scale?: number): Promise<Blob | null> {
+        return this.toBlobAsync('image/jpeg', quality, scale);
+    }
+
+    /**
+     * Exports the composed surface as a WebP Blob Promise.
+     * @param quality - Optional WebP quality from 0.0 to 1.0.
+     * @param scale - Optional export scale. Defaults to current surface scale.
+     * @returns Promise resolving to WebP Blob or null when unsupported
+     */
+    public toWebPBlobAsync(quality?: number, scale?: number): Promise<Blob | null> {
+        return this.toBlobAsync('image/webp', quality, scale);
+    }
+
+    /**
+     * Starts a browser download for the current composed surface rendering.
+     * @param fileName - Download filename
+     * @param type - Export MIME type. Default is image/png.
+     * @param quality - Optional quality for formats that support it.
+     * @param scale - Optional export scale. Defaults to current surface scale.
+     */
+    public downloadAs(fileName: string, type?: string, quality?: number, scale?: number): void {
+        if (typeof document === 'undefined' || !document.createElement) {
+            throw new Error(ErrorMessages.DocumentIsUndefined);
+        }
+
+        const canvas = this.toCanvas(scale);
+        const link = document.createElement('a');
+        link.download = fileName;
+
+        const fallbackHref = canvas.toDataURL(type || 'image/png', quality);
+        const urlApi = typeof URL === 'undefined' ? undefined : URL;
+
+        if (canvas.toBlob && urlApi && typeof urlApi.createObjectURL === 'function' && typeof urlApi.revokeObjectURL === 'function') {
+            canvas.toBlob(blob => {
+                if (!blob) {
+                    link.href = fallbackHref;
+                    link.click();
+                    return;
+                }
+
+                const objectUrl = urlApi.createObjectURL(blob);
+                link.href = objectUrl;
+                link.click();
+                urlApi.revokeObjectURL(objectUrl);
+            }, type || 'image/png', quality);
+            return;
+        }
+
+        link.href = fallbackHref;
+        link.click();
     }
 }

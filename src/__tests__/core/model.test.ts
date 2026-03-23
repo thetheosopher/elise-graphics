@@ -3,6 +3,26 @@ import { Model } from '../../core/model';
 import { Utility } from '../../core/utility';
 import { RectangleElement } from '../../elements/rectangle-element';
 
+function installFakeDocument(elements: { [index: string]: any }) {
+    const globals = globalThis as unknown as { document?: Document };
+    const originalDocument = globals.document;
+    globals.document = {
+        createElement: jest.fn((tagName: string) => {
+            const element = elements[tagName];
+            if (!element) {
+                throw new Error('Unexpected element request: ' + tagName);
+            }
+            return element;
+        })
+    } as unknown as Document;
+
+    return {
+        restore: () => {
+            globals.document = originalDocument;
+        }
+    };
+}
+
 test('model size', () => {
     const model = Model.create(10, 20);
     expect(model.size).toBe('10x20');
@@ -128,4 +148,216 @@ test('setElementStroke supports rgba stroke strings with width suffix', () => {
     expect(applied).toBe(true);
     expect(context.lineWidth).toBe(4);
     expect(context.strokeStyle).toBe('rgba(95,145,210,' + 128 / 255 + ')');
+});
+
+test('model toCanvas renders to a detached scaled canvas', () => {
+    const model = Model.create(40, 30);
+    const scaleSpy = jest.fn();
+    const fakeContext = {
+        scale: scaleSpy,
+        save: jest.fn(),
+        beginPath: jest.fn(),
+        rect: jest.fn(),
+        clip: jest.fn(),
+        fillRect: jest.fn(),
+        strokeRect: jest.fn(),
+        restore: jest.fn(),
+        translate: jest.fn(),
+        rotate: jest.fn(),
+        transform: jest.fn(),
+        globalAlpha: 1,
+    } as unknown as CanvasRenderingContext2D;
+    const fakeCanvas = {
+        width: 0,
+        height: 0,
+        getContext: jest.fn(() => fakeContext),
+        toDataURL: jest.fn(),
+        toBlob: jest.fn(),
+    } as unknown as HTMLCanvasElement;
+    const documentScope = installFakeDocument({ canvas: fakeCanvas });
+    const renderSpy = jest.spyOn(model, 'renderToContext').mockImplementation(() => undefined);
+
+    const canvas = model.toCanvas(2);
+
+    expect(canvas).toBe(fakeCanvas);
+    expect(fakeCanvas.width).toBe(80);
+    expect(fakeCanvas.height).toBe(60);
+    expect(scaleSpy).toHaveBeenCalledWith(2, 2);
+    expect(renderSpy).toHaveBeenCalledWith(fakeContext);
+
+    renderSpy.mockRestore();
+    documentScope.restore();
+});
+
+test('model toDataURL proxies through rendered canvas export', () => {
+    const model = Model.create(20, 10);
+    const fakeCanvas = {
+        width: 0,
+        height: 0,
+        getContext: jest.fn(() => ({
+            save: jest.fn(),
+            beginPath: jest.fn(),
+            rect: jest.fn(),
+            clip: jest.fn(),
+            fillRect: jest.fn(),
+            strokeRect: jest.fn(),
+            restore: jest.fn(),
+            scale: jest.fn(),
+            translate: jest.fn(),
+            rotate: jest.fn(),
+            transform: jest.fn(),
+            globalAlpha: 1,
+        })),
+        toDataURL: jest.fn(() => 'data:image/png;base64,abc'),
+        toBlob: jest.fn(),
+    } as unknown as HTMLCanvasElement;
+    const documentScope = installFakeDocument({ canvas: fakeCanvas });
+    const renderSpy = jest.spyOn(model, 'renderToContext').mockImplementation(() => undefined);
+
+    const result = model.toDataURL('image/png', undefined, 3);
+
+    expect(result).toBe('data:image/png;base64,abc');
+    expect(fakeCanvas.toDataURL).toHaveBeenCalledWith('image/png', undefined);
+
+    renderSpy.mockRestore();
+    documentScope.restore();
+});
+
+test('model toBlob proxies through rendered canvas export', () => {
+    const model = Model.create(20, 10);
+    const blob = { size: 12 } as Blob;
+    const callback = jest.fn();
+    const fakeCanvas = {
+        width: 0,
+        height: 0,
+        getContext: jest.fn(() => ({
+            save: jest.fn(),
+            beginPath: jest.fn(),
+            rect: jest.fn(),
+            clip: jest.fn(),
+            fillRect: jest.fn(),
+            strokeRect: jest.fn(),
+            restore: jest.fn(),
+            scale: jest.fn(),
+            translate: jest.fn(),
+            rotate: jest.fn(),
+            transform: jest.fn(),
+            globalAlpha: 1,
+        })),
+        toDataURL: jest.fn(),
+        toBlob: jest.fn((cb: (value: Blob | null) => void) => cb(blob)),
+    } as unknown as HTMLCanvasElement;
+    const documentScope = installFakeDocument({ canvas: fakeCanvas });
+    const renderSpy = jest.spyOn(model, 'renderToContext').mockImplementation(() => undefined);
+
+    model.toBlob(callback, 'image/png', undefined, 2);
+
+    expect(fakeCanvas.toBlob).toHaveBeenCalledWith(callback, 'image/png', undefined);
+    expect(callback).toHaveBeenCalledWith(blob);
+
+    renderSpy.mockRestore();
+    documentScope.restore();
+});
+
+test('model toBlobAsync resolves with blob from callback export path', async () => {
+    const model = Model.create(20, 10);
+    const blob = { size: 16 } as Blob;
+    const toBlobSpy = jest.spyOn(model, 'toBlob').mockImplementation(callback => {
+        callback(blob);
+    });
+
+    const result = await model.toBlobAsync('image/png', undefined, 2);
+
+    expect(result).toBe(blob);
+    expect(toBlobSpy).toHaveBeenCalledWith(expect.any(Function), 'image/png', undefined, 2);
+
+    toBlobSpy.mockRestore();
+});
+
+test('model jpeg and webp data url helpers use correct mime types', () => {
+    const model = Model.create(20, 10);
+    const toDataURLSpy = jest.spyOn(model, 'toDataURL').mockImplementation(() => 'encoded');
+
+    const jpeg = model.toJPEGDataURL(0.8, 2);
+    const webp = model.toWebPDataURL(0.6, 3);
+    const png = model.toPNGDataURL(4);
+
+    expect(jpeg).toBe('encoded');
+    expect(webp).toBe('encoded');
+    expect(png).toBe('encoded');
+    expect(toDataURLSpy).toHaveBeenNthCalledWith(1, 'image/jpeg', 0.8, 2);
+    expect(toDataURLSpy).toHaveBeenNthCalledWith(2, 'image/webp', 0.6, 3);
+    expect(toDataURLSpy).toHaveBeenNthCalledWith(3, 'image/png', undefined, 4);
+
+    toDataURLSpy.mockRestore();
+});
+
+test('model jpeg and webp blob helpers use correct mime types', async () => {
+    const model = Model.create(20, 10);
+    const blob = { size: 20 } as Blob;
+    const toBlobAsyncSpy = jest.spyOn(model, 'toBlobAsync').mockResolvedValue(blob);
+
+    const jpeg = await model.toJPEGBlobAsync(0.75, 2);
+    const webp = await model.toWebPBlobAsync(0.65, 3);
+    const png = await model.toPNGBlobAsync(4);
+
+    expect(jpeg).toBe(blob);
+    expect(webp).toBe(blob);
+    expect(png).toBe(blob);
+    expect(toBlobAsyncSpy).toHaveBeenNthCalledWith(1, 'image/jpeg', 0.75, 2);
+    expect(toBlobAsyncSpy).toHaveBeenNthCalledWith(2, 'image/webp', 0.65, 3);
+    expect(toBlobAsyncSpy).toHaveBeenNthCalledWith(3, 'image/png', undefined, 4);
+
+    toBlobAsyncSpy.mockRestore();
+});
+
+test('model downloadAs uses blob url when available', () => {
+    const model = Model.create(20, 10);
+    const blob = { size: 8 } as Blob;
+    const click = jest.fn();
+    const anchor = { click, download: '', href: '' } as unknown as HTMLAnchorElement;
+    const fakeCanvas = {
+        width: 0,
+        height: 0,
+        getContext: jest.fn(() => ({
+            save: jest.fn(),
+            beginPath: jest.fn(),
+            rect: jest.fn(),
+            clip: jest.fn(),
+            fillRect: jest.fn(),
+            strokeRect: jest.fn(),
+            restore: jest.fn(),
+            scale: jest.fn(),
+            translate: jest.fn(),
+            rotate: jest.fn(),
+            transform: jest.fn(),
+            globalAlpha: 1,
+        })),
+        toDataURL: jest.fn(() => 'data:image/png;base64,abc'),
+        toBlob: jest.fn((cb: (value: Blob | null) => void) => cb(blob)),
+    } as unknown as HTMLCanvasElement;
+    const documentScope = installFakeDocument({ canvas: fakeCanvas, a: anchor });
+    const renderSpy = jest.spyOn(model, 'renderToContext').mockImplementation(() => undefined);
+    const createObjectURL = jest.fn(() => 'blob:export');
+    const revokeObjectURL = jest.fn();
+    const originalUrl = globalThis.URL;
+
+    Object.defineProperty(globalThis, 'URL', {
+        value: { createObjectURL, revokeObjectURL },
+        configurable: true,
+    });
+
+    model.downloadAs('scene.png');
+
+    expect(anchor.download).toBe('scene.png');
+    expect(anchor.href).toBe('blob:export');
+    expect(click).toHaveBeenCalled();
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:export');
+
+    renderSpy.mockRestore();
+    documentScope.restore();
+    Object.defineProperty(globalThis, 'URL', {
+        value: originalUrl,
+        configurable: true,
+    });
 });
