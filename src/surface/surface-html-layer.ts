@@ -37,6 +37,11 @@ export class SurfaceHtmlLayer extends SurfaceLayer {
     public sandbox: boolean;
 
     /**
+     * HTML IFrame sandbox permission tokens
+     */
+    public sandboxPermissions: string[];
+
+    /**
      * If true HTML IFrame contents is scaled to parent surface scale factor
      */
     public scaleContent: boolean;
@@ -58,6 +63,7 @@ export class SurfaceHtmlLayer extends SurfaceLayer {
         super(id, left, top, width, height);
         this.scrolling = 'auto';
         this.sandbox = true;
+        this.sandboxPermissions = ['allow-forms', 'allow-popups', 'allow-scripts'];
         this.source = source;
         this.scaleContent = true;
     }
@@ -78,7 +84,7 @@ export class SurfaceHtmlLayer extends SurfaceLayer {
         const iframe = document.createElement('iframe');
         iframe.setAttribute('id', this.id + '_iframe');
         if (this.sandbox) {
-            iframe.setAttribute('sandbox', 'allow-forms allow-popups allow-same-origin allow-scripts');
+            iframe.setAttribute('sandbox', this.sandboxPermissions.join(' '));
         }
         iframe.style.position = 'absolute';
         iframe.style.left = this.translateX + this.left * surface.scale + 'px';

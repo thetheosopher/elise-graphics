@@ -30,10 +30,10 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 - Robust serialization with JSON round-trip fidelity
 
 **Key Gaps:**
-- **Zero SVG support** — no import, export, or rendering
+- **Partial SVG interop** — no SVG rendering backend, SVG import/export still omit some SVG features and element/resource cases, and full round-trip fidelity is not yet available
 - No property-level keyframe animation or tweening
 - No WebGL renderer or GPU acceleration path
-- Limited path commands (no arcs, no quadratic Bézier)
+- No first-class persisted arc/quadratic path editing commands or exact SVG path round-trip fidelity
 - No blend modes, filters, or post-processing effects
 - No accessibility features
 - No built-in undo/redo system
@@ -102,8 +102,8 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Polyline | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Polygon | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Path (cubic Bézier) | ✅ | ✅ | ❌ (custom) | ✅ | ✅ |
-| Path (quadratic Bézier) | ❌ | ✅ | ❌ | ✅ | ✅ |
-| Path (arc) | ❌ | ✅ | ✅ | ✅ | ✅ |
+| Path (quadratic Bézier) | ⚠️ (normalized import/export) | ✅ | ❌ | ✅ | ✅ |
+| Path (arc) | ⚠️ (normalized import/export) | ✅ | ✅ | ✅ | ✅ |
 | Star/Regular polygon | ❌ | ✅ | ✅ | ✅ | ✅ |
 | Arrow | ❌ | ❌ | ✅ | ❌ | ❌ |
 | Wedge/Sector | ❌ | ❌ | ✅ | ❌ | ❌ |
@@ -115,7 +115,7 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Sprite | ✅ | ✅ | ✅ | ❌ | ✅ |
 | Group/Container | ✅ (Model) | ✅ | ✅ | ✅ | ✅ |
 
-**Analysis:** Elise covers the essential primitives well. The main gaps are **rounded rectangles**, **arc path commands**, **quadratic Bézier**, and **convenience shapes** (star, wedge, ring). Fabric.js leads in primitive variety.
+**Analysis:** Elise covers the essential primitives well. The main remaining path-related gaps are **first-class persisted arc/quadratic editing commands** and exact SVG path round-trip fidelity, alongside **rounded rectangles** and **convenience shapes** (star, wedge, ring). Fabric.js still leads in primitive variety.
 
 ### 3.3 Path System
 
@@ -124,20 +124,20 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Move to (`M`) | ✅ | ✅ | ✅ | ✅ |
 | Line to (`L`) | ✅ | ✅ | ✅ | ✅ |
 | Cubic Bézier (`C`) | ✅ | ✅ | ✅ | ✅ |
-| Quadratic Bézier (`Q`) | ❌ | ✅ | ✅ | ✅ |
-| Arc (`A`) | ❌ | ✅ | ✅ | ✅ |
-| Smooth cubic (`S`) | ❌ | ✅ | ✅ | ❌ |
-| Smooth quadratic (`T`) | ❌ | ✅ | ✅ | ❌ |
-| Horizontal line (`H`) | ❌ | ✅ | ✅ | ❌ |
-| Vertical line (`V`) | ❌ | ✅ | ✅ | ❌ |
+| Quadratic Bézier (`Q`) | ⚠️ (normalized import/export) | ✅ | ✅ | ✅ |
+| Arc (`A`) | ⚠️ (normalized import/export) | ✅ | ✅ | ✅ |
+| Smooth cubic (`S`) | ⚠️ (normalized import/export) | ✅ | ✅ | ❌ |
+| Smooth quadratic (`T`) | ⚠️ (normalized import/export) | ✅ | ✅ | ❌ |
+| Horizontal line (`H`) | ⚠️ (normalized import/export) | ✅ | ✅ | ❌ |
+| Vertical line (`V`) | ⚠️ (normalized import/export) | ✅ | ✅ | ❌ |
 | Close (`Z`) | ✅ | ✅ | ✅ | ✅ |
-| SVG path string parsing | ❌ | ✅ | ✅ | ✅ |
+| SVG path string parsing | ⚠️ (normalized import) | ✅ | ✅ | ✅ |
 | Boolean operations (union/intersect) | ❌ | ❌ | ✅ | ❌ |
 | Path simplification | ❌ | ✅ | ✅ | ❌ |
 | Path offsetting | ❌ | ❌ | ✅ | ❌ |
 | Winding rules | ✅ | ✅ | ✅ | ✅ |
 
-**Analysis:** This is a significant gap. Elise supports only the 4 most basic path commands (`m`, `l`, `c`, `z`). Missing SVG-compatible arc/quadratic/smooth commands blocks SVG import/export and limits path expressiveness. Paper.js is the clear leader with full Boolean path operations.
+**Analysis:** This remains a meaningful gap, but Elise is no longer at zero. Internally, editable persisted paths still use the 4-command `m`/`l`/`c`/`z` model, while SVG path parsing now accepts standard SVG path strings and normalizes quadratic, shorthand, horizontal/vertical, and arc commands into explicit line and cubic segments. Paper.js is still the clear leader with full Boolean path operations and first-class path manipulation.
 
 ### 3.4 Transform System
 
@@ -268,16 +268,16 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | JSON serialize | ✅ | ✅ | ✅ | ✅ |
 | JSON deserialize | ✅ | ✅ | ✅ | ✅ |
 | Load from URL | ✅ | ✅ | ❌ | ❌ |
-| SVG export | ❌ | ✅ | ❌ | ✅ |
-| SVG import | ❌ | ✅ | ❌ | ✅ |
-| PNG export | ❌ | ✅ | ✅ | ✅ |
+| SVG export | ⚠️ (partial) | ✅ | ❌ | ✅ |
+| SVG import | ⚠️ (partial) | ✅ | ❌ | ✅ |
+| PNG export | ✅ | ✅ | ✅ | ✅ |
 | PDF export | ❌ | ❌ | ❌ | ✅ |
 | Schema versioning | ❌ | ❌ | ❌ | ❌ |
 | Resource embedding | ✅ (refs) | ✅ (data URIs) | ❌ | ❌ |
 | Localization-aware | ✅ | ❌ | ❌ | ❌ |
 | Pretty/compact modes | ✅ | ✅ | ❌ | ❌ |
 
-**Analysis:** Elise's JSON serialization is solid with unique localization-aware resource management. The biggest gap is **no export to SVG/PNG/PDF**, which limits practical utility for design tools, print workflows, and sharing.
+**Analysis:** Elise's JSON serialization is solid with unique localization-aware resource management, and the shipped raster export APIs close the PNG gap. The remaining interchange/export weakness is that SVG import/export is only partial and PDF export is still absent, which limits some design-tool and print workflows.
 
 ### 3.11 Application Framework
 
@@ -299,19 +299,19 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 
 ## 4. SVG Support Analysis
 
-### Current State: No SVG Support
+### Current State: Partial SVG Support
 
-Elise has **zero SVG capability** in any form:
+Elise now has **partial SVG capability**:
 
 - ❌ No SVG rendering backend (canvas-only)
-- ❌ No SVG import (cannot parse SVG documents)
-- ❌ No SVG export (cannot generate SVG output)
-- ❌ No SVG path command compatibility (missing `Q`, `A`, `S`, `T`, `H`, `V`)
-- ❌ No SVG-compatible transform syntax
+- ⚠️ SVG import now covers `<path>`, `<rect>`, `<ellipse>`, `<circle>`, `<line>`, `<polygon>`, `<polyline>`, `<text>`, and `<image>`, including recursive group traversal, inherited basic styles, gradient fills and clip paths from `<defs>`, `viewBox` origin offset handling, and SVG transform import via normalized matrix transforms
+- ⚠️ SVG export supports the base `Model`, `PathElement`, `RectangleElement`, `EllipseElement`, `LineElement`, `PolygonElement`, `PolylineElement`, `TextElement`, `ImageElement`, and `ModelElement`, but broader element/resource coverage is still incomplete
+- ⚠️ Standard SVG path strings are supported at import time and normalized into Elise's internal line/cubic command representation rather than stored as first-class SVG commands
+- ⚠️ Elise transform strings are converted to valid SVG matrix transforms during export, but Elise still does not use native SVG transform syntax as its internal authoring format
 
 ### Why SVG Support Matters
 
-1. **Interoperability** — SVG is the universal vector exchange format. Design tools (Figma, Illustrator, Inkscape) export SVG. Icon libraries ship SVG. Without SVG import/export, Elise exists in an isolated ecosystem.
+1. **Interoperability** — SVG is the universal vector exchange format. Design tools (Figma, Illustrator, Inkscape) export SVG. Icon libraries ship SVG. Without broader SVG import/export coverage, Elise remains more isolated than competing design-oriented libraries.
 
 2. **Resolution independence** — While Elise's canvas renderer scales well, SVG enables crisp rendering at any zoom and is natively supported by browsers without JavaScript.
 
@@ -324,15 +324,14 @@ Elise has **zero SVG capability** in any form:
 ### SVG Support Roadmap (Recommended)
 
 **Phase 1 — Path Command Parity**
-- Add quadratic Bézier (`q`/`Q`) command
-- Add arc (`a`/`A`) command
-- Add shorthand commands (`s`/`S`, `t`/`T`, `h`/`H`, `v`/`V`)
-- Support both relative (lowercase) and absolute (uppercase) commands
-- Parse standard SVG path `d` attribute strings
+- Status: Completed
+- Elise now parses standard SVG path `d` attribute strings, including quadratic, arc, shorthand, horizontal/vertical, relative, and absolute commands
+- Parsed SVG commands are normalized into Elise's internal line and cubic command representation so design-time editing continues to operate on explicit segments rather than native SVG shorthand or arc command storage
 
 **Phase 2 — SVG Export**
-- Implement `model.toSVG()` method
-- Map each element type to SVG equivalent:
+- Status: Partially completed
+- `Model.toSVG()` is implemented
+- Export currently maps these element types to SVG equivalents:
   - `RectangleElement` → `<rect>`
   - `EllipseElement` → `<ellipse>`
   - `LineElement` → `<line>`
@@ -341,14 +340,17 @@ Elise has **zero SVG capability** in any form:
   - `PolylineElement` → `<polyline>`
   - `TextElement` → `<text>`
   - `ImageElement` → `<image>` (with base64 or URL)
-- Map fills/strokes to SVG `fill`/`stroke`/`<linearGradient>`/`<radialGradient>`
-- Map transforms to SVG `transform` attribute
+- Export maps fills/strokes to SVG `fill`/`stroke` and emits `<linearGradient>`/`<radialGradient>` defs for supported gradient fills
+- Export maps transforms to SVG `transform` attributes using matrix output
+- Export prefers human-readable path output by preserving simpler SVG commands such as `L`, `H`, `V`, and `Z` where normalized geometry allows, while falling back to `C` for exported curve segments
+- Remaining work is broader element/resource coverage plus richer SVG features such as patterns and masks
 
 **Phase 3 — SVG Import**
-- Parse SVG DOM with `DOMParser`
-- Map SVG elements to Elise equivalents
-- Handle SVG-specific features (viewBox, preserveAspectRatio, use/defs)
-- Provide graceful degradation for unsupported SVG features
+- Status: Partially completed
+- SVG DOM parsing is implemented through `SVGImporter`
+- Import maps supported SVG elements to Elise equivalents
+- Import handles `viewBox` origin offsets, inherited styles, gradients and clip paths from `<defs>`, and normalized transform import
+- Remaining work includes `use`/symbol references, patterns, masks, richer text semantics, and additional SVG-specific layout features
 
 **Phase 4 — SVG Rendering Backend (Optional)**
 - Alternative renderer that outputs to SVG DOM instead of Canvas
@@ -362,10 +364,10 @@ Elise has **zero SVG capability** in any form:
 
 | Gap | Impact | Difficulty | Competitors with feature |
 |-----|--------|------------|--------------------------|
-| No SVG import/export | Blocks integration with design tools and icon libraries | High | Fabric.js, Paper.js, Two.js |
+| Partial SVG interop | Still blocks some integration and round-trip scenarios because import/export coverage is incomplete | High | Fabric.js, Paper.js, Two.js |
 | No undo/redo | Design surface unusable for production | Medium | (few have built-in, but expected) |
-| No PNG/image export | Cannot save render output | Low | Fabric.js, Konva.js, Paper.js |
-| No arc path command | Cannot represent circles/arcs in paths | Medium | All competitors |
+| No PDF export | Cannot produce print-oriented vector output directly | Medium | Paper.js |
+| No first-class arc path editing command | Imported arcs are normalized, but Elise still lacks native persisted arc editing semantics | Medium | All competitors |
 | No dash pattern | Cannot draw dashed/dotted lines | Low | All competitors |
 
 ### 5.2 Important Gaps (Limit functionality)
@@ -379,10 +381,10 @@ Elise has **zero SVG capability** in any form:
 | No z-order controls (bring to front/back) | Design surface limited | Low |
 | No keyboard shortcuts in design mode | Slower editing workflow | Medium |
 | No HSL/HSV color model | Limits color manipulation use cases | Low |
-| No element-level opacity | Must use fill string hack (`"0.5;red"`) | Low |
+| No element visibility flag | Hidden-but-retained elements require removal or custom handling | Low |
 | No event bubbling | Events don't propagate up model hierarchy | Medium |
 | Hardcoded 200ms transition duration | Cannot customize animation timing | Low |
-| No quadratic Bézier | Path expressiveness limited | Low |
+| No first-class persisted quadratic Bézier command | Quadratic segments import/export, but normalize to cubic segments internally | Low |
 
 ### 5.3 Nice-to-Have Gaps (Would enhance competitive position)
 
@@ -391,7 +393,7 @@ Elise has **zero SVG capability** in any form:
 | No WebGL renderer | Performance ceiling for complex scenes | High |
 | No accessibility (ARIA) | Not usable for accessible applications | Medium |
 | No filters (blur, brightness, etc.) | Cannot apply Canvas filter effects | Medium |
-| No clipping masks | Cannot clip elements to shapes | Medium |
+| No mask support | Cannot apply luminance/alpha masking effects from SVG or runtime composition | Medium |
 | No boolean path operations | Cannot union/intersect/subtract paths | High |
 | No text decoration (underline, etc.) | Text styling limited | Low |
 | No letter/line spacing control | Typography limited | Low |
@@ -463,9 +465,15 @@ model.downloadAs('output.png');                   // triggers browser download
 **Surface export:** `Surface` now mirrors the export API for composed surface capture, rasterizing the base model plus supported layered media (`SurfaceImageLayer`, `SurfaceVideoLayer`, `SurfaceAnimationLayer`). DOM-only layers such as hidden overlays and HTML iframes are intentionally skipped during export.
 
 #### R4. Expand Path Commands (SVG Compatibility)
+**Status:** Completed
+
 **Why:** Prerequisite for SVG import/export. Enables standard SVG path strings.
 
-**Scope:** Extend `PathElement` command parser to support `q`, `a`, `s`, `t`, `h`, `v` (and uppercase absolute variants). Add `PathElement.fromSVGPath(d)` static method.
+Elise now supports `PathElement.fromSVGPath(d)` for standard SVG path strings, including `q`, `a`, `s`, `t`, `h`, `v` and uppercase absolute variants, normalizing them into Elise's existing editable internal command set based on explicit line and cubic segments.
+
+**Delivered scope:** Elise uses a normalized internal model rather than storing SVG commands as first-class persisted path commands. Horizontal/vertical segments are converted to line commands, quadratic and shorthand curve commands are converted to explicit cubic segments, and arc commands are approximated as one or more cubic segments. This preserves the current point-editing architecture in `DesignController`, `HandleFactory`, and `DesignRenderer` while unlocking SVG-compatible import.
+
+**Tradeoff:** This choice favors lower implementation risk and stable design-surface editing over exact SVG path round-trip fidelity. If exact preservation of original SVG path command structure becomes a requirement later, Elise can revisit a native SVG command model after import/export support is established.
 
 #### R5. Add Dash Pattern and Line Cap/Join
 **Why:** Standard stroke features, trivially maps to `ctx.setLineDash()`, `ctx.lineCap`, `ctx.lineJoin`.
@@ -482,14 +490,22 @@ element.setLineJoin('round');            // 'miter' | 'round' | 'bevel'
 ### Tier 2: Strategic — Build Competitive Advantage
 
 #### R6. SVG Export
+**Status:** Partially Completed
+
 **Why:** Enables sharing, printing, and integration with design ecosystems.
 
-**Scope:** New `svg/svg-exporter.ts` module. Map each element type to SVG equivalent. Handle gradients via `<defs>`. Medium complexity (~800-1200 lines).
+**Delivered so far:** `svg/svg-exporter.ts` now exports the base `Model`, `PathElement`, `RectangleElement`, `EllipseElement`, `LineElement`, `PolygonElement`, `PolylineElement`, `TextElement`, `ImageElement`, and `ModelElement`. It handles gradients via `<defs>`, emits valid SVG matrix transforms, preserves simpler normalized path commands where possible (`L`, `H`, `V`, `Z`), and falls back to `C` for explicit curve segments.
+
+**Remaining scope:** Full element/resource coverage is still incomplete, particularly for broader runtime-specific elements and richer SVG features such as patterns, masks, and other advanced export scenarios. Medium complexity (~800-1200 lines total for fuller support).
 
 #### R7. SVG Import
+**Status:** Partially Completed
+
 **Why:** Enables loading SVG files, icons, and designs from external tools.
 
-**Scope:** New `svg/svg-importer.ts` module. Parse SVG DOM, map elements to Elise types. Handle viewBox, transforms, styles. High complexity (~1500-2000 lines).
+**Delivered so far:** `svg/svg-importer.ts` now imports `path`, `rect`, `ellipse`, `circle`, `line`, `polygon`, `polyline`, `text`, and `image`, with recursive group traversal plus basic inherited style, opacity, `viewBox`, transform handling, gradients from `<defs>`, and clip-path references backed by supported `<clipPath>` geometry.
+
+**Remaining scope:** Broader SVG feature coverage is still needed for defs/use references, patterns, masks, richer text semantics, grouping preservation, and less common element types. High complexity (~1500-2000 lines total for fuller support).
 
 #### R8. Undo/Redo System
 **Why:** Design surface is incomplete without it. Standard command pattern.
@@ -505,16 +521,19 @@ designController.undoChanged;  // event
 
 **Scope:** New `command/undo-manager.ts`. Capture element state before/after operations. ~400-600 lines.
 
-#### R9. Add Element-Level Opacity and Visibility
+#### R9. Add Element Visibility
 
-**Why:** Current opacity requires string-encoded fill modifier (`"0.5;red"`) — non-intuitive and doesn't affect stroke. A proper `opacity` property and `visible` boolean are expected.
+**Status:** Partially Completed
+
+**Why:** Element opacity now exists and affects both fill and stroke consistently. The remaining gap is a first-class `visible` boolean for temporarily hiding elements without removing them from the model.
 
 ```typescript
-element.setOpacity(0.5);    // 0.0 to 1.0
 element.setVisible(false);  // skip rendering and hit testing
 ```
 
-**Scope:** ~50 lines. Add properties to `ElementBase`, apply `globalAlpha` in draw methods.
+**Delivered scope:** `ElementBase` now supports `opacity`, and the tweening/export work already uses that property directly instead of string-encoded fill hacks.
+
+**Remaining scope:** ~30-50 lines to add a `visible` property to `ElementBase` and honor it during rendering and hit testing.
 
 #### R10. Add Rounded Rectangle Support
 **Why:** Extremely common UI element. Canvas API now supports `roundRect()` natively.

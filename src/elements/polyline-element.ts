@@ -179,6 +179,7 @@ export class PolylineElement extends ElementBase implements IPointContainer {
         if (!this._points) {
             throw new Error(ErrorMessages.NoPointsAreDefined);
         }
+        const points = this._points;
         const bounds = this.getBounds();
         if (!bounds) {
             throw new Error(ErrorMessages.BoundsAreUndefined);
@@ -188,30 +189,31 @@ export class PolylineElement extends ElementBase implements IPointContainer {
             model.setRenderTransform(c, this.transform, bounds.location);
         }
         this.applyRenderOpacity(c);
-        c.beginPath();
-        if (this.smoothPoints) {
-            c.moveTo(this._points[0].x, this._points[0].y);
-            let i;
-            for (i = 1; i < this._points.length - 2; i++) {
-                const xc = (this._points[i].x + this._points[i + 1].x) / 2;
-                const yc = (this._points[i].y + this._points[i + 1].y) / 2;
-                c.quadraticCurveTo(this._points[i].x, this._points[i].y, xc, yc);
+        this.withClipPath(c, () => {
+            c.beginPath();
+            if (this.smoothPoints) {
+                c.moveTo(points[0].x, points[0].y);
+                let i;
+                for (i = 1; i < points.length - 2; i++) {
+                    const xc = (points[i].x + points[i + 1].x) / 2;
+                    const yc = (points[i].y + points[i + 1].y) / 2;
+                    c.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+                }
+                c.lineCap = 'round';
+                c.lineTo(points[i + 1].x, points[i + 1].y);
             }
-            c.lineCap = 'round';
-            c.lineTo(this._points[i + 1].x, this._points[i + 1].y);
-            // c.quadraticCurveTo(this._points[i].x, this._points[i].y, this._points[i+1].x, this._points[i+1].y);
-        }
-        else {
-            c.moveTo(this._points[0].x, this._points[0].y);
-            const pl = this._points.length;
-            for (let i = 1; i < pl; i++) {
-                const p = this._points[i];
-                c.lineTo(p.x, p.y);
+            else {
+                c.moveTo(points[0].x, points[0].y);
+                const pl = points.length;
+                for (let i = 1; i < pl; i++) {
+                    const p = points[i];
+                    c.lineTo(p.x, p.y);
+                }
             }
-        }
-        if (model.setElementStroke(c, this)) {
-            c.stroke();
-        }
+            if (model.setElementStroke(c, this)) {
+                c.stroke();
+            }
+        });
         c.restore();
     }
 
@@ -258,7 +260,10 @@ export class PolylineElement extends ElementBase implements IPointContainer {
         }
         hit = c.isPointInPath(tx, ty);
         c.restore();
-        return hit;
+        if (!hit) {
+            return false;
+        }
+        return this.isPointWithinClipPath(c, tx, ty);
     }
 
     /**

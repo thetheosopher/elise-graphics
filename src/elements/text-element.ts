@@ -78,18 +78,11 @@ export class TextElement extends ElementBase {
 
     constructor() {
         super('text');
-        this.setText = this.setText.bind(this);
-        this.setSource = this.setSource.bind(this);
-        this.setTypeface = this.setTypeface.bind(this);
-        this.setTypesize = this.setTypesize.bind(this);
-        this.setTypestyle = this.setTypestyle.bind(this);
-        this.setAlignment = this.setAlignment.bind(this);
-        this.getLines = this.getLines.bind(this);
     }
 
     /**
      * Copies properties of another object to this instance
-     * @param o - Source object
+     * @param o - Source element
      */
     public parse(o: SerializedData): void {
         super.parse(o);
@@ -102,7 +95,7 @@ export class TextElement extends ElementBase {
         if (o.typeface) {
             this.typeface = o.typeface as string;
         }
-        if (o.typesize) {
+        if (o.typesize !== undefined) {
             this.typesize = o.typesize as number;
         }
         if (o.typestyle) {
@@ -111,7 +104,7 @@ export class TextElement extends ElementBase {
         if (o.alignment) {
             this.alignment = o.alignment as string;
         }
-        if (!this.location) {
+        if (!this._location) {
             this._location = new Point(0, 0);
         }
     }
@@ -131,7 +124,7 @@ export class TextElement extends ElementBase {
         if (this.typeface) {
             o.typeface = this.typeface;
         }
-        if (this.typesize) {
+        if (this.typesize !== undefined) {
             o.typesize = this.typesize;
         }
         if (this.typestyle) {
@@ -147,8 +140,8 @@ export class TextElement extends ElementBase {
      * Clones this text element to a new instance
      * @returns Cloned text element
      */
-    public clone() {
-        const e: TextElement = TextElement.create();
+    public clone(): TextElement {
+        const e = TextElement.create();
         super.cloneTo(e);
         if (this.text) {
             e.text = this.text;
@@ -159,7 +152,7 @@ export class TextElement extends ElementBase {
         if (this.typeface) {
             e.typeface = this.typeface;
         }
-        if (this.typesize) {
+        if (this.typesize !== undefined) {
             e.typesize = this.typesize;
         }
         if (this.typestyle) {
@@ -172,10 +165,10 @@ export class TextElement extends ElementBase {
     }
 
     /**
-     * Registers referenced resources with resource manager
+     * Register text source with resource manager
      * @param rm - Resource manager
      */
-    public registerResources(rm: ResourceManager) {
+    public registerResources(rm: ResourceManager): void {
         super.registerResources(rm);
         if (this.source) {
             rm.register(this.source);
@@ -211,153 +204,147 @@ export class TextElement extends ElementBase {
             model.setRenderTransform(c, this.transform, new Point(bounds.location.x, bounds.location.y));
         }
         this.applyRenderOpacity(c);
-        c.beginPath();
-        c.rect(bounds.location.x, bounds.location.y, bounds.size.width + 10, bounds.size.height);
-        c.clip();
-        let font = '';
-        let fontSize = '10.0';
-        if (this.typestyle && this.typestyle.length > 0) {
-            const parts = this.typestyle.split(',');
-            for (const part of parts) {
-                font += part;
-                font += ' ';
-            }
-        }
-        if (this.typesize) {
-            fontSize = String(this.typesize);
-            font += this.typesize + 'px ';
-        }
-        if (this.typeface) {
-            const parts = this.typeface.split(',');
-            for (const part of parts) {
-                font += part;
-                font += ' ';
-            }
-        }
-        else {
-            font += 'sans-serif';
-        }
-        c.font = font;
-        let valign = 'top';
-        let halign = 'left';
-        if (this.alignment) {
-            const parts = this.alignment.split(',');
-            for (const part of parts) {
-                if (part.toLowerCase() === 'start') {
-                    c.textAlign = 'start';
-                    halign = 'left';
-                }
-                else if (part.toLowerCase() === 'end') {
-                    c.textAlign = 'end';
-                    halign = 'right';
-                }
-                else if (part.toLowerCase() === 'left') {
-                    c.textAlign = 'left';
-                    halign = 'left';
-                }
-                else if (part.toLowerCase() === 'right') {
-                    c.textAlign = 'right';
-                    halign = 'right';
-                }
-                else if (part.toLowerCase() === 'center') {
-                    c.textAlign = 'center';
-                    halign = 'center';
-                }
-                else if (part.toLowerCase() === 'top') {
-                    valign = 'top';
-                }
-                else if (part.toLowerCase() === 'bottom') {
-                    valign = 'bottom';
-                }
-                else if (part.toLowerCase() === 'middle') {
-                    valign = 'middle';
+        this.withClipPath(c, () => {
+            c.beginPath();
+            c.rect(bounds.location.x, bounds.location.y, bounds.size.width + 10, bounds.size.height);
+            c.clip();
+            let font = '';
+            let fontSize = '10.0';
+            if (this.typestyle && this.typestyle.length > 0) {
+                const parts = this.typestyle.split(',');
+                for (const part of parts) {
+                    font += part;
+                    font += ' ';
                 }
             }
-        }
+            if (this.typesize) {
+                fontSize = String(this.typesize);
+                font += this.typesize + 'px ';
+            }
+            if (this.typeface) {
+                const parts = this.typeface.split(',');
+                for (const part of parts) {
+                    font += part;
+                    font += ' ';
+                }
+            }
+            else {
+                font += 'sans-serif';
+            }
+            c.font = font;
+            let valign = 'top';
+            let halign = 'left';
+            if (this.alignment) {
+                const parts = this.alignment.split(',');
+                for (const part of parts) {
+                    if (part.toLowerCase() === 'start') {
+                        c.textAlign = 'start';
+                        halign = 'left';
+                    }
+                    else if (part.toLowerCase() === 'end') {
+                        c.textAlign = 'end';
+                        halign = 'right';
+                    }
+                    else if (part.toLowerCase() === 'left') {
+                        c.textAlign = 'left';
+                        halign = 'left';
+                    }
+                    else if (part.toLowerCase() === 'right') {
+                        c.textAlign = 'right';
+                        halign = 'right';
+                    }
+                    else if (part.toLowerCase() === 'center') {
+                        c.textAlign = 'center';
+                        halign = 'center';
+                    }
+                    else if (part.toLowerCase() === 'top') {
+                        valign = 'top';
+                    }
+                    else if (part.toLowerCase() === 'bottom') {
+                        valign = 'bottom';
+                    }
+                    else if (part.toLowerCase() === 'middle') {
+                        valign = 'middle';
+                    }
+                }
+            }
 
-        // Resolve text content
-        let text: string | undefined;
-        if (this.source) {
-            const res = model.resourceManager.get(this.source) as TextResource;
-            if (res) {
-                text = res.text;
-            }
-        }
-        if (!text) {
-            text = this.text;
-        }
-        if (!text) {
-            return;
-        }
-
-        // Get lines of text
-        const lines = this.getLines(c, text, bounds.size.width);
-
-        // Compute total height of text
-        const lineHeight: number = parseFloat(fontSize);
-        const totalHeight = lineHeight * lines.length;
-        let x: number;
-        let y: number;
-
-        if (FillFactory.setElementFill(c, this)) {
-            const loc = bounds.location;
-
-            // Iterate lines and fill text
-            x = bounds.location.x;
-            if (halign === 'right') {
-                x += bounds.size.width;
-            }
-            else if (halign === 'center') {
-                x += bounds.size.width / 2;
-            }
-            y = bounds.location.y;
-            c.textBaseline = 'top';
-            if (valign === 'middle') {
-                y = bounds.location.y + bounds.size.height / 2 - totalHeight / 2;
-            }
-            else if (valign === 'bottom') {
-                y = bounds.location.y + bounds.size.height - totalHeight;
-            }
-            for (const line of lines) {
-                if (this.fillOffsetX || this.fillOffsetY) {
-                    const fillOffsetX = this.fillOffsetX || 0;
-                    const fillOffsetY = this.fillOffsetY || 0;
-                    c.translate(loc.x + fillOffsetX, loc.y + fillOffsetY);
-                    c.fillText(line, -fillOffsetX + x - loc.x, -fillOffsetY + y - loc.y);
-                    c.translate(-(loc.x + fillOffsetX), -(loc.y + fillOffsetY));
+            let text: string | undefined;
+            if (this.source) {
+                const res = model.resourceManager.get(this.source) as TextResource;
+                if (res) {
+                    text = res.text;
                 }
-                else {
-                    c.translate(loc.x, loc.y);
-                    c.fillText(line, x - loc.x, y - loc.y);
-                    c.translate(-loc.x, -loc.y);
+            }
+            if (!text) {
+                text = this.text;
+            }
+            if (!text) {
+                return;
+            }
+
+            const lines = this.getLines(c, text, bounds.size.width);
+            const lineHeight: number = parseFloat(fontSize);
+            const totalHeight = lineHeight * lines.length;
+            let x: number;
+            let y: number;
+
+            if (FillFactory.setElementFill(c, this)) {
+                const loc = bounds.location;
+                x = bounds.location.x;
+                if (halign === 'right') {
+                    x += bounds.size.width;
                 }
-                y += lineHeight;
+                else if (halign === 'center') {
+                    x += bounds.size.width / 2;
+                }
+                y = bounds.location.y;
+                c.textBaseline = 'top';
+                if (valign === 'middle') {
+                    y = bounds.location.y + bounds.size.height / 2 - totalHeight / 2;
+                }
+                else if (valign === 'bottom') {
+                    y = bounds.location.y + bounds.size.height - totalHeight;
+                }
+                for (const line of lines) {
+                    if (this.fillOffsetX || this.fillOffsetY) {
+                        const fillOffsetX = this.fillOffsetX || 0;
+                        const fillOffsetY = this.fillOffsetY || 0;
+                        c.translate(loc.x + fillOffsetX, loc.y + fillOffsetY);
+                        c.fillText(line, -fillOffsetX + x - loc.x, -fillOffsetY + y - loc.y);
+                        c.translate(-(loc.x + fillOffsetX), -(loc.y + fillOffsetY));
+                    }
+                    else {
+                        c.translate(loc.x, loc.y);
+                        c.fillText(line, x - loc.x, y - loc.y);
+                        c.translate(-loc.x, -loc.y);
+                    }
+                    y += lineHeight;
+                }
             }
-        }
 
-        if (model.setElementStroke(c, this)) {
-            // Iterate lines and stroke text
-            x = bounds.location.x;
-            if (halign === 'right') {
-                x += bounds.size.width;
+            if (model.setElementStroke(c, this)) {
+                x = bounds.location.x;
+                if (halign === 'right') {
+                    x += bounds.size.width;
+                }
+                else if (halign === 'center') {
+                    x += bounds.size.width / 2;
+                }
+                y = bounds.location.y;
+                c.textBaseline = 'top';
+                if (valign === 'middle') {
+                    y = bounds.location.y + bounds.size.height / 2 - totalHeight / 2;
+                }
+                else if (valign === 'bottom') {
+                    y = bounds.location.y + bounds.size.height - totalHeight;
+                }
+                for (const line of lines) {
+                    c.strokeText(line, x, y);
+                    y += lineHeight;
+                }
             }
-            else if (halign === 'center') {
-                x += bounds.size.width / 2;
-            }
-            y = bounds.location.y;
-            c.textBaseline = 'top';
-            if (valign === 'middle') {
-                y = bounds.location.y + bounds.size.height / 2 - totalHeight / 2;
-            }
-            else if (valign === 'bottom') {
-                y = bounds.location.y + bounds.size.height - totalHeight;
-            }
-            for (const line of lines) {
-                c.strokeText(line, x, y);
-                y += lineHeight;
-            }
-        }
-
+        });
         c.restore();
     }
 

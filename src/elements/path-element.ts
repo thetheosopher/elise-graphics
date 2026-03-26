@@ -24,6 +24,18 @@ export class PathElement extends ElementBase implements IPointContainer {
     }
 
     /**
+     * Creates a path element from standard SVG path data and normalizes it into
+     * Elise's internal move/line/cubic/close command set.
+     * @param pathData - SVG path data string
+     * @returns New normalized path element
+     */
+    public static fromSVGPath(pathData: string): PathElement {
+        const e = new PathElement();
+        e._commands = PathElement.parseCommandString(pathData, false);
+        return e;
+    }
+
+    /**
      * Computed bounding region
      */
     public bounds?: Region;
@@ -69,8 +81,8 @@ export class PathElement extends ElementBase implements IPointContainer {
      * @param commandString - Serialized command array
      */
     set commands(commandString: string | undefined) {
-        if (commandString) {
-            this._commands = commandString.split(' ');
+        if (commandString && commandString.trim().length > 0) {
+            this._commands = PathElement.parseCommandString(commandString, true);
         }
         else {
             this._commands = undefined;
@@ -105,7 +117,7 @@ export class PathElement extends ElementBase implements IPointContainer {
         super.parse(o);
         if (o.commands) {
             const commandString: string = o.commands as string;
-            this._commands = commandString.split(' ');
+            this._commands = PathElement.parseCommandString(commandString, true);
         }
         if (o.winding) {
             this.winding = o.winding as WindingMode;
@@ -156,6 +168,7 @@ export class PathElement extends ElementBase implements IPointContainer {
         if (!this._commands) {
             throw new Error(ErrorMessages.NoCommandsAreDefined);
         }
+        const commands = this._commands;
         const bounds = this.getBounds();
         if (!bounds) {
             throw new Error(ErrorMessages.BoundsAreUndefined);
@@ -165,59 +178,61 @@ export class PathElement extends ElementBase implements IPointContainer {
             model.setRenderTransform(c, this.transform, bounds.location);
         }
         this.applyRenderOpacity(c);
-        c.beginPath();
-        for (const command of this._commands) {
-            if (command.charAt(0) === 'm') {
-                const point = Point.parse(command.substring(1, command.length));
-                c.moveTo(point.x, point.y);
+        this.withClipPath(c, () => {
+            c.beginPath();
+            for (const command of commands) {
+                if (command.charAt(0) === 'm') {
+                    const point = Point.parse(command.substring(1, command.length));
+                    c.moveTo(point.x, point.y);
+                }
+                else if (command.charAt(0) === 'l') {
+                    const point = Point.parse(command.substring(1, command.length));
+                    c.lineTo(point.x, point.y);
+                }
+                else if (command.charAt(0) === 'c') {
+                    const parts = command.substring(1, command.length).split(',');
+                    c.bezierCurveTo(
+                        parseFloat(parts[0]),
+                        parseFloat(parts[1]),
+                        parseFloat(parts[2]),
+                        parseFloat(parts[3]),
+                        parseFloat(parts[4]),
+                        parseFloat(parts[5])
+                    );
+                }
+                else if (command.charAt(0) === 'z') {
+                    c.closePath();
+                }
             }
-            else if (command.charAt(0) === 'l') {
-                const point = Point.parse(command.substring(1, command.length));
-                c.lineTo(point.x, point.y);
-            }
-            else if (command.charAt(0) === 'c') {
-                const parts = command.substring(1, command.length).split(',');
-                c.bezierCurveTo(
-                    parseFloat(parts[0]),
-                    parseFloat(parts[1]),
-                    parseFloat(parts[2]),
-                    parseFloat(parts[3]),
-                    parseFloat(parts[4]),
-                    parseFloat(parts[5])
-                );
-            }
-            else if (command.charAt(0) === 'z') {
-                c.closePath();
-            }
-        }
-        if (FillFactory.setElementFill(c, this)) {
-            const loc = bounds.location;
-            if (this.fillOffsetX || this.fillOffsetY) {
-                const fillOffsetX = this.fillOffsetX || 0;
-                const fillOffsetY = this.fillOffsetY || 0;
-                c.translate(loc.x + fillOffsetX, loc.y + fillOffsetY);
-                if (this._winding && this._winding === WindingMode.EvenOdd) {
-                    c.fill('evenodd');
+            if (FillFactory.setElementFill(c, this)) {
+                const loc = bounds.location;
+                if (this.fillOffsetX || this.fillOffsetY) {
+                    const fillOffsetX = this.fillOffsetX || 0;
+                    const fillOffsetY = this.fillOffsetY || 0;
+                    c.translate(loc.x + fillOffsetX, loc.y + fillOffsetY);
+                    if (this._winding && this._winding === WindingMode.EvenOdd) {
+                        c.fill('evenodd');
+                    }
+                    else {
+                        c.fill('nonzero');
+                    }
+                    c.translate(-(loc.x + fillOffsetX), -(loc.y + fillOffsetY));
                 }
                 else {
-                    c.fill('nonzero');
+                    c.translate(loc.x, loc.y);
+                    if (this._winding && this._winding === WindingMode.EvenOdd) {
+                        c.fill('evenodd');
+                    }
+                    else {
+                        c.fill('nonzero');
+                    }
+                    c.translate(-loc.x, -loc.y);
                 }
-                c.translate(-(loc.x + fillOffsetX), -(loc.y + fillOffsetY));
             }
-            else {
-                c.translate(loc.x, loc.y);
-                if (this._winding && this._winding === WindingMode.EvenOdd) {
-                    c.fill('evenodd');
-                }
-                else {
-                    c.fill('nonzero');
-                }
-                c.translate(-loc.x, -loc.y);
+            if (model.setElementStroke(c, this)) {
+                c.stroke();
             }
-        }
-        if (model.setElementStroke(c, this)) {
-            c.stroke();
-        }
+        });
         c.restore();
     }
 
@@ -277,7 +292,10 @@ export class PathElement extends ElementBase implements IPointContainer {
             hit = c.isPointInPath(tx, ty, 'nonzero');
         }
         c.restore();
-        return hit;
+        if (!hit) {
+            return false;
+        }
+        return this.isPointWithinClipPath(c, tx, ty);
     }
 
     /**
@@ -377,16 +395,18 @@ export class PathElement extends ElementBase implements IPointContainer {
         if (newHeight < 1) {
             newHeight = 1;
         }
+        const safeScaleX = b.width !== 0 ? newWidth / b.width : 1;
+        const safeScaleY = b.height !== 0 ? newHeight / b.height : 1;
         if (this.aspectLocked) {
             if (offsetX === 0) {
-                this.scale(newHeight / b.height, newHeight / b.height);
+                this.scale(safeScaleY, safeScaleY);
             }
             else {
-                this.scale(newWidth / b.width, newWidth / b.width);
+                this.scale(safeScaleX, safeScaleX);
             }
         }
         else {
-            this.scale(newWidth / b.width, newHeight / b.height);
+            this.scale(safeScaleX, safeScaleY);
         }
         this.bounds = undefined;
         return this;
@@ -457,6 +477,9 @@ export class PathElement extends ElementBase implements IPointContainer {
                 );
                 newCommands.push('c' + cp1.toString() + ',' + cp2.toString() + ',' + endPoint.toString());
             }
+            else {
+                newCommands.push(command);
+            }
         }
         this._commands = newCommands;
         this.bounds = undefined;
@@ -498,6 +521,9 @@ export class PathElement extends ElementBase implements IPointContainer {
                 );
                 newCommands.push('c' + cp1.toString() + ',' + cp2.toString() + ',' + endPoint.toString());
             }
+            else {
+                newCommands.push(command);
+            }
         }
         this._commands = newCommands;
         this.bounds = undefined;
@@ -529,31 +555,26 @@ export class PathElement extends ElementBase implements IPointContainer {
             }
             else if (command.charAt(0) === 'c') {
                 const parts = command.substring(1, command.length).split(',');
-                p = new Point(parseFloat(parts[4]), parseFloat(parts[5]));
+                for (let ci = 0; ci < 6; ci += 2) {
+                    const cx = parseFloat(parts[ci]);
+                    const cy = parseFloat(parts[ci + 1]);
+                    if (minX === undefined || cx < minX) { minX = cx; }
+                    if (minY === undefined || cy < minY) { minY = cy; }
+                    if (maxX === undefined || cx > maxX) { maxX = cx; }
+                    if (maxY === undefined || cy > maxY) { maxY = cy; }
+                }
             }
             if (p) {
-                if (!minX) {
+                if (minX === undefined || p.x < minX) {
                     minX = p.x;
                 }
-                else if (p.x < minX) {
-                    minX = p.x;
-                }
-                if (!minY) {
+                if (minY === undefined || p.y < minY) {
                     minY = p.y;
                 }
-                else if (p.y < minY) {
-                    minY = p.y;
-                }
-                if (!maxX) {
+                if (maxX === undefined || p.x > maxX) {
                     maxX = p.x;
                 }
-                else if (p.x > maxX) {
-                    maxX = p.x;
-                }
-                if (!maxY) {
-                    maxY = p.y;
-                }
-                else if (p.y > maxY) {
+                if (maxY === undefined || p.y > maxY) {
                     maxY = p.y;
                 }
             }
@@ -604,8 +625,8 @@ export class PathElement extends ElementBase implements IPointContainer {
         if (!b) {
             throw new Error(ErrorMessages.BoundsAreUndefined);
         }
-        const scaleX = size.width / b.width;
-        const scaleY = size.height / b.height;
+        const scaleX = b.width !== 0 ? size.width / b.width : 1;
+        const scaleY = b.height !== 0 ? size.height / b.height : 1;
         this.scale(scaleX, scaleY);
         return this;
     }
@@ -749,12 +770,342 @@ export class PathElement extends ElementBase implements IPointContainer {
      * @returns This path element
      */
     public add(command: string) {
-        if (!this._commands) {
-            this._commands = [];
+        const existingCommands = this.commands;
+        if (existingCommands) {
+            this._commands = PathElement.parseCommandString(existingCommands + ' ' + command, true);
         }
-        this._commands.push(command);
+        else {
+            this._commands = PathElement.parseCommandString(command, true);
+        }
         this.bounds = undefined;
         return this;
+    }
+
+    private static parseCommandString(commandString: string, legacyLowercaseAbsolute: boolean): string[] {
+        const trimmed = commandString.trim();
+        if (trimmed.length === 0) {
+            return [];
+        }
+
+        const tokens = trimmed.match(/[AaCcHhLlMmQqSsTtVvZz]|[-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?/g);
+        if (!tokens || tokens.length === 0) {
+            throw new Error('Path string is invalid.');
+        }
+
+        const commands: string[] = [];
+        let index = 0;
+        let command = '';
+        let current = Point.Origin;
+        let subpathStart = Point.Origin;
+        let lastCubicControl: Point | undefined;
+        let lastQuadraticControl: Point | undefined;
+        let previousCommand = '';
+
+        const isCommandToken = (value: string): boolean => /^[AaCcHhLlMmQqSsTtVvZz]$/.test(value);
+        const hasNextNumber = (): boolean => index < tokens.length && !isCommandToken(tokens[index]);
+        const readNumber = (): number => {
+            if (index >= tokens.length) {
+                throw new Error('Path string is invalid.');
+            }
+            const token = tokens[index++];
+            if (isCommandToken(token)) {
+                throw new Error('Path string is invalid.');
+            }
+            const value = parseFloat(token);
+            if (isNaN(value)) {
+                throw new Error('Path string is invalid.');
+            }
+            return value;
+        };
+        const readPoint = (relative: boolean): Point => {
+            const x = readNumber();
+            const y = readNumber();
+            if (relative) {
+                return new Point(current.x + x, current.y + y);
+            }
+            return new Point(x, y);
+        };
+        const pushMove = (point: Point): void => {
+            commands.push('m' + point.toString());
+            current = point;
+            subpathStart = point;
+            lastCubicControl = undefined;
+            lastQuadraticControl = undefined;
+        };
+        const pushLine = (point: Point): void => {
+            commands.push('l' + point.toString());
+            current = point;
+            lastCubicControl = undefined;
+            lastQuadraticControl = undefined;
+        };
+        const pushCubic = (cp1: Point, cp2: Point, endPoint: Point): void => {
+            commands.push('c' + cp1.toString() + ',' + cp2.toString() + ',' + endPoint.toString());
+            current = endPoint;
+            lastCubicControl = cp2;
+            lastQuadraticControl = undefined;
+        };
+        const reflectControl = (control: Point | undefined): Point => {
+            if (!control) {
+                return current;
+            }
+            return new Point(current.x * 2 - control.x, current.y * 2 - control.y);
+        };
+        const quadraticToCubic = (startPoint: Point, controlPoint: Point, endPoint: Point): [Point, Point] => {
+            const cp1 = new Point(
+                startPoint.x + ((controlPoint.x - startPoint.x) * 2) / 3,
+                startPoint.y + ((controlPoint.y - startPoint.y) * 2) / 3,
+            );
+            const cp2 = new Point(
+                endPoint.x + ((controlPoint.x - endPoint.x) * 2) / 3,
+                endPoint.y + ((controlPoint.y - endPoint.y) * 2) / 3,
+            );
+            return [cp1, cp2];
+        };
+        const vectorAngle = (ux: number, uy: number, vx: number, vy: number): number => {
+            return Math.atan2(ux * vy - uy * vx, ux * vx + uy * vy);
+        };
+        const arcToCubics = (
+            startPoint: Point,
+            radiusX: number,
+            radiusY: number,
+            xAxisRotation: number,
+            largeArc: boolean,
+            sweep: boolean,
+            endPoint: Point,
+        ): Array<[Point, Point, Point]> => {
+            let rx = Math.abs(radiusX);
+            let ry = Math.abs(radiusY);
+            if ((startPoint.x === endPoint.x && startPoint.y === endPoint.y) || rx === 0 || ry === 0) {
+                return [];
+            }
+
+            const phi = (xAxisRotation * Math.PI) / 180;
+            const cosPhi = Math.cos(phi);
+            const sinPhi = Math.sin(phi);
+            const dx = (startPoint.x - endPoint.x) / 2;
+            const dy = (startPoint.y - endPoint.y) / 2;
+            const x1p = cosPhi * dx + sinPhi * dy;
+            const y1p = -sinPhi * dx + cosPhi * dy;
+            const lambda = (x1p * x1p) / (rx * rx) + (y1p * y1p) / (ry * ry);
+
+            if (lambda > 1) {
+                const scale = Math.sqrt(lambda);
+                rx *= scale;
+                ry *= scale;
+            }
+
+            const rx2 = rx * rx;
+            const ry2 = ry * ry;
+            const x1p2 = x1p * x1p;
+            const y1p2 = y1p * y1p;
+            const numerator = rx2 * ry2 - rx2 * y1p2 - ry2 * x1p2;
+            const denominator = rx2 * y1p2 + ry2 * x1p2;
+            const factor = denominator === 0 ? 0 : Math.sqrt(Math.max(0, numerator / denominator));
+            const sign = largeArc === sweep ? -1 : 1;
+            const cxp = sign * factor * ((rx * y1p) / ry);
+            const cyp = sign * factor * ((-ry * x1p) / rx);
+            const centerX = cosPhi * cxp - sinPhi * cyp + (startPoint.x + endPoint.x) / 2;
+            const centerY = sinPhi * cxp + cosPhi * cyp + (startPoint.y + endPoint.y) / 2;
+            const startVectorX = (x1p - cxp) / rx;
+            const startVectorY = (y1p - cyp) / ry;
+            const endVectorX = (-x1p - cxp) / rx;
+            const endVectorY = (-y1p - cyp) / ry;
+            let startAngle = vectorAngle(1, 0, startVectorX, startVectorY);
+            let sweepAngle = vectorAngle(startVectorX, startVectorY, endVectorX, endVectorY);
+
+            if (!sweep && sweepAngle > 0) {
+                sweepAngle -= Math.PI * 2;
+            }
+            else if (sweep && sweepAngle < 0) {
+                sweepAngle += Math.PI * 2;
+            }
+
+            const segmentCount = Math.ceil(Math.abs(sweepAngle) / (Math.PI / 2));
+            const segmentAngle = sweepAngle / segmentCount;
+            const curves: Array<[Point, Point, Point]> = [];
+
+            for (let segment = 0; segment < segmentCount; segment++) {
+                const theta1 = startAngle;
+                const theta2 = theta1 + segmentAngle;
+                const delta = theta2 - theta1;
+                const alpha = (4 / 3) * Math.tan(delta / 4);
+                const cosTheta1 = Math.cos(theta1);
+                const sinTheta1 = Math.sin(theta1);
+                const cosTheta2 = Math.cos(theta2);
+                const sinTheta2 = Math.sin(theta2);
+
+                const p1 = new Point(
+                    centerX + rx * cosPhi * cosTheta1 - ry * sinPhi * sinTheta1,
+                    centerY + rx * sinPhi * cosTheta1 + ry * cosPhi * sinTheta1,
+                );
+                const p2 = new Point(
+                    centerX + rx * cosPhi * cosTheta2 - ry * sinPhi * sinTheta2,
+                    centerY + rx * sinPhi * cosTheta2 + ry * cosPhi * sinTheta2,
+                );
+                const d1 = new Point(
+                    -rx * cosPhi * sinTheta1 - ry * sinPhi * cosTheta1,
+                    -rx * sinPhi * sinTheta1 + ry * cosPhi * cosTheta1,
+                );
+                const d2 = new Point(
+                    -rx * cosPhi * sinTheta2 - ry * sinPhi * cosTheta2,
+                    -rx * sinPhi * sinTheta2 + ry * cosPhi * cosTheta2,
+                );
+                const cp1 = new Point(p1.x + alpha * d1.x, p1.y + alpha * d1.y);
+                const cp2 = new Point(p2.x - alpha * d2.x, p2.y - alpha * d2.y);
+                curves.push([cp1, cp2, p2]);
+                startAngle = theta2;
+            }
+
+            return curves;
+        };
+
+        while (index < tokens.length) {
+            if (isCommandToken(tokens[index])) {
+                command = tokens[index++];
+            }
+            else if (!command) {
+                throw new Error('Path string is invalid.');
+            }
+
+            switch (command) {
+                case 'M':
+                case 'm': {
+                    const relative = command === 'm' && !legacyLowercaseAbsolute;
+                    let isFirstMove = true;
+                    while (hasNextNumber()) {
+                        const point = readPoint(relative);
+                        if (isFirstMove) {
+                            pushMove(point);
+                            isFirstMove = false;
+                        }
+                        else {
+                            pushLine(point);
+                        }
+                    }
+                    break;
+                }
+                case 'L':
+                case 'l': {
+                    const relative = command === 'l' && !legacyLowercaseAbsolute;
+                    while (hasNextNumber()) {
+                        pushLine(readPoint(relative));
+                    }
+                    break;
+                }
+                case 'H':
+                case 'h': {
+                    const relative = command === 'h';
+                    while (hasNextNumber()) {
+                        const x = readNumber();
+                        pushLine(new Point(relative ? current.x + x : x, current.y));
+                    }
+                    break;
+                }
+                case 'V':
+                case 'v': {
+                    const relative = command === 'v';
+                    while (hasNextNumber()) {
+                        const y = readNumber();
+                        pushLine(new Point(current.x, relative ? current.y + y : y));
+                    }
+                    break;
+                }
+                case 'C':
+                case 'c': {
+                    const relative = command === 'c' && !legacyLowercaseAbsolute;
+                    while (hasNextNumber()) {
+                        const cp1 = readPoint(relative);
+                        const cp2 = readPoint(relative);
+                        const endPoint = readPoint(relative);
+                        pushCubic(cp1, cp2, endPoint);
+                    }
+                    break;
+                }
+                case 'S':
+                case 's': {
+                    const relative = command === 's';
+                    while (hasNextNumber()) {
+                        const cp1 = previousCommand.match(/[CcSs]/) ? reflectControl(lastCubicControl) : current;
+                        const cp2 = readPoint(relative);
+                        const endPoint = readPoint(relative);
+                        pushCubic(cp1, cp2, endPoint);
+                    }
+                    break;
+                }
+                case 'Q':
+                case 'q': {
+                    const relative = command === 'q';
+                    while (hasNextNumber()) {
+                        const controlPoint = readPoint(relative);
+                        const endPoint = readPoint(relative);
+                        const startPoint = current;
+                        const [cp1, cp2] = quadraticToCubic(startPoint, controlPoint, endPoint);
+                        pushCubic(cp1, cp2, endPoint);
+                        lastQuadraticControl = controlPoint;
+                        lastCubicControl = undefined;
+                    }
+                    break;
+                }
+                case 'T':
+                case 't': {
+                    const relative = command === 't';
+                    while (hasNextNumber()) {
+                        const controlPoint = previousCommand.match(/[QqTt]/) ? reflectControl(lastQuadraticControl) : current;
+                        const endPoint = readPoint(relative);
+                        const startPoint = current;
+                        const [cp1, cp2] = quadraticToCubic(startPoint, controlPoint, endPoint);
+                        pushCubic(cp1, cp2, endPoint);
+                        lastQuadraticControl = controlPoint;
+                        lastCubicControl = undefined;
+                    }
+                    break;
+                }
+                case 'A':
+                case 'a': {
+                    const relative = command === 'a';
+                    while (hasNextNumber()) {
+                        const rx = readNumber();
+                        const ry = readNumber();
+                        const rotation = readNumber();
+                        const largeArc = readNumber() !== 0;
+                        const sweep = readNumber() !== 0;
+                        const endPoint = readPoint(relative);
+                        if (rx === 0 || ry === 0) {
+                            pushLine(endPoint);
+                        }
+                        else {
+                            const startPoint = current;
+                            const segments = arcToCubics(startPoint, rx, ry, rotation, largeArc, sweep, endPoint);
+                            if (segments.length === 0) {
+                                current = endPoint;
+                                lastCubicControl = undefined;
+                                lastQuadraticControl = undefined;
+                            }
+                            else {
+                                for (const [cp1, cp2, segmentEnd] of segments) {
+                                    pushCubic(cp1, cp2, segmentEnd);
+                                }
+                            }
+                        }
+                    }
+                    break;
+                }
+                case 'Z':
+                case 'z': {
+                    commands.push('z');
+                    current = subpathStart;
+                    lastCubicControl = undefined;
+                    lastQuadraticControl = undefined;
+                    break;
+                }
+                default:
+                    throw new Error('Path string is invalid.');
+            }
+
+            previousCommand = command;
+        }
+
+        return commands;
     }
 
     /**

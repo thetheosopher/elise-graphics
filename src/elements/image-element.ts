@@ -136,23 +136,27 @@ export class ImageElement extends ElementBase {
         if (this.source === undefined) {
             throw new Error(ErrorMessages.SourceUndefined);
         }
+        const location = this._location;
+        const size = this._size;
         const res = model.resourceManager.get(this.source) as BitmapResource;
         c.save();
         if (this.transform) {
-            model.setRenderTransform(c, this.transform, this._location);
+            model.setRenderTransform(c, this.transform, location);
         }
         this.applyRenderOpacity(c);
-        if (res.image !== undefined) {
-            try {
-                c.drawImage(res.image, this._location.x, this._location.y, this._size.width, this._size.height);
-            } catch {
-                Logging.log('Error rendering image in ImageElement.draw.');
-                throw new Error(ErrorMessages.CanvasDrawImageError);
+        this.withClipPath(c, () => {
+            if (res.image !== undefined) {
+                try {
+                    c.drawImage(res.image, location.x, location.y, size.width, size.height);
+                } catch {
+                    Logging.log('Error rendering image in ImageElement.draw.');
+                    throw new Error(ErrorMessages.CanvasDrawImageError);
+                }
             }
-        }
-        if (model.setElementStroke(c, this)) {
-            c.strokeRect(this._location.x, this._location.y, this._size.width, this._size.height);
-        }
+            if (model.setElementStroke(c, this)) {
+                c.strokeRect(location.x, location.y, size.width, size.height);
+            }
+        });
         c.restore();
     }
 

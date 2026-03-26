@@ -276,6 +276,12 @@
         "displayModelJson": false
     },
     {
+        "name": "SVG Import",
+        "id": "svg-import",
+        "description": "Parses an inline SVG scene into Elise elements, including gradients, transforms, text, and clip paths.",
+        "displayModelJson": false
+    },
+    {
         "name": "Stargate Tunnel",
         "id": "stargate-tunnel",
         "description": "Warp tunnel with zooming octagonal rings and streaking stars.",

@@ -170,43 +170,48 @@ export class EllipseElement extends ElementBase {
         if (this._center === undefined || this.radiusX === undefined || this.radiusY === undefined) {
             throw new Error(ErrorMessages.PointsAreInvalid);
         }
+        const center = this._center;
+        const radiusX = this.radiusX;
+        const radiusY = this.radiusY;
         c.save();
         if (this.transform) {
             model.setRenderTransform(
                 c,
                 this.transform,
-                new Point(this._center.x - this.radiusX, this._center.y - this.radiusY)
+                new Point(center.x - radiusX, center.y - radiusY)
             );
         }
         this.applyRenderOpacity(c);
-        const scaleY = this.radiusY / this.radiusX;
-        c.save();
-        c.beginPath();
-        c.translate(this._center.x, this._center.y);
-        c.scale(1.0, scaleY);
-        c.arc(0, 0, this.radiusX, 0, Math.PI * 2, false);
-        c.closePath();
-        c.restore();
-        if (FillFactory.setElementFill(c, this)) {
-            const loc = this.getLocation();
-            if (loc) {
-                if (this.fillOffsetX || this.fillOffsetY) {
-                    const fillOffsetX = this.fillOffsetX || 0;
-                    const fillOffsetY = this.fillOffsetY || 0;
-                    c.translate(loc.x + fillOffsetX, loc.y + fillOffsetY);
-                    c.fill();
-                    c.translate(-(loc.x + fillOffsetX), -(loc.y + fillOffsetY));
-                }
-                else {
-                    c.translate(loc.x, loc.y);
-                    c.fill();
-                    c.translate(-loc.x, -loc.y);
+        this.withClipPath(c, () => {
+            const scaleY = radiusY / radiusX;
+            c.save();
+            c.beginPath();
+            c.translate(center.x, center.y);
+            c.scale(1.0, scaleY);
+            c.arc(0, 0, radiusX, 0, Math.PI * 2, false);
+            c.closePath();
+            c.restore();
+            if (FillFactory.setElementFill(c, this)) {
+                const loc = this.getLocation();
+                if (loc) {
+                    if (this.fillOffsetX || this.fillOffsetY) {
+                        const fillOffsetX = this.fillOffsetX || 0;
+                        const fillOffsetY = this.fillOffsetY || 0;
+                        c.translate(loc.x + fillOffsetX, loc.y + fillOffsetY);
+                        c.fill();
+                        c.translate(-(loc.x + fillOffsetX), -(loc.y + fillOffsetY));
+                    }
+                    else {
+                        c.translate(loc.x, loc.y);
+                        c.fill();
+                        c.translate(-loc.x, -loc.y);
+                    }
                 }
             }
-        }
-        if (model.setElementStroke(c, this)) {
-            c.stroke();
-        }
+            if (model.setElementStroke(c, this)) {
+                c.stroke();
+            }
+        });
         c.restore();
     }
 
@@ -243,7 +248,10 @@ export class EllipseElement extends ElementBase {
         const hit = c.isPointInPath(tx, ty);
         c.restore();
         c.restore();
-        return hit;
+        if (!hit) {
+            return false;
+        }
+        return this.isPointWithinClipPath(c, tx, ty);
     }
 
     /**

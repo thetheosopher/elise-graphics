@@ -1,4 +1,5 @@
 import { ElementCommandHandler } from '../command/element-command-handler';
+import { UndoManager, UndoState } from '../command/undo-manager';
 import { IController } from '../controller/controller';
 import { ControllerEvent, IControllerEvent } from '../controller/controller-event';
 import { ControllerEventArgs } from '../controller/controller-event-args';
@@ -40,6 +41,19 @@ import { DesignTool } from './tools/design-tool';
 const log = Logging.log;
 
 const EPSILON = 2e-23;
+
+interface UndoSelectionState {
+    id?: string;
+    index: number;
+    editPoints: boolean;
+}
+
+interface DesignUndoSnapshot {
+    model: Model;
+    selectedElements: UndoSelectionState[];
+    isDirty: boolean;
+    signature: string;
+}
 
 /**
  * Design controller for interactive element creation
@@ -334,6 +348,11 @@ export class DesignController implements IController {
     public isDirtyChanged: IControllerEvent<boolean> = new ControllerEvent<boolean>();
 
     /**
+     * Fired when undo/redo availability changes
+     */
+    public undoChanged: IControllerEvent<UndoState> = new ControllerEvent<UndoState>();
+
+    /**
      * Controlled model
      */
     public model?: Model;
@@ -352,6 +371,16 @@ export class DesignController implements IController {
      * Unsaved changed (dirty) flag
      */
     public isDirty: boolean;
+
+    /**
+     * True when an undo operation is available
+     */
+    public canUndo: boolean;
+
+    /**
+     * True when a redo operation is available
+     */
+    public canRedo: boolean;
 
     /**
      * Current mouse x position
@@ -638,12 +667,18 @@ export class DesignController implements IController {
      */
     public commandHandler?: ElementCommandHandler;
 
+    private undoManager: UndoManager<DesignUndoSnapshot>;
+    private restoringUndoState: boolean;
+    private pendingToolHistoryBaseline?: string;
+
     /**
      * Manages rendering and interaction with rendered model content
      */
     constructor() {
         this.setModel = this.setModel.bind(this);
         this.setEnabled = this.setEnabled.bind(this);
+        this.undo = this.undo.bind(this);
+        this.redo = this.redo.bind(this);
         this.addElement = this.addElement.bind(this);
         this.removeElement = this.removeElement.bind(this);
         this.removeSelected = this.removeSelected.bind(this);
@@ -731,6 +766,9 @@ export class DesignController implements IController {
         this.bindTarget = this.bindTarget.bind(this);
         this.onElementRotating = this.onElementRotating.bind(this);
         this.onElementRotated = this.onElementRotated.bind(this);
+        this.commitUndoSnapshot = this.commitUndoSnapshot.bind(this);
+        this.beginToolHistorySession = this.beginToolHistorySession.bind(this);
+        this.finalizeToolHistorySession = this.finalizeToolHistorySession.bind(this);
 
         this.enabled = true;
         this.scale = 1.0;
@@ -761,6 +799,10 @@ export class DesignController implements IController {
         this.largeJump = 10;
         this.rotationStartAngle = 0;
         this.originalRotation = 0;
+        this.canUndo = false;
+        this.canRedo = false;
+        this.undoManager = new UndoManager<DesignUndoSnapshot>();
+        this.restoringUndoState = false;
     }
 
     /**
@@ -842,6 +884,8 @@ export class DesignController implements IController {
                 }
             });
         }
+        this.pendingToolHistoryBaseline = undefined;
+        this.resetUndoHistory();
     }
 
     /**
@@ -875,6 +919,7 @@ export class DesignController implements IController {
     public clearActiveTool() {
         if (this.activeTool) {
             this.activeTool.cancel();
+            this.finalizeToolHistorySession();
             this.activeTool.controller = undefined;
             this.activeTool.model = undefined;
             this.activeTool = undefined;
@@ -885,6 +930,7 @@ export class DesignController implements IController {
         this.clearSelections();
         if (this.activeTool) {
             this.activeTool.cancel();
+            this.finalizeToolHistorySession();
             this.activeTool.controller = undefined;
             this.activeTool.model = undefined;
         }
@@ -909,6 +955,7 @@ export class DesignController implements IController {
         }
         this.onElementAdded(el);
         this.onModelUpdated();
+        this.commitUndoSnapshot();
         this.drawIfNeeded();
     }
 
@@ -923,6 +970,7 @@ export class DesignController implements IController {
                 this.onElementRemoved(el);
                 this.deselectElement(el);
                 this.onModelUpdated();
+                this.commitUndoSnapshot();
                 this.drawIfNeeded();
             }
         }
@@ -947,6 +995,7 @@ export class DesignController implements IController {
             self.selectedElements = [];
             self.onSelectionChanged();
             self.onModelUpdated();
+            self.commitUndoSnapshot();
             self.drawIfNeeded();
         }
     }
@@ -984,6 +1033,7 @@ export class DesignController implements IController {
                 if (success) {
                     self.onElementAdded(el);
                     self.onModelUpdated();
+                    self.commitUndoSnapshot();
                     self.drawIfNeeded();
                     if (callback) {
                         callback(el);
@@ -1121,7 +1171,34 @@ export class DesignController implements IController {
         this.elementDrop.clear();
         this.elementsReordered.clear();
         this.isDirtyChanged.clear();
+        this.undoChanged.clear();
         this.canvas = undefined;
+    }
+
+    public undo(): boolean {
+        if (!this.canApplyUndoRedo()) {
+            return false;
+        }
+        const snapshot = this.undoManager.undo();
+        if (!snapshot) {
+            this.updateUndoAvailability();
+            return false;
+        }
+        this.applyUndoSnapshot(snapshot);
+        return true;
+    }
+
+    public redo(): boolean {
+        if (!this.canApplyUndoRedo()) {
+            return false;
+        }
+        const snapshot = this.undoManager.redo();
+        if (!snapshot) {
+            this.updateUndoAvailability();
+            return false;
+        }
+        this.applyUndoSnapshot(snapshot);
+        return true;
     }
 
     /**
@@ -1330,6 +1407,7 @@ export class DesignController implements IController {
             // If it's creating and right button pressed, cancel and return
             if (this.activeTool.isCreating && button === 2) {
                 this.activeTool.cancel();
+                this.finalizeToolHistorySession();
                 e.preventDefault?.();
                 e.stopPropagation?.();
                 this.isMouseDown = false;
@@ -1339,6 +1417,9 @@ export class DesignController implements IController {
 
             // If not right mouse button, pass to tool
             if (button !== 2) {
+                if (!this.activeTool.isCreating) {
+                    this.beginToolHistorySession();
+                }
                 this.activeTool.mouseDown(new MouseLocationArgs(e, new Point(p.x, p.y)));
             }
 
@@ -2003,6 +2084,9 @@ export class DesignController implements IController {
         // If we have an active tool, then delegate and return
         if (this.activeTool) {
             this.activeTool.mouseUp(new MouseLocationArgs(e, new Point(p.x, p.y)));
+            if (!this.activeTool.isCreating) {
+                this.finalizeToolHistorySession();
+            }
             return;
         }
 
@@ -2155,6 +2239,7 @@ export class DesignController implements IController {
                 }
                 this.isMoving = false;
                 this.rotationCenter = undefined;
+                this.commitUndoSnapshot();
                 this.invalidate();
             } else if (this.isResizing) {
                 for (const selectedElement of this.selectedElements) {
@@ -2197,6 +2282,7 @@ export class DesignController implements IController {
                 this.sizeHandles = undefined;
                 this.isResizing = false;
                 this.rotationCenter = undefined;
+                this.commitUndoSnapshot();
                 this.invalidate();
                 this.canvas.style.cursor = 'crosshair';
             } else if (this.isMovingPoint && this.movingPointIndex !== undefined && this.movingPointLocation) {
@@ -2217,6 +2303,8 @@ export class DesignController implements IController {
                 this.sizeHandles = undefined;
                 this.isMovingPoint = false;
                 this.movingPointLocation = undefined;
+                this.setIsDirty(true);
+                this.commitUndoSnapshot();
                 this.invalidate();
                 this.canvas.style.cursor = 'crosshair';
             } else if (this.isRotating) {
@@ -2229,12 +2317,15 @@ export class DesignController implements IController {
                 this.isRotating = false;
                 this.rotationCenter = undefined;
                 this.originalTransform = undefined;
+                this.commitUndoSnapshot();
                 this.invalidate();
                 this.canvas.style.cursor = 'crosshair';
             } else if (this.isMovingPivot) {
                 this.originalPivotCenter = undefined;
                 this.sizeHandles = undefined;
                 this.isMovingPivot = false;
+                this.setIsDirty(true);
+                this.commitUndoSnapshot();
                 this.invalidate();
                 this.canvas.style.cursor = 'crosshair';
             }
@@ -2378,6 +2469,25 @@ export class DesignController implements IController {
         }
 
         switch (e.keyCode) {
+            case 90: // 'Z' key
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (e.shiftKey) {
+                        return this.redo();
+                    }
+                    return this.undo();
+                }
+                return false;
+
+            case 89: // 'Y' key
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return this.redo();
+                }
+                return false;
+
             case 37: // Left Arrow
                 if ((e.ctrlKey || e.metaKey) && e.shiftKey) {
                     this.nudgeSize(-this.largeJump, 0);
@@ -2448,6 +2558,7 @@ export class DesignController implements IController {
             case 27: // ESC key
                 if (this.activeTool) {
                     this.activeTool.cancel();
+                    this.finalizeToolHistorySession();
                 }
                 if (this.isMouseDown) {
                     this.cancelAction = true;
@@ -2767,6 +2878,10 @@ export class DesignController implements IController {
         });
         if (self.selectionChanged.hasListeners()) {
             self.selectionChanged.trigger(self, selected.length);
+        }
+        if (!self.restoringUndoState && self.model) {
+            self.undoManager.replaceCurrent(self.createUndoSnapshot());
+            self.updateUndoAvailability();
         }
         self.invalidate();
     }
@@ -3543,12 +3658,14 @@ export class DesignController implements IController {
             this.selectedElements = newSelected;
             this.onSelectionChanged();
             this.setIsDirty(true);
+            this.commitUndoSnapshot();
         }
     }
 
     public onElementsReordered() {
         this.elementsReordered.trigger(this, this.selectedElements);
         this.setIsDirty(true);
+        this.commitUndoSnapshot();
     }
 
     public moveElementToBottom(el: ElementBase) {
@@ -3603,6 +3720,10 @@ export class DesignController implements IController {
         if (isDirty !== this.isDirty) {
             this.isDirty = isDirty;
             this.isDirtyChanged.trigger(this, isDirty);
+            if (!this.restoringUndoState && !isDirty) {
+                this.undoManager.replaceCurrent(this.createUndoSnapshot());
+                this.updateUndoAvailability();
+            }
         }
     }
 
@@ -3831,6 +3952,7 @@ export class DesignController implements IController {
             }
         }
         this.onModelUpdated();
+        this.commitUndoSnapshot();
         this.drawIfNeeded();
     }
 
@@ -3924,6 +4046,7 @@ export class DesignController implements IController {
             }
         }
         this.onModelUpdated();
+        this.commitUndoSnapshot();
         this.drawIfNeeded();
     }
 
@@ -3978,6 +4101,267 @@ export class DesignController implements IController {
             this.gridColor = value;
             this.invalidate();
         }
+    }
+
+    private resetUndoHistory(): void {
+        if (!this.model) {
+            this.undoManager.clear();
+            this.updateUndoAvailability();
+            return;
+        }
+        this.undoManager.reset(this.createUndoSnapshot());
+        this.updateUndoAvailability();
+    }
+
+    private commitUndoSnapshot(): void {
+        if (this.restoringUndoState || !this.model) {
+            return;
+        }
+        this.undoManager.push(this.createUndoSnapshot());
+        this.updateUndoAvailability();
+    }
+
+    private beginToolHistorySession(): void {
+        if (!this.model || this.pendingToolHistoryBaseline !== undefined) {
+            return;
+        }
+        this.pendingToolHistoryBaseline = this.buildModelStateSignature(this.model);
+    }
+
+    private finalizeToolHistorySession(): void {
+        if (!this.model || this.pendingToolHistoryBaseline === undefined) {
+            return;
+        }
+        const baseline = this.pendingToolHistoryBaseline;
+        this.pendingToolHistoryBaseline = undefined;
+        if (this.buildModelStateSignature(this.model) !== baseline) {
+            this.onModelUpdated();
+            this.commitUndoSnapshot();
+            this.drawIfNeeded();
+        }
+    }
+
+    private canApplyUndoRedo(): boolean {
+        if (!this.model) {
+            return false;
+        }
+        if (
+            this.isMouseDown ||
+            this.isMoving ||
+            this.isResizing ||
+            this.isMovingPoint ||
+            this.isRotating ||
+            this.isMovingPivot
+        ) {
+            return false;
+        }
+        if (this.activeTool && this.activeTool.isCreating) {
+            return false;
+        }
+        return true;
+    }
+
+    private updateUndoAvailability(): void {
+        const canUndo = this.undoManager.canUndo;
+        const canRedo = this.undoManager.canRedo;
+        const changed = canUndo !== this.canUndo || canRedo !== this.canRedo;
+        this.canUndo = canUndo;
+        this.canRedo = canRedo;
+        if (changed) {
+            this.undoChanged.trigger(this, new UndoState(canUndo, canRedo));
+        }
+    }
+
+    private createUndoSnapshot(): DesignUndoSnapshot {
+        if (!this.model) {
+            throw new Error(ErrorMessages.ModelUndefined);
+        }
+        const model = this.cloneModelForUndo(this.model);
+        const selectedElements = this.selectedElements
+            .map((element) => this.createSelectionState(element))
+            .filter((value): value is UndoSelectionState => value !== undefined);
+        return {
+            model,
+            selectedElements,
+            isDirty: this.isDirty,
+            signature: this.buildUndoSignature(model, selectedElements, this.isDirty),
+        };
+    }
+
+    private createSelectionState(element: ElementBase): UndoSelectionState | undefined {
+        if (!this.model) {
+            return undefined;
+        }
+        const index = this.model.elements.indexOf(element);
+        if (index === -1) {
+            return undefined;
+        }
+        return {
+            id: element.id,
+            index,
+            editPoints: !!element.editPoints,
+        };
+    }
+
+    private buildUndoSignature(model: Model, selectedElements: UndoSelectionState[], isDirty: boolean): string {
+        const selectionSignature = selectedElements
+            .map((selection) => `${selection.id ?? ''}@${selection.index}:${selection.editPoints ? 1 : 0}`)
+            .join('|');
+        return `${this.buildModelStateSignature(model)}::${isDirty ? 1 : 0}::${selectionSignature}`;
+    }
+
+    private buildModelStateSignature(model: Model): string {
+        const interactiveSignature = model.elements
+            .map((element, index) => `${index}:${element.interactive ? 1 : 0}:${element.editPoints ? 1 : 0}`)
+            .join('|');
+        return `${model.rawJSON()}::${interactiveSignature}`;
+    }
+
+    private cloneModelForUndo(model: Model): Model {
+        const clone = model.clone();
+        clone.basePath = model.basePath;
+        clone.modelPath = model.modelPath;
+        clone.displayFPS = model.displayFPS;
+        clone.resourceManager.localResourcePath = model.resourceManager.localResourcePath;
+        clone.resourceManager.currentLocaleId = model.resourceManager.currentLocaleId;
+        clone.resourceManager.urlProxy = model.resourceManager.urlProxy;
+        clone.resources.forEach((resource) => {
+            resource.resourceManager = clone.resourceManager;
+        });
+        clone.elements.forEach((element, index) => {
+            const source = model.elements[index];
+            if (source) {
+                element.interactive = source.interactive;
+                element.editPoints = source.editPoints;
+            }
+            element.model = clone;
+        });
+        return clone;
+    }
+
+    private applyUndoSnapshot(snapshot: DesignUndoSnapshot): void {
+        if (!this.model) {
+            return;
+        }
+        this.restoringUndoState = true;
+        try {
+            const restoredModel = this.cloneModelForUndo(snapshot.model);
+            this.restoreModelState(this.model, restoredModel);
+            this.restoreSelectionState(snapshot.selectedElements);
+            this.resetTransientInteractionState();
+            this.setIsDirty(snapshot.isDirty);
+            this.modelUpdated.trigger(this, this.model);
+            this.invalidate();
+            this.drawIfNeeded();
+        } finally {
+            this.restoringUndoState = false;
+            this.updateUndoAvailability();
+        }
+    }
+
+    private restoreModelState(target: Model, source: Model): void {
+        target.type = source.type;
+        target.id = source.id;
+        target.sizeValue = source.sizeValue ? Size.parse(source.sizeValue) : undefined;
+        target.locationValue = source.locationValue ? Point.parse(source.locationValue) : undefined;
+        target.locked = source.locked;
+        target.aspectLocked = source.aspectLocked;
+        target.fill = this.cloneFillValue(source.fill);
+        target.fillScale = source.fillScale;
+        target.fillOffsetX = source.fillOffsetX;
+        target.fillOffsetY = source.fillOffsetY;
+        target.stroke = source.stroke;
+        target.opacity = source.opacity;
+        target.transform = source.transform;
+        target.clipPath = source.clipPath
+            ? {
+                  commands: source.clipPath.commands.slice(),
+                  winding: source.clipPath.winding,
+                  transform: source.clipPath.transform,
+                  units: source.clipPath.units,
+              }
+            : undefined;
+        target.mouseDown = source.mouseDown;
+        target.mouseUp = source.mouseUp;
+        target.mouseEnter = source.mouseEnter;
+        target.mouseLeave = source.mouseLeave;
+        target.click = source.click;
+        target.basePath = source.basePath;
+        target.modelPath = source.modelPath;
+        target.displayFPS = source.displayFPS;
+        target.resources = source.resources;
+        target.elements = source.elements;
+        target.resourceManager.model = target;
+        target.resourceManager.localResourcePath = source.resourceManager.localResourcePath;
+        target.resourceManager.currentLocaleId = source.resourceManager.currentLocaleId;
+        target.resourceManager.urlProxy = source.resourceManager.urlProxy;
+        target.resourceManager.pendingResources = [];
+        target.resourceManager.pendingResourceCount = 0;
+        target.resourceManager.totalResourceCount = target.resources.length;
+        target.resourceManager.numberLoaded = 0;
+        target.resourceManager.resourceFailed = false;
+        target.resourceManager.completionCallback = undefined;
+        target.resources.forEach((resource) => {
+            resource.resourceManager = target.resourceManager;
+        });
+        target.elements.forEach((element) => {
+            element.model = target;
+        });
+    }
+
+    private cloneFillValue(fill: ElementBase['fill']): ElementBase['fill'] {
+        if (!fill || typeof fill === 'string') {
+            return fill;
+        }
+        if ('clone' in fill && typeof fill.clone === 'function') {
+            return fill.clone();
+        }
+        return fill;
+    }
+
+    private restoreSelectionState(selectionStates: UndoSelectionState[]): void {
+        if (!this.model) {
+            return;
+        }
+        this.selectedElements = [];
+        this.model.elements.forEach((element) => {
+            element.editPoints = false;
+        });
+        selectionStates.forEach((selection) => {
+            let element: ElementBase | undefined;
+            if (selection.id) {
+                element = this.model?.elements.find((candidate) => candidate.id === selection.id);
+            }
+            if (!element) {
+                element = this.model?.elements[selection.index];
+            }
+            if (element && !this.isSelected(element)) {
+                element.editPoints = selection.editPoints;
+                this.selectedElements.push(element);
+            }
+        });
+        this.onSelectionChanged();
+    }
+
+    private resetTransientInteractionState(): void {
+        this.isMouseDown = false;
+        this.isMoving = false;
+        this.isResizing = false;
+        this.isRotating = false;
+        this.isMovingPivot = false;
+        this.isMovingPoint = false;
+        this.mouseDownPosition = undefined;
+        this.currentWidth = 0;
+        this.currentHeight = 0;
+        this.rotationCenter = undefined;
+        this.originalPivotCenter = undefined;
+        this.originalTransform = undefined;
+        this.movingPointIndex = undefined;
+        this.movingPointLocation = undefined;
+        this.sizeHandles = undefined;
+        this.clearElementMoveLocations();
+        this.clearElementResizeSizes();
+        this.pendingToolHistoryBaseline = undefined;
     }
 
     /**

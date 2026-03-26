@@ -60,10 +60,26 @@ test('rectangle serialize/parse round-trip', () => {
 test('rectangle clone', () => {
     const rect = RectangleElement.create(10, 20, 100, 200);
     rect.setFill('Blue');
+    rect.setClipPath({ commands: ['m0,0', 'l1,0', 'l1,1', 'z'], units: 'objectBoundingBox' });
     const cloned = rect.clone() as RectangleElement;
     expect(cloned.fill).toBe('Blue');
+    expect(cloned.clipPath).toBeDefined();
+    expect(cloned.clipPath!.commands).toEqual(['m0,0', 'l1,0', 'l1,1', 'z']);
     expect(cloned.getLocation()!.x).toBe(10);
     expect(cloned.getSize()!.width).toBe(100);
+});
+
+test('rectangle serialize/parse preserves clip path', () => {
+    const rect = RectangleElement.create(10, 20, 100, 200);
+    rect.setClipPath({ commands: ['m0,0', 'l1,0', 'l1,1', 'z'], units: 'objectBoundingBox' });
+
+    const serialized = rect.serialize();
+    const parsed = new RectangleElement();
+    parsed.parse(serialized);
+
+    expect(parsed.clipPath).toBeDefined();
+    expect(parsed.clipPath!.commands).toEqual(['m0,0', 'l1,0', 'l1,1', 'z']);
+    expect(parsed.clipPath!.units).toBe('objectBoundingBox');
 });
 
 test('rectangle set location and size', () => {
@@ -267,7 +283,7 @@ test('path serialize/parse round-trip', () => {
     path.setFill('Green');
     const serialized = path.serialize();
     expect(serialized.type).toBe('path');
-    expect(serialized.commands).toContain('m(10,20)');
+    expect(serialized.commands).toContain('m10,20');
 
     const parsed = new PathElement();
     parsed.parse(serialized);
@@ -278,6 +294,142 @@ test('path setCommands', () => {
     const path = PathElement.create();
     path.setCommands('m(0,0) l(50,0) l(50,50) z');
     expect(path.pointCount()).toBe(3);
+});
+
+test('path fromSVGPath normalizes horizontal, vertical, and close commands', () => {
+    const path = PathElement.fromSVGPath('M 10 20 H 30 V 40 z');
+
+    expect(path.getCommands()).toEqual(['m10,20', 'l30,20', 'l30,40', 'z']);
+    expect(path.pointCount()).toBe(3);
+});
+
+test('path fromSVGPath normalizes quadratic and smooth quadratic commands into cubics', () => {
+    const path = PathElement.fromSVGPath('M 0 0 Q 10 10 20 0 T 40 0');
+    const commands = path.getCommands();
+
+    expect(commands).toBeDefined();
+    expect(commands![0]).toBe('m0,0');
+    expect(commands![1].charAt(0)).toBe('c');
+    expect(commands![2].charAt(0)).toBe('c');
+    expect(path.pointCount()).toBe(7);
+});
+
+test('path fromSVGPath normalizes smooth cubic commands into explicit cubics', () => {
+    const path = PathElement.fromSVGPath('M 0 0 C 10 0 20 10 30 10 S 50 20 60 0');
+    const commands = path.getCommands();
+
+    expect(commands).toBeDefined();
+    expect(commands).toHaveLength(3);
+    expect(commands![1].charAt(0)).toBe('c');
+    expect(commands![2].charAt(0)).toBe('c');
+});
+
+test('path fromSVGPath normalizes arcs into cubic segments', () => {
+    const path = PathElement.fromSVGPath('M 0 0 A 10 10 0 0 1 20 0');
+    const commands = path.getCommands();
+
+    expect(commands).toBeDefined();
+    expect(commands![0]).toBe('m0,0');
+    expect(commands!.slice(1).every((command) => command.charAt(0) === 'c')).toBe(true);
+    expect(path.pointCount()).toBeGreaterThan(1);
+});
+
+test('path fromSVGPath normalizes relative arcs into cubic segments', () => {
+    const path = PathElement.fromSVGPath('M 5 5 a 10 10 0 0 0 20 0');
+    const commands = path.getCommands();
+
+    expect(commands).toBeDefined();
+    expect(commands![0]).toBe('m5,5');
+    expect(commands!.slice(1).every((command) => command.charAt(0) === 'c')).toBe(true);
+});
+
+test('path setCommands normalizes mixed legacy and SVG commands', () => {
+    const path = PathElement.create();
+    path.setCommands('m(0,0) l(10,0) h 5 q 5 5 10 0 t 10 -5 z');
+    const commands = path.getCommands();
+
+    expect(commands).toBeDefined();
+    expect(commands![0]).toBe('m0,0');
+    expect(commands![1]).toBe('l10,0');
+    expect(commands![2]).toBe('l15,0');
+    expect(commands![3].charAt(0)).toBe('c');
+    expect(commands![4].charAt(0)).toBe('c');
+    expect(commands![5]).toBe('z');
+});
+
+test('path translate preserves close commands', () => {
+    const path = PathElement.fromSVGPath('M 10 20 L 30 20 L 30 40 Z');
+    path.translate(5, 5);
+
+    expect(path.getCommands()).toEqual(['m15,25', 'l35,25', 'l35,45', 'z']);
+});
+
+test('path scale preserves close commands', () => {
+    const path = PathElement.fromSVGPath('M 10 20 L 30 20 L 30 40 Z');
+    path.scale(2, 2);
+
+    expect(path.getCommands()).toEqual(['m10,20', 'l50,20', 'l50,60', 'z']);
+});
+
+test('path getBounds handles coordinates at zero correctly', () => {
+    const path = PathElement.fromSVGPath('M 0 0 L 10 0 L 10 5 L 0 5 Z');
+    const bounds = path.getBounds();
+
+    expect(bounds).toBeDefined();
+    expect(bounds!.x).toBe(0);
+    expect(bounds!.y).toBe(0);
+    expect(bounds!.width).toBe(10);
+    expect(bounds!.height).toBe(5);
+});
+
+test('path getBounds includes cubic control points in bounding region', () => {
+    const path = PathElement.fromSVGPath('M 100 350 Q 250 50 400 350');
+    const bounds = path.getBounds();
+
+    expect(bounds).toBeDefined();
+    expect(bounds!.x).toBe(100);
+    expect(bounds!.y).toBeLessThan(350);
+    expect(bounds!.height).toBeGreaterThan(0);
+    expect(bounds!.width).toBe(300);
+});
+
+test('path setSize does not corrupt commands when bounds height is zero', () => {
+    const path = PathElement.fromSVGPath('M 100 200 L 300 200');
+    const bounds = path.getBounds();
+    expect(bounds!.height).toBe(0);
+
+    path.setSize('100x50');
+
+    const commands = path.getCommands();
+    expect(commands).toBeDefined();
+    const newBounds = path.getBounds();
+    expect(newBounds).toBeDefined();
+    expect(newBounds!.width).toBeCloseTo(100, 1);
+});
+
+test('path setSize does not corrupt commands when bounds width is zero', () => {
+    const path = PathElement.fromSVGPath('M 200 100 L 200 300');
+    const bounds = path.getBounds();
+    expect(bounds!.width).toBe(0);
+
+    path.setSize('50x100');
+
+    const commands = path.getCommands();
+    expect(commands).toBeDefined();
+    const newBounds = path.getBounds();
+    expect(newBounds).toBeDefined();
+    expect(newBounds!.height).toBeCloseTo(100, 1);
+});
+
+test('path nudgeSize does not corrupt commands when bounds height is zero', () => {
+    const path = PathElement.fromSVGPath('M 100 200 L 300 200');
+
+    path.nudgeSize(10, 10);
+
+    const commands = path.getCommands();
+    expect(commands).toBeDefined();
+    const bounds = path.getBounds();
+    expect(bounds).toBeDefined();
 });
 
 // --- PolygonElement ---

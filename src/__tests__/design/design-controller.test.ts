@@ -1,4 +1,7 @@
 import { DesignController } from '../../design/design-controller';
+import { Model } from '../../core/model';
+import { RectangleElement } from '../../elements/rectangle-element';
+import { RectangleTool } from '../../design/tools/rectangle-tool';
 
 function installFakeWindow() {
     const globals = globalThis as unknown as { window?: any };
@@ -79,6 +82,18 @@ function installDesignSurface(controller: DesignController) {
     return { scrollContainer };
 }
 
+function installCanvasOnly(controller: DesignController) {
+    controller.canvas = {
+        width: 100,
+        height: 100,
+        style: { cursor: 'default', touchAction: 'none' },
+        parentElement: { style: {} } as unknown as HTMLDivElement,
+        getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 }),
+        getContext: () => ({}) as CanvasRenderingContext2D,
+    } as unknown as HTMLCanvasElement;
+    controller.draw = jest.fn();
+}
+
 describe('design controller touch support', () => {
     afterEach(() => {
         jest.restoreAllMocks();
@@ -146,5 +161,109 @@ describe('design controller touch support', () => {
         expect(controller.gestureStartScale).toBeUndefined();
 
         fakeWindowScope.restore();
+    });
+});
+
+describe('design controller undo and redo', () => {
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
+    test('undo and redo restore added elements', () => {
+        const controller = new DesignController();
+        const model = Model.create(100, 100);
+        installCanvasOnly(controller);
+        controller.setModel(model);
+
+        const rectangle = RectangleElement.create(10, 10, 20, 15).setInteractive(true);
+        controller.addElement(rectangle);
+
+        expect(model.elements).toHaveLength(1);
+        expect(controller.canUndo).toBe(true);
+        expect(controller.canRedo).toBe(false);
+
+        controller.undo();
+
+        expect(model.elements).toHaveLength(0);
+        expect(controller.canUndo).toBe(false);
+        expect(controller.canRedo).toBe(true);
+
+        controller.redo();
+
+        expect(model.elements).toHaveLength(1);
+        expect(model.elements[0].getBounds()?.x).toBe(10);
+        expect(controller.canUndo).toBe(true);
+        expect(controller.canRedo).toBe(false);
+    });
+
+    test('undo restores nudged selection location', () => {
+        const controller = new DesignController();
+        const model = Model.create(100, 100);
+        const rectangle = RectangleElement.create(10, 10, 20, 15).setInteractive(true);
+        model.add(rectangle);
+        installCanvasOnly(controller);
+        controller.setModel(model);
+        controller.selectElement(rectangle);
+
+        controller.nudgeLocation(5, 7);
+
+        expect(model.elements[0].getBounds()?.x).toBe(15);
+        expect(model.elements[0].getBounds()?.y).toBe(17);
+
+        controller.undo();
+
+        expect(model.elements[0].getBounds()?.x).toBe(10);
+        expect(model.elements[0].getBounds()?.y).toBe(10);
+        expect(controller.selectedElements).toHaveLength(1);
+    });
+
+    test('tool-created elements become undoable when creation commits', () => {
+        const controller = new DesignController();
+        const model = Model.create(100, 100);
+        installCanvasOnly(controller);
+        controller.setModel(model);
+        const fakeWindowScope = installFakeWindow();
+
+        controller.setActiveTool(new RectangleTool());
+        controller.onCanvasMouseDown({ button: 0, clientX: 10, clientY: 10 });
+        controller.onCanvasMouseMove({ button: 0, clientX: 40, clientY: 30 });
+        controller.onCanvasMouseUp({ button: 0, clientX: 40, clientY: 30 });
+
+        expect(model.elements).toHaveLength(1);
+        expect(controller.canUndo).toBe(true);
+
+        controller.undo();
+
+        expect(model.elements).toHaveLength(0);
+
+        fakeWindowScope.restore();
+    });
+
+    test('keyboard shortcuts route to undo and redo', () => {
+        const controller = new DesignController();
+        const undoSpy = jest.spyOn(controller, 'undo').mockReturnValue(true);
+        const redoSpy = jest.spyOn(controller, 'redo').mockReturnValue(true);
+
+        const ctrlZ = {
+            keyCode: 90,
+            ctrlKey: true,
+            metaKey: false,
+            shiftKey: false,
+            preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+        } as unknown as KeyboardEvent;
+        const ctrlY = {
+            keyCode: 89,
+            ctrlKey: true,
+            metaKey: false,
+            shiftKey: false,
+            preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+        } as unknown as KeyboardEvent;
+
+        expect(controller.onCanvasKeyDown(ctrlZ)).toBe(true);
+        expect(controller.onCanvasKeyDown(ctrlY)).toBe(true);
+        expect(undoSpy).toHaveBeenCalledTimes(1);
+        expect(redoSpy).toHaveBeenCalledTimes(1);
     });
 });

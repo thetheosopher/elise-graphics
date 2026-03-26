@@ -16,6 +16,7 @@ import type { SerializedData } from './serialization';
 import { Size } from './size';
 import { StrokeInfo } from './stroke-info';
 import { Utility } from './utility';
+import { SVGExporter } from '../svg/svg-exporter';
 
 type BlobExportCallback = (blob: Blob | null) => void;
 
@@ -201,6 +202,7 @@ export class Model extends ElementBase {
         this.toJPEGBlobAsync = this.toJPEGBlobAsync.bind(this);
         this.toWebPBlobAsync = this.toWebPBlobAsync.bind(this);
         this.downloadAs = this.downloadAs.bind(this);
+        this.toSVG = this.toSVG.bind(this);
         this.prepareResources = this.prepareResources.bind(this);
         this.setElementStroke = this.setElementStroke.bind(this);
         this.setRenderTransform = this.setRenderTransform.bind(this);
@@ -506,6 +508,14 @@ export class Model extends ElementBase {
 
         link.href = fallbackHref;
         link.click();
+    }
+
+    /**
+     * Exports model content as SVG markup.
+     * @returns SVG markup string
+     */
+    public toSVG(): string {
+        return SVGExporter.exportModel(this);
     }
 
     /**

@@ -175,3 +175,39 @@ test('surface downloadAs uses blob url when available', () => {
         configurable: true,
     });
 });
+
+test('html layer defaults to sandbox permissions without allow-same-origin', () => {
+    const iframe = {
+        setAttribute: jest.fn(),
+        style: {},
+        scrolling: '',
+    } as unknown as HTMLIFrameElement;
+    const documentScope = installFakeDocument({ iframe });
+    const surface = new Surface(100, 50, 'surface-export', 2);
+    const layer = SurfaceHtmlLayer.create('html', 10, 20, 30, 40, 'about:blank');
+
+    layer.addToSurface(surface);
+
+    expect(iframe.setAttribute).toHaveBeenNthCalledWith(1, 'id', 'html_iframe');
+    expect(iframe.setAttribute).toHaveBeenNthCalledWith(2, 'sandbox', 'allow-forms allow-popups allow-scripts');
+
+    documentScope.restore();
+});
+
+test('html layer allows custom sandbox permissions when explicitly configured', () => {
+    const iframe = {
+        setAttribute: jest.fn(),
+        style: {},
+        scrolling: '',
+    } as unknown as HTMLIFrameElement;
+    const documentScope = installFakeDocument({ iframe });
+    const surface = new Surface(100, 50, 'surface-export', 1);
+    const layer = SurfaceHtmlLayer.create('html', 0, 0, 10, 10, 'about:blank');
+    layer.sandboxPermissions = ['allow-forms', 'allow-same-origin'];
+
+    layer.addToSurface(surface);
+
+    expect(iframe.setAttribute).toHaveBeenNthCalledWith(2, 'sandbox', 'allow-forms allow-same-origin');
+
+    documentScope.restore();
+});

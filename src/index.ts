@@ -2,6 +2,7 @@ import { CommandEventTrigger } from './command/command-event-trigger';
 import { ElementCommand } from './command/element-command';
 import { ElementCommandHandler } from './command/element-command-handler';
 import { ElementCommandHandlerRegistration } from './command/element-command-handler-registration';
+import { UndoManager, UndoState } from './command/undo-manager';
 import { ControllerEvent } from './controller/controller-event';
 import { ControllerEventArgs } from './controller/controller-event-args';
 import { AnimationEasing } from './animation/animation-easing';
@@ -108,6 +109,9 @@ import { UrlProxy } from './resource/url-proxy';
 
 import { Sketcher } from './sketcher/sketcher';
 
+import { SVGExporter } from './svg/svg-exporter';
+import { SVGImporter } from './svg/svg-importer';
+
 import { PaneTransition } from './surface/pane-transitions/pane-transition';
 import { PaneTransitionDirection } from './surface/pane-transitions/pane-transition-direction';
 import { PaneTransitionFade } from './surface/pane-transitions/pane-transition-fade';
@@ -151,6 +155,7 @@ export { CommandEventTrigger } from './command/command-event-trigger';
 export { ElementCommand } from './command/element-command';
 export { ElementCommandHandler } from './command/element-command-handler';
 export { ElementCommandHandlerRegistration } from './command/element-command-handler-registration';
+export { UndoManager, UndoState } from './command/undo-manager';
 export { ControllerEvent } from './controller/controller-event';
 export { ControllerEventArgs } from './controller/controller-event-args';
 export { Color } from './core/color';
@@ -255,6 +260,9 @@ export { TextResource } from './resource/text-resource';
 export { UrlProxy } from './resource/url-proxy';
 
 export { Sketcher } from './sketcher/sketcher';
+
+export { SVGExporter } from './svg/svg-exporter';
+export { SVGImporter } from './svg/svg-importer';
 
 export { PaneTransition } from './surface/pane-transitions/pane-transition';
 export { PaneTransitionDirection } from './surface/pane-transitions/pane-transition-direction';
@@ -401,6 +409,8 @@ export default {
     DesignController: DesignController,
     DesignRenderer: DesignRenderer,
     DesignTool: DesignTool,
+    UndoManager: UndoManager,
+    UndoState: UndoState,
     ElementAnimator: ElementAnimator,
     ElementBase: ElementBase,
     ElementTween: ElementTween,
@@ -482,6 +492,8 @@ export default {
     Size: Size,
     SizeArgs: SizeArgs,
     Sketcher: Sketcher,
+    SVGExporter: SVGExporter,
+    SVGImporter: SVGImporter,
     SpriteElement: SpriteElement,
     SpriteFrame: SpriteFrame,
     SpriteState: SpriteState,

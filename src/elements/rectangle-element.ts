@@ -82,23 +82,25 @@ export class RectangleElement extends ElementBase {
             model.setRenderTransform(c, this.transform, bounds.location);
         }
         this.applyRenderOpacity(c);
-        if (FillFactory.setElementFill(c, this)) {
-            if (this.fillOffsetX || this.fillOffsetY) {
-                const fillOffsetX = this.fillOffsetX || 0;
-                const fillOffsetY = this.fillOffsetY || 0;
-                c.translate(x + fillOffsetX, y + fillOffsetY);
-                c.fillRect(-fillOffsetX, -fillOffsetY, w, h);
-                c.translate(-(x + fillOffsetX), -(y + fillOffsetY));
+        this.withClipPath(c, () => {
+            if (FillFactory.setElementFill(c, this)) {
+                if (this.fillOffsetX || this.fillOffsetY) {
+                    const fillOffsetX = this.fillOffsetX || 0;
+                    const fillOffsetY = this.fillOffsetY || 0;
+                    c.translate(x + fillOffsetX, y + fillOffsetY);
+                    c.fillRect(-fillOffsetX, -fillOffsetY, w, h);
+                    c.translate(-(x + fillOffsetX), -(y + fillOffsetY));
+                }
+                else {
+                    c.translate(x, y);
+                    c.fillRect(0, 0, w, h);
+                    c.translate(-x, -y);
+                }
             }
-            else {
-                c.translate(x, y);
-                c.fillRect(0, 0, w, h);
-                c.translate(-x, -y);
+            if (model.setElementStroke(c, this)) {
+                c.strokeRect(x, y, w, h);
             }
-        }
-        if (model.setElementStroke(c, this)) {
-            c.strokeRect(x, y, w, h);
-        }
+        });
         c.restore();
     }
 

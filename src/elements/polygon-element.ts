@@ -182,6 +182,7 @@ export class PolygonElement extends ElementBase implements IPointContainer {
         if (!this._points) {
             throw new Error(ErrorMessages.NoPointsAreDefined);
         }
+        const points = this._points;
         const bounds = this.getBounds();
         if (!bounds) {
             throw new Error(ErrorMessages.BoundsAreUndefined);
@@ -191,42 +192,44 @@ export class PolygonElement extends ElementBase implements IPointContainer {
             model.setRenderTransform(c, this.transform, bounds.location);
         }
         this.applyRenderOpacity(c);
-        c.beginPath();
-        c.moveTo(this._points[0].x, this._points[0].y);
-        const pl = this._points.length;
-        for (let i = 1; i < pl; i++) {
-            const p: Point = this._points[i];
-            c.lineTo(p.x, p.y);
-        }
-        c.closePath();
-        if (FillFactory.setElementFill(c, this)) {
-            const loc = bounds.location;
-            if (this.fillOffsetX || this.fillOffsetY) {
-                const fillOffsetX = this.fillOffsetX || 0;
-                const fillOffsetY = this.fillOffsetY || 0;
-                c.translate(loc.x + fillOffsetX, loc.y + fillOffsetY);
-                if (this._winding && this._winding === WindingMode.EvenOdd) {
-                    c.fill('evenodd');
+        this.withClipPath(c, () => {
+            c.beginPath();
+            c.moveTo(points[0].x, points[0].y);
+            const pl = points.length;
+            for (let i = 1; i < pl; i++) {
+                const p: Point = points[i];
+                c.lineTo(p.x, p.y);
+            }
+            c.closePath();
+            if (FillFactory.setElementFill(c, this)) {
+                const loc = bounds.location;
+                if (this.fillOffsetX || this.fillOffsetY) {
+                    const fillOffsetX = this.fillOffsetX || 0;
+                    const fillOffsetY = this.fillOffsetY || 0;
+                    c.translate(loc.x + fillOffsetX, loc.y + fillOffsetY);
+                    if (this._winding && this._winding === WindingMode.EvenOdd) {
+                        c.fill('evenodd');
+                    }
+                    else {
+                        c.fill('nonzero');
+                    }
+                    c.translate(-(loc.x + fillOffsetX), -(loc.y + fillOffsetY));
                 }
                 else {
-                    c.fill('nonzero');
+                    c.translate(loc.x, loc.y);
+                    if (this._winding && this._winding === WindingMode.EvenOdd) {
+                        c.fill('evenodd');
+                    }
+                    else {
+                        c.fill('nonzero');
+                    }
+                    c.translate(-loc.x, -loc.y);
                 }
-                c.translate(-(loc.x + fillOffsetX), -(loc.y + fillOffsetY));
             }
-            else {
-                c.translate(loc.x, loc.y);
-                if (this._winding && this._winding === WindingMode.EvenOdd) {
-                    c.fill('evenodd');
-                }
-                else {
-                    c.fill('nonzero');
-                }
-                c.translate(-loc.x, -loc.y);
+            if (model.setElementStroke(c, this)) {
+                c.stroke();
             }
-        }
-        if (model.setElementStroke(c, this)) {
-            c.stroke();
-        }
+        });
         c.restore();
     }
 
@@ -268,7 +271,10 @@ export class PolygonElement extends ElementBase implements IPointContainer {
             hit = c.isPointInPath(tx, ty, 'nonzero');
         }
         c.restore();
-        return hit;
+        if (!hit) {
+            return false;
+        }
+        return this.isPointWithinClipPath(c, tx, ty);
     }
 
     /**

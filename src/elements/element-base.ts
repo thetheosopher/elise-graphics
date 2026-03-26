@@ -7,6 +7,7 @@ import { Region } from '../core/region';
 import type { SerializedData } from '../core/serialization';
 import type { ScalingInfo } from '../core/scaling-info';
 import { Size } from '../core/size';
+import { WindingMode } from '../core/winding-mode';
 import { ElementAnimator, ElementTween, type TweenOptions, type TweenPropertyName, type TweenTargetValues } from '../animation/element-tween';
 import { LinearGradientFill } from '../fill/linear-gradient-fill';
 import { RadialGradientFill } from '../fill/radial-gradient-fill';
@@ -24,6 +25,13 @@ export interface ElementModel {
 
 interface ElementResourceManager {
     register(key: string): void;
+}
+
+export interface ElementClipPath {
+    commands: string[];
+    winding?: WindingMode;
+    transform?: string;
+    units?: 'userSpaceOnUse' | 'objectBoundingBox';
 }
 
 /**
@@ -89,6 +97,11 @@ export class ElementBase implements IPointContainer {
      * Transform property
      */
     public transform?: string;
+
+    /**
+     * Optional clip path geometry applied during rendering and export.
+     */
+    public clipPath?: ElementClipPath;
 
     /**
      * Should element support interaction
@@ -195,6 +208,7 @@ export class ElementBase implements IPointContainer {
         this.setFillOffsetY = this.setFillOffsetY.bind(this);
         this.setFillScale = this.setFillScale.bind(this);
         this.setInteractive = this.setInteractive.bind(this);
+        this.setClipPath = this.setClipPath.bind(this);
         this.setLocation = this.setLocation.bind(this);
         this.setOpacity = this.setOpacity.bind(this);
         this.setPointAt = this.setPointAt.bind(this);
@@ -202,6 +216,8 @@ export class ElementBase implements IPointContainer {
         this.setStroke = this.setStroke.bind(this);
         this.setTransform = this.setTransform.bind(this);
         this.applyRenderOpacity = this.applyRenderOpacity.bind(this);
+        this.withClipPath = this.withClipPath.bind(this);
+        this.isPointWithinClipPath = this.isPointWithinClipPath.bind(this);
         this.animate = this.animate.bind(this);
         this.cancelAnimations = this.cancelAnimations.bind(this);
         this.toString = this.toString.bind(this);
@@ -361,6 +377,19 @@ export class ElementBase implements IPointContainer {
         if (o.transform) {
             this.transform = o.transform as string;
         }
+        if (o.clipPath) {
+            const clipPathValue = o.clipPath as { commands?: string | string[]; winding?: WindingMode; transform?: string; units?: 'userSpaceOnUse' | 'objectBoundingBox' };
+            if (clipPathValue.commands) {
+                this.clipPath = {
+                    commands: Array.isArray(clipPathValue.commands)
+                        ? clipPathValue.commands.slice()
+                        : String(clipPathValue.commands).trim().split(/\s+/),
+                    winding: clipPathValue.winding,
+                    transform: clipPathValue.transform,
+                    units: clipPathValue.units,
+                };
+            }
+        }
         if (o.mouseDown) {
             this.mouseDown = o.mouseDown as string;
             this.interactive = true;
@@ -435,6 +464,14 @@ export class ElementBase implements IPointContainer {
         if (this.transform) {
             o.transform = this.transform;
         }
+        if (this.clipPath) {
+            o.clipPath = {
+                commands: this.clipPath.commands.join(' '),
+                winding: this.clipPath.winding,
+                transform: this.clipPath.transform,
+                units: this.clipPath.units,
+            };
+        }
         if (this.mouseDown) {
             o.mouseDown = this.mouseDown;
         }
@@ -504,6 +541,14 @@ export class ElementBase implements IPointContainer {
         e.opacity = this.opacity;
         if (this.transform) {
             e.transform = this.transform;
+        }
+        if (this.clipPath) {
+            e.clipPath = {
+                commands: this.clipPath.commands.slice(),
+                winding: this.clipPath.winding,
+                transform: this.clipPath.transform,
+                units: this.clipPath.units,
+            };
         }
         if (this.mouseDown) {
             e.mouseDown = this.mouseDown;
@@ -712,9 +757,12 @@ export class ElementBase implements IPointContainer {
         }
         c.beginPath();
         c.rect(x, y, w, h);
-        const hit = c.isPointInPath(tx, ty);
+        let hit = c.isPointInPath(tx, ty);
         c.closePath();
         c.restore();
+        if (hit) {
+            hit = this.isPointWithinClipPath(c, tx, ty);
+        }
         return hit;
     }
 
@@ -912,6 +960,26 @@ export class ElementBase implements IPointContainer {
     }
 
     /**
+     * Sets an optional clip path applied to this element.
+     * @param clipPath - Clip path description
+     * @returns This element
+     */
+    public setClipPath(clipPath: ElementClipPath | undefined) {
+        if (!clipPath) {
+            this.clipPath = undefined;
+        }
+        else {
+            this.clipPath = {
+                commands: clipPath.commands.slice(),
+                winding: clipPath.winding,
+                transform: clipPath.transform,
+                units: clipPath.units,
+            };
+        }
+        return this;
+    }
+
+    /**
      * Sets element opacity in the range of 0-1.
      * @param opacity - Rendering opacity
      * @returns This element
@@ -949,6 +1017,107 @@ export class ElementBase implements IPointContainer {
         }
         else if (this.opacity <= 0) {
             c.globalAlpha = 0;
+        }
+    }
+
+    /**
+     * Executes drawing commands within this element's clip path if one exists.
+     * @param c - Rendering context
+     * @param drawAction - Drawing callback executed within the clip
+     */
+    protected withClipPath(c: CanvasRenderingContext2D, drawAction: () => void): void {
+        if (!this.clipPath || !this.model) {
+            drawAction();
+            return;
+        }
+
+        const bounds = this.getBounds();
+        if (!bounds) {
+            drawAction();
+            return;
+        }
+
+        c.save();
+        if (this.clipPath.units === 'objectBoundingBox') {
+            c.translate(bounds.x, bounds.y);
+            c.scale(bounds.width, bounds.height);
+        }
+        if (this.clipPath.transform) {
+            this.model.setRenderTransform(c, this.clipPath.transform, bounds.location);
+        }
+        c.beginPath();
+        ElementBase.tracePathCommands(c, this.clipPath.commands);
+        if (this.clipPath.winding === WindingMode.EvenOdd) {
+            c.clip('evenodd');
+        }
+        else {
+            c.clip('nonzero');
+        }
+        drawAction();
+        c.restore();
+    }
+
+    /**
+     * Determines whether a point is inside this element's clip path.
+     * @param c - Rendering context
+     * @param tx - X coordinate
+     * @param ty - Y coordinate
+     * @returns True when the point is inside the clip path or no clip exists
+     */
+    protected isPointWithinClipPath(c: CanvasRenderingContext2D, tx: number, ty: number): boolean {
+        if (!this.clipPath || !this.model) {
+            return true;
+        }
+
+        const bounds = this.getBounds();
+        if (!bounds) {
+            return true;
+        }
+
+        c.save();
+        if (this.transform) {
+            this.model.setRenderTransform(c, this.transform, bounds.location);
+        }
+        if (this.clipPath.units === 'objectBoundingBox') {
+            c.translate(bounds.x, bounds.y);
+            c.scale(bounds.width, bounds.height);
+        }
+        if (this.clipPath.transform) {
+            this.model.setRenderTransform(c, this.clipPath.transform, bounds.location);
+        }
+        c.beginPath();
+        ElementBase.tracePathCommands(c, this.clipPath.commands);
+        const hit = this.clipPath.winding === WindingMode.EvenOdd
+            ? c.isPointInPath(tx, ty, 'evenodd')
+            : c.isPointInPath(tx, ty, 'nonzero');
+        c.restore();
+        return hit;
+    }
+
+    private static tracePathCommands(c: CanvasRenderingContext2D, commands: string[]): void {
+        for (const command of commands) {
+            if (command.charAt(0) === 'm') {
+                const point = Point.parse(command.substring(1));
+                c.moveTo(point.x, point.y);
+            }
+            else if (command.charAt(0) === 'l') {
+                const point = Point.parse(command.substring(1));
+                c.lineTo(point.x, point.y);
+            }
+            else if (command.charAt(0) === 'c') {
+                const parts = command.substring(1).split(',');
+                c.bezierCurveTo(
+                    parseFloat(parts[0]),
+                    parseFloat(parts[1]),
+                    parseFloat(parts[2]),
+                    parseFloat(parts[3]),
+                    parseFloat(parts[4]),
+                    parseFloat(parts[5])
+                );
+            }
+            else if (command.charAt(0) === 'z') {
+                c.closePath();
+            }
         }
     }
 

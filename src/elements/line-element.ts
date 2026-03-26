@@ -187,17 +187,21 @@ export class LineElement extends ElementBase implements IPointContainer {
         if (!this._p1 || !this._p2) {
             throw new Error(ErrorMessages.PointsAreInvalid);
         }
+        const p1 = this._p1;
+        const p2 = this._p2;
         c.save();
         if (this.transform) {
-            model.setRenderTransform(c, this.transform, this._p1);
+            model.setRenderTransform(c, this.transform, p1);
         }
         this.applyRenderOpacity(c);
-        c.beginPath();
-        c.moveTo(this._p1.x, this._p1.y);
-        c.lineTo(this._p2.x, this._p2.y);
-        if (model.setElementStroke(c, this)) {
-            c.stroke();
-        }
+        this.withClipPath(c, () => {
+            c.beginPath();
+            c.moveTo(p1.x, p1.y);
+            c.lineTo(p2.x, p2.y);
+            if (model.setElementStroke(c, this)) {
+                c.stroke();
+            }
+        });
         c.restore();
     }
 
@@ -221,7 +225,7 @@ export class LineElement extends ElementBase implements IPointContainer {
         if ((dxline > 0 && dx1 > 0) || (dyline < 0 && dy1 < 0) || (dxline < 0 && dx1 < 0) || (dyline > 0 && dy1 > 0)) {
             distance = Math.sqrt(dx1 * dx1 + dy1 * dy1);
             if (distance <= tolerance) {
-                return true;
+                return this.isPointWithinClipPath(c, tx, ty);
             }
             return false;
         }
@@ -230,14 +234,14 @@ export class LineElement extends ElementBase implements IPointContainer {
         if ((dxline > 0 && dx2 < 0) || (dyline < 0 && dy2 > 0) || (dxline < 0 && dx2 > 0) || (dyline > 0 && dy2 < 0)) {
             distance = Math.sqrt(dx2 * dx2 + dy2 * dy2);
             if (distance <= tolerance) {
-                return true;
+                return this.isPointWithinClipPath(c, tx, ty);
             }
             return false;
         }
         tolerance *= Math.sqrt(dxline * dxline + dyline * dyline);
         const diff = dy1 * dx2 - dy2 * dx1;
         if (diff >= -tolerance && diff <= tolerance) {
-            return true;
+            return this.isPointWithinClipPath(c, tx, ty);
         }
         return false;
     }
