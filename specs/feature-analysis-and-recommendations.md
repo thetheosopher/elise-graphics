@@ -36,7 +36,6 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 - No first-class persisted arc/quadratic path editing commands or exact SVG path round-trip fidelity
 - No blend modes, filters, or post-processing effects
 - No accessibility features
-- No built-in undo/redo system
 - Missing HSL/HSV color models and color interpolation
 
 ---
@@ -254,12 +253,12 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | 9 creation tools | ✅ | ❌ | ❌ | ❌ |
 | Component registry | ✅ | ❌ | ❌ | ❌ |
 | Dirty tracking | ✅ | ✅ | ❌ | ❌ |
-| Undo/redo | ❌ | ❌ | ❌ | ❌ |
+| Undo/redo | ✅ | ❌ | ❌ | ❌ |
 | Copy/paste | ❌ | ✅ | ❌ | ❌ |
 | Alignment/distribute | ❌ | ❌ | ❌ | ❌ |
 | Z-order controls | ❌ | ✅ | ✅ | ❌ |
 
-**Analysis:** Elise has the **most comprehensive built-in design surface** of any library in this comparison. The combination of 9 creation tools, component registry, rubber-band selection, grid snapping, and dirty tracking is unmatched. However, **undo/redo** and **z-order controls** (bring to front/send to back) are critical missing features.
+**Analysis:** Elise has the **most comprehensive built-in design surface** of any library in this comparison. The combination of 9 creation tools, component registry, rubber-band selection, grid snapping, dirty tracking, and now built-in undo/redo is unmatched. The main remaining workflow gaps are **z-order controls** (bring to front/send to back), plus broader clipboard and layout tooling.
 
 ### 3.10 Serialization & Persistence
 
@@ -365,7 +364,6 @@ Elise now has **partial SVG capability**:
 | Gap | Impact | Difficulty | Competitors with feature |
 |-----|--------|------------|--------------------------|
 | Partial SVG interop | Still blocks some integration and round-trip scenarios because import/export coverage is incomplete | High | Fabric.js, Paper.js, Two.js |
-| No undo/redo | Design surface unusable for production | Medium | (few have built-in, but expected) |
 | No PDF export | Cannot produce print-oriented vector output directly | Medium | Paper.js |
 | No first-class arc path editing command | Imported arcs are normalized, but Elise still lacks native persisted arc editing semantics | Medium | All competitors |
 | No dash pattern | Cannot draw dashed/dotted lines | Low | All competitors |
@@ -379,7 +377,7 @@ Elise now has **partial SVG capability**:
 | No shadow/drop shadow | Missing common visual effect | Low |
 | No blend modes | Cannot achieve overlay/multiply effects | Low |
 | No z-order controls (bring to front/back) | Design surface limited | Low |
-| No keyboard shortcuts in design mode | Slower editing workflow | Medium |
+| Keyboard shortcut coverage is still partial | Design mode now supports undo/redo, select-all, delete, and nudge shortcuts, but broader editing shortcuts are still missing | Medium |
 | No HSL/HSV color model | Limits color manipulation use cases | Low |
 | No element visibility flag | Hidden-but-retained elements require removal or custom handling | Low |
 | No event bubbling | Events don't propagate up model hierarchy | Medium |
@@ -508,10 +506,11 @@ element.setLineJoin('round');            // 'miter' | 'round' | 'bevel'
 **Remaining scope:** Broader SVG feature coverage is still needed for defs/use references, patterns, masks, richer text semantics, grouping preservation, and less common element types. High complexity (~1500-2000 lines total for fuller support).
 
 #### R8. Undo/Redo System
-**Why:** Design surface is incomplete without it. Standard command pattern.
+**Status:** Completed
+
+**Why:** Design surface production readiness depended on reversible editing operations and visible history availability.
 
 ```typescript
-// Proposed API
 designController.undo();
 designController.redo();
 designController.canUndo;  // boolean
@@ -519,7 +518,13 @@ designController.canRedo;  // boolean
 designController.undoChanged;  // event
 ```
 
-**Scope:** New `command/undo-manager.ts`. Capture element state before/after operations. ~400-600 lines.
+**Delivered scope:** Elise now ships a reusable `UndoManager` in `command/undo-manager.ts` plus `DesignController.undo()` / `redo()` integration with `canUndo`, `canRedo`, and `undoChanged` state reporting. Snapshot restoration covers model content, selection state, and dirty tracking so add/remove, nudge, tool-created edits, and other committed design operations can be reversed and replayed consistently.
+
+**Keyboard integration:** Design mode now routes `Ctrl/Cmd+Z`, `Ctrl/Cmd+Shift+Z`, and `Ctrl/Cmd+Y` into the undo stack, alongside existing selection and nudge shortcuts.
+
+**Validation:** Automated tests cover undo/redo of element creation, movement, tool-committed edits, and keyboard shortcut routing.
+
+**Follow-on work:** A labeled history panel or transaction grouping system is still optional future work, but the core undo/redo blocker is closed.
 
 #### R9. Add Element Visibility
 
