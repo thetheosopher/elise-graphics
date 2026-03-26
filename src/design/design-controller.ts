@@ -790,7 +790,7 @@ export class DesignController implements IController {
         this.rubberBandActive = false;
         this.snapToGrid = false;
         this.gridSpacing = 8;
-        this.lockAspect = false;
+        this.lockAspect = true;
         this.constrainToBounds = true;
         this.gridColor = 'Black';
         this.cancelAction = false;
@@ -1810,7 +1810,7 @@ export class DesignController implements IController {
                             dy = Math.round(local.y);
                         }
                     }
-                    h.handleMoved(h, { deltaX: dx, deltaY: dy });
+                    h.handleMoved(h, { deltaX: dx, deltaY: dy, shiftKey: e.shiftKey });
                 }
             });
         } else if (this.isMoving) {

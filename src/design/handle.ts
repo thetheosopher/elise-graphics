@@ -18,6 +18,17 @@ export class Handle {
     public static Size = new Size(7, 7);
 
     /**
+     * Returns true when the current resize drag should preserve aspect ratio.
+     * Shift temporarily unlocks proportional resizing.
+     */
+    private static shouldLockAspect(h: Handle, args: HandleMovedArgs): boolean {
+        if (args.shiftKey) {
+            return false;
+        }
+        return !!(h.element.aspectLocked || h.controller.lockAspect);
+    }
+
+    /**
      * Handles movement of left middle rectangular sizing handle
      * @param h - Handle being moved
      * @param args - Handle movement info
@@ -43,7 +54,7 @@ export class Handle {
                 }
             }
         }
-        if (el.aspectLocked || h.controller.lockAspect) {
+        if (Handle.shouldLockAspect(h, args)) {
             const aspect = b.width / b.height;
             newHeight = newWidth / aspect;
             if (newHeight < h.controller.minElementSize.height) {
@@ -107,7 +118,7 @@ export class Handle {
                 }
             }
         }
-        if (el.aspectLocked || h.controller.lockAspect) {
+        if (Handle.shouldLockAspect(h, args)) {
             const aspect = b.width / b.height;
             newHeight = newWidth / aspect;
             if (newWidth < h.controller.minElementSize.width || newHeight < h.controller.minElementSize.height) {
@@ -149,7 +160,7 @@ export class Handle {
                 }
             }
         }
-        if (el.aspectLocked || h.controller.lockAspect) {
+        if (Handle.shouldLockAspect(h, args)) {
             const aspect = b.width / b.height;
             newWidth = newHeight * aspect;
             if (newWidth < h.controller.minElementSize.width || newHeight < h.controller.minElementSize.height) {
@@ -189,7 +200,7 @@ export class Handle {
                 }
             }
         }
-        if (el.aspectLocked || h.controller.lockAspect) {
+        if (Handle.shouldLockAspect(h, args)) {
             const aspect = b.width / b.height;
             newHeight = newWidth / aspect;
             if (newWidth < h.controller.minElementSize.width || newHeight < h.controller.minElementSize.height) {
@@ -236,7 +247,7 @@ export class Handle {
                 }
             }
         }
-        if (el.aspectLocked || h.controller.lockAspect) {
+        if (Handle.shouldLockAspect(h, args)) {
             const aspect = b.width / b.height;
             newHeight = newWidth / aspect;
             if (newWidth < h.controller.minElementSize.width || newHeight < h.controller.minElementSize.height) {
@@ -284,7 +295,7 @@ export class Handle {
                 }
             }
         }
-        if (el.aspectLocked || h.controller.lockAspect) {
+        if (Handle.shouldLockAspect(h, args)) {
             const aspect = b.width / b.height;
             const adjustedHeight = newWidth / aspect;
             newY -= adjustedHeight - newHeight;
@@ -329,7 +340,7 @@ export class Handle {
                 }
             }
         }
-        if (el.aspectLocked || h.controller.lockAspect) {
+        if (Handle.shouldLockAspect(h, args)) {
             const aspect = b.width / b.height;
             newWidth = newHeight * aspect;
             if (newWidth < h.controller.minElementSize.width || newHeight < h.controller.minElementSize.height) {
@@ -380,7 +391,7 @@ export class Handle {
                 }
             }
         }
-        if (el.aspectLocked || h.controller.lockAspect) {
+        if (Handle.shouldLockAspect(h, args)) {
             const aspect = b.width / b.height;
             const adjustedHeight = newWidth / aspect;
             newY -= adjustedHeight - newHeight;

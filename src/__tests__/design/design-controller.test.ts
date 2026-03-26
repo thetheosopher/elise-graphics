@@ -1,6 +1,10 @@
 import { DesignController } from '../../design/design-controller';
 import { Model } from '../../core/model';
 import { RectangleElement } from '../../elements/rectangle-element';
+import { Size } from '../../core/size';
+import { Point } from '../../core/point';
+import { Handle } from '../../design/handle';
+import { HandleMovedArgs } from '../../design/handle-moved-args';
 import { RectangleTool } from '../../design/tools/rectangle-tool';
 
 function installFakeWindow() {
@@ -265,5 +269,117 @@ describe('design controller undo and redo', () => {
         expect(controller.onCanvasKeyDown(ctrlY)).toBe(true);
         expect(undoSpy).toHaveBeenCalledTimes(1);
         expect(redoSpy).toHaveBeenCalledTimes(1);
+    });
+});
+
+describe('design controller resize aspect locking', () => {
+    test('controller forwards shift state to active resize handles', () => {
+        const controller = new DesignController();
+        const model = Model.create(100, 100);
+        installCanvasOnly(controller);
+        controller.setModel(model);
+
+        const element = RectangleElement.create(10, 10, 20, 10).setInteractive(true);
+        model.add(element);
+
+        const handleMoved = jest.fn();
+        const handle = new Handle(30, 20, element, controller);
+        handle.handleMoved = handleMoved;
+
+        controller.isResizing = true;
+        controller.sizeHandles = [handle];
+        controller.mouseDownPosition = new Point(10, 10);
+
+        controller.onCanvasMouseMove({
+            button: 0,
+            clientX: 25,
+            clientY: 35,
+            shiftKey: true,
+        });
+
+        expect(handleMoved).toHaveBeenCalledTimes(1);
+        expect(handleMoved.mock.calls[0][1]).toMatchObject({
+            deltaX: 15,
+            deltaY: 25,
+            shiftKey: true,
+        });
+    });
+
+    test('controller defaults to locked aspect ratio during handle resize', () => {
+        const controller = new DesignController();
+        const element = RectangleElement.create(10, 10, 20, 10);
+        let capturedSize: Size | undefined;
+
+        const handle = new Handle(30, 20, element, {
+            model: undefined,
+            isMoving: false,
+            isResizing: false,
+            isMovingPoint: false,
+            isRotating: false,
+            isMovingPivot: false,
+            rotationStartAngle: 0,
+            originalRotation: 0,
+            minElementSize: new Size(4, 4),
+            snapToGrid: false,
+            lockAspect: controller.lockAspect,
+            isSelected: () => false,
+            selectedElementCount: () => 0,
+            getElementMoveLocation: () => new Point(10, 10),
+            getElementResizeSize: () => new Size(20, 10),
+            setElementMoveLocation: () => undefined,
+            setElementResizeSize: (_element, size) => {
+                capturedSize = size;
+            },
+            clearElementMoveLocations: () => undefined,
+            clearElementResizeSizes: () => undefined,
+            getNearestSnapX: (x) => x,
+            getNearestSnapY: (y) => y,
+            invalidate: () => undefined,
+        });
+
+        Handle.sizeRectangleRightBottom(handle, new HandleMovedArgs(10, 20));
+
+        expect(controller.lockAspect).toBe(true);
+        expect(capturedSize?.width).toBe(30);
+        expect(capturedSize?.height).toBe(15);
+    });
+
+    test('holding shift unlocks aspect ratio during handle resize', () => {
+        const element = RectangleElement.create(10, 10, 20, 10);
+        let capturedSize: Size | undefined;
+
+        const handle = new Handle(30, 20, element, {
+            model: undefined,
+            isMoving: false,
+            isResizing: false,
+            isMovingPoint: false,
+            isRotating: false,
+            isMovingPivot: false,
+            rotationStartAngle: 0,
+            originalRotation: 0,
+            minElementSize: new Size(4, 4),
+            snapToGrid: false,
+            lockAspect: true,
+            isSelected: () => false,
+            selectedElementCount: () => 0,
+            getElementMoveLocation: () => new Point(10, 10),
+            getElementResizeSize: () => new Size(20, 10),
+            setElementMoveLocation: () => undefined,
+            setElementResizeSize: (_element, size) => {
+                capturedSize = size;
+            },
+            clearElementMoveLocations: () => undefined,
+            clearElementResizeSizes: () => undefined,
+            getNearestSnapX: (x) => x,
+            getNearestSnapY: (y) => y,
+            invalidate: () => undefined,
+        });
+        const args = new HandleMovedArgs(10, 20);
+        args.shiftKey = true;
+
+        Handle.sizeRectangleRightBottom(handle, args);
+
+        expect(capturedSize?.width).toBe(30);
+        expect(capturedSize?.height).toBe(30);
     });
 });
