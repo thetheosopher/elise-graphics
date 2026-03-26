@@ -3272,6 +3272,139 @@ export class DesignController implements IController {
     }
 
     /**
+     * Formats an overlay indicator numeric value.
+     * @param value - Value to format
+     * @returns Formatted string
+     */
+    public formatIndicatorValue(value: number): string {
+        const rounded = Math.round(value * 10) / 10;
+        if (Math.abs(rounded - Math.round(rounded)) < 0.05) {
+            return Math.round(rounded).toString();
+        }
+        return rounded.toString();
+    }
+
+    /**
+     * Computes tentative interaction bounds for the current move/resize gesture.
+     * @returns Tentative bounds or undefined when unavailable
+     */
+    public getInteractionIndicatorBounds(): Region | undefined {
+        if (!this.isMoving && !this.isResizing) {
+            return undefined;
+        }
+
+        let minX = Number.POSITIVE_INFINITY;
+        let minY = Number.POSITIVE_INFINITY;
+        let maxX = Number.NEGATIVE_INFINITY;
+        let maxY = Number.NEGATIVE_INFINITY;
+
+        for (const el of this.selectedElements) {
+            const bounds = el.getBounds();
+            if (!bounds) {
+                continue;
+            }
+
+            let location = bounds.location;
+            let size = bounds.size;
+
+            if (this.isMoving && el.canMove()) {
+                location = this.getElementMoveLocation(el);
+            } else if (this.isResizing && el.canResize()) {
+                location = this.getElementMoveLocation(el);
+                size = this.getElementResizeSize(el);
+            }
+
+            let indicatorBounds = new Region(location.x, location.y, size.width, size.height);
+            if (el.transform) {
+                indicatorBounds = DesignController.getTransformedAABB(location, size, el.transform);
+            }
+
+            minX = Math.min(minX, indicatorBounds.x);
+            minY = Math.min(minY, indicatorBounds.y);
+            maxX = Math.max(maxX, indicatorBounds.x + indicatorBounds.width);
+            maxY = Math.max(maxY, indicatorBounds.y + indicatorBounds.height);
+        }
+
+        if (!Number.isFinite(minX) || !Number.isFinite(minY) || !Number.isFinite(maxX) || !Number.isFinite(maxY)) {
+            return undefined;
+        }
+
+        return new Region(minX, minY, maxX - minX, maxY - minY);
+    }
+
+    /**
+     * Retrieves the active interaction indicator lines and anchor.
+     * @returns Indicator content and anchor point
+     */
+    public getInteractionIndicator(): { lines: string[]; anchor: Point } | undefined {
+        if (this.isMovingPoint && this.movingPointLocation) {
+            let anchor = this.movingPointLocation;
+            const element = this.selectedElements[0];
+            if (element?.transform) {
+                const bounds = element.getBounds();
+                if (bounds) {
+                    const matrix = Matrix2D.fromTransformString(element.transform, bounds.location);
+                    anchor = matrix.transformPoint(anchor);
+                }
+            }
+            return {
+                lines: [
+                    `pt ${this.movingPointIndex ?? 0}`,
+                    `x ${this.formatIndicatorValue(this.movingPointLocation.x)} y ${this.formatIndicatorValue(this.movingPointLocation.y)}`,
+                ],
+                anchor,
+            };
+        }
+
+        const bounds = this.getInteractionIndicatorBounds();
+        if (!bounds) {
+            return undefined;
+        }
+
+        return {
+            lines: [
+                `x ${this.formatIndicatorValue(bounds.x)} y ${this.formatIndicatorValue(bounds.y)}`,
+                `w ${this.formatIndicatorValue(bounds.width)} h ${this.formatIndicatorValue(bounds.height)}`,
+            ],
+            anchor: new Point(bounds.x + bounds.width, bounds.y),
+        };
+    }
+
+    /**
+     * Draws the active interaction indicator.
+     * @param c - Rendering context
+     */
+    public drawInteractionIndicator(c: CanvasRenderingContext2D): void {
+        const indicator = this.getInteractionIndicator();
+        if (!indicator || indicator.lines.length === 0) {
+            return;
+        }
+
+        const scale = this.scale || 1;
+        const offsetX = 8 / scale;
+        const offsetY = 8 / scale;
+        const lineHeight = 13 / scale;
+        const startX = indicator.anchor.x + offsetX;
+        const startY = Math.max(lineHeight, indicator.anchor.y - offsetY);
+
+        c.save();
+        c.font = `${11 / scale}px sans-serif`;
+        c.textAlign = 'left';
+        c.textBaseline = 'top';
+        c.lineWidth = 3 / scale;
+        c.strokeStyle = 'white';
+        c.fillStyle = new Color(230, 0, 128, 255).toStyleString();
+
+        indicator.lines.forEach((line, index) => {
+            const y = startY + index * lineHeight;
+            c.strokeText(line, startX, y);
+            c.fillText(line, startX, y);
+        });
+
+        c.restore();
+    }
+
+    /**
      * Renders model and design components
      */
     public draw(): void {
@@ -3413,6 +3546,8 @@ export class DesignController implements IController {
                 context.restore();
             }
         }
+
+        this.drawInteractionIndicator(context);
 
         // Draw rubber band and guidewires
         if (this.enabled) {

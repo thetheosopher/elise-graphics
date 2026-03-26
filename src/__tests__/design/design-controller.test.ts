@@ -98,6 +98,46 @@ function installCanvasOnly(controller: DesignController) {
     controller.draw = jest.fn();
 }
 
+function createOverlayContext() {
+    return {
+        clearRect: jest.fn(),
+        save: jest.fn(),
+        restore: jest.fn(),
+        scale: jest.fn(),
+        beginPath: jest.fn(),
+        moveTo: jest.fn(),
+        lineTo: jest.fn(),
+        stroke: jest.fn(),
+        arc: jest.fn(),
+        fillText: jest.fn(),
+        strokeText: jest.fn(),
+        setLineDash: jest.fn(),
+        fillRect: jest.fn(),
+        strokeRect: jest.fn(),
+        closePath: jest.fn(),
+        rect: jest.fn(),
+        createPattern: jest.fn(() => undefined),
+        lineWidth: 1,
+        strokeStyle: '',
+        fillStyle: '',
+        font: '',
+        textAlign: 'left',
+        textBaseline: 'top',
+        globalAlpha: 1,
+    } as unknown as CanvasRenderingContext2D;
+}
+
+function installDrawCanvas(controller: DesignController, context: CanvasRenderingContext2D) {
+    controller.canvas = {
+        width: 100,
+        height: 100,
+        style: { cursor: 'default' },
+        parentElement: { style: {} } as unknown as HTMLDivElement,
+        getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 }),
+        getContext: () => context,
+    } as unknown as HTMLCanvasElement;
+}
+
 describe('design controller touch support', () => {
     afterEach(() => {
         jest.restoreAllMocks();
@@ -381,5 +421,90 @@ describe('design controller resize aspect locking', () => {
 
         expect(capturedSize?.width).toBe(30);
         expect(capturedSize?.height).toBe(30);
+    });
+});
+
+describe('design controller interaction indicators', () => {
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
+    test('draw shows move indicator with position and size', () => {
+        const controller = new DesignController();
+        const model = Model.create(100, 100);
+        const context = createOverlayContext();
+        const element = RectangleElement.create(10, 20, 30, 40).setInteractive(true);
+        model.add(element);
+
+        installDrawCanvas(controller, context);
+        controller.model = model;
+        controller.renderer = { renderToContext: jest.fn() } as never;
+        controller.selectedElements = [element];
+        controller.isMoving = true;
+        controller.setElementMoveLocation(element, new Point(25, 35), new Size(30, 40));
+
+        jest.spyOn(controller, 'renderGrid').mockImplementation(() => undefined);
+        jest.spyOn(controller, 'getElementHandles').mockReturnValue([]);
+
+        controller.draw();
+
+        expect(context.fillText).toHaveBeenCalledWith('x 25 y 35', expect.any(Number), expect.any(Number));
+        expect(context.fillText).toHaveBeenCalledWith('w 30 h 40', expect.any(Number), expect.any(Number));
+    });
+
+    test('draw shows resize indicator with updated size', () => {
+        const controller = new DesignController();
+        const model = Model.create(100, 100);
+        const context = createOverlayContext();
+        const element = RectangleElement.create(10, 20, 30, 40).setInteractive(true);
+        model.add(element);
+
+        installDrawCanvas(controller, context);
+        controller.model = model;
+        controller.renderer = { renderToContext: jest.fn() } as never;
+        controller.selectedElements = [element];
+        controller.isResizing = true;
+        controller.setElementMoveLocation(element, new Point(12, 18), new Size(45, 55));
+        controller.setElementResizeSize(element, new Size(45, 55), new Point(12, 18));
+
+        jest.spyOn(controller, 'renderGrid').mockImplementation(() => undefined);
+        jest.spyOn(controller, 'getElementHandles').mockReturnValue([]);
+
+        controller.draw();
+
+        expect(context.fillText).toHaveBeenCalledWith('x 12 y 18', expect.any(Number), expect.any(Number));
+        expect(context.fillText).toHaveBeenCalledWith('w 45 h 55', expect.any(Number), expect.any(Number));
+    });
+
+    test('draw shows point drag indicator with point coordinates', () => {
+        const controller = new DesignController();
+        const model = Model.create(100, 100);
+        const context = createOverlayContext();
+        const pointHolder = {
+            getBounds: jest.fn(() => ({
+                location: new Point(0, 0),
+                size: new Size(20, 20),
+                x: 0,
+                y: 0,
+                width: 20,
+                height: 20,
+            })),
+        } as never;
+
+        installDrawCanvas(controller, context);
+        controller.model = model;
+        controller.renderer = { renderToContext: jest.fn() } as never;
+        controller.selectedElements = [pointHolder];
+        controller.isMovingPoint = true;
+        controller.movingPointIndex = 2;
+        controller.movingPointLocation = new Point(12, 34);
+
+        jest.spyOn(controller, 'renderGrid').mockImplementation(() => undefined);
+        jest.spyOn(controller, 'getElementHandles').mockReturnValue([]);
+
+        controller.draw();
+
+        expect(context.fillText).toHaveBeenCalledWith('pt 2', expect.any(Number), expect.any(Number));
+        expect(context.fillText).toHaveBeenCalledWith('x 12 y 34', expect.any(Number), expect.any(Number));
     });
 });
