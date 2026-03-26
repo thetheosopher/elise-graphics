@@ -107,14 +107,14 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Arrow | ❌ | ❌ | ✅ | ❌ | ❌ |
 | Wedge/Sector | ❌ | ❌ | ✅ | ❌ | ❌ |
 | Ring/Annulus | ❌ | ❌ | ✅ | ❌ | ❌ |
-| Rounded rectangle | ❌ | ✅ | ✅ | ✅ | ✅ |
+| Rounded rectangle | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Text | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Rich/multi-style text | ❌ | ✅ | ❌ | ❌ | ❌ |
 | Image | ✅ | ✅ | ✅ | ✅ (raster) | ✅ |
 | Sprite | ✅ | ✅ | ✅ | ❌ | ✅ |
 | Group/Container | ✅ (Model) | ✅ | ✅ | ✅ | ✅ |
 
-**Analysis:** Elise covers the essential primitives well. The main remaining path-related gaps are **first-class persisted arc/quadratic editing commands** and exact SVG path round-trip fidelity, alongside **rounded rectangles** and **convenience shapes** (star, wedge, ring). Fabric.js still leads in primitive variety.
+**Analysis:** Elise covers the essential primitives well. The main remaining path-related gaps are **first-class persisted arc/quadratic editing commands** and exact SVG path round-trip fidelity, alongside remaining **convenience shapes** (star, wedge, ring). Fabric.js still leads in primitive variety.
 
 ### 3.3 Path System
 
@@ -165,15 +165,15 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Model fill (nested) | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Fill inheritance | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Fill offset/scale | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Dash pattern | ❌ | ✅ | ✅ | ✅ | ✅ |
+| Dash pattern | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Stroke width | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Line cap/join | ❌ | ✅ | ✅ | ✅ | ✅ |
+| Line cap/join | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Miter limit | ❌ | ✅ | ✅ | ✅ | ❌ |
 | Blend modes | ❌ | ❌ | ✅ | ✅ | ❌ |
 | Opacity (element) | Via fill modifier | ✅ | ✅ | ✅ | ✅ |
 | Shadow | ❌ | ✅ | ✅ | ✅ | ❌ |
 
-**Analysis:** Elise has unique strengths in **model fills** (using a nested model as a pattern source) and **fill inheritance** (parent fills cascade to children). However, it's missing basic stroke properties that are standard: **dash patterns**, **line cap/join styles**, and **shadows**.
+**Analysis:** Elise has unique strengths in **model fills** (using a nested model as a pattern source) and **fill inheritance** (parent fills cascade to children). With dash patterns and line cap/join styles now implemented, the main remaining paint-style gap in this area is **shadow/drop shadow** support.
 
 ### 3.6 Text Rendering
 
@@ -366,20 +366,16 @@ Elise now has **partial SVG capability**:
 | Partial SVG interop | Still blocks some integration and round-trip scenarios because import/export coverage is incomplete | High | Fabric.js, Paper.js, Two.js |
 | No PDF export | Cannot produce print-oriented vector output directly | Medium | Paper.js |
 | No first-class arc path editing command | Imported arcs are normalized, but Elise still lacks native persisted arc editing semantics | Medium | All competitors |
-| No dash pattern | Cannot draw dashed/dotted lines | Low | All competitors |
 
 ### 5.2 Important Gaps (Limit functionality)
 
 | Gap | Impact | Difficulty |
 |-----|--------|------------|
-| No rounded rectangles | Common UI element missing | Low |
-| No line cap/join styles | Stroke rendering lacks polish | Low |
 | No shadow/drop shadow | Missing common visual effect | Low |
 | No blend modes | Cannot achieve overlay/multiply effects | Low |
 | No z-order controls (bring to front/back) | Design surface limited | Low |
 | Keyboard shortcut coverage is still partial | Design mode now supports undo/redo, select-all, delete, and nudge shortcuts, but broader editing shortcuts are still missing | Medium |
 | No HSL/HSV color model | Limits color manipulation use cases | Low |
-| No element visibility flag | Hidden-but-retained elements require removal or custom handling | Low |
 | No event bubbling | Events don't propagate up model hierarchy | Medium |
 | Hardcoded 200ms transition duration | Cannot customize animation timing | Low |
 | No first-class persisted quadratic Bézier command | Quadratic segments import/export, but normalize to cubic segments internally | Low |
@@ -474,16 +470,19 @@ Elise now supports `PathElement.fromSVGPath(d)` for standard SVG path strings, i
 **Tradeoff:** This choice favors lower implementation risk and stable design-surface editing over exact SVG path round-trip fidelity. If exact preservation of original SVG path command structure becomes a requirement later, Elise can revisit a native SVG command model after import/export support is established.
 
 #### R5. Add Dash Pattern and Line Cap/Join
-**Why:** Standard stroke features, trivially maps to `ctx.setLineDash()`, `ctx.lineCap`, `ctx.lineJoin`.
+**Status:** Completed
+
+**Why:** Standard stroke features needed to match baseline drawing-library expectations and improve SVG/canvas stroke fidelity.
 
 ```typescript
-// Proposed additions to StrokeInfo or ElementBase
 element.setStrokeDash([5, 3]);           // 5px dash, 3px gap
 element.setLineCap('round');             // 'butt' | 'round' | 'square'
 element.setLineJoin('round');            // 'miter' | 'round' | 'bevel'
 ```
 
-**Scope:** ~100 lines across `ElementBase`, `StrokeInfo`, and renderer.
+**Delivered scope:** `ElementBase` now persists `strokeDash`, `lineCap`, and `lineJoin`, `Model.setElementStroke(...)` applies them to canvas rendering, and SVG import/export maps them through `stroke-dasharray`, `stroke-linecap`, and `stroke-linejoin`.
+
+**Notes:** The existing `stroke` color/width string remains intact, so the feature lands without introducing a breaking stroke model redesign.
 
 ### Tier 2: Strategic — Build Competitive Advantage
 
@@ -528,19 +527,21 @@ designController.undoChanged;  // event
 
 #### R9. Add Element Visibility
 
-**Status:** Partially Completed
+**Status:** Completed
 
-**Why:** Element opacity now exists and affects both fill and stroke consistently. The remaining gap is a first-class `visible` boolean for temporarily hiding elements without removing them from the model.
+**Why:** Element opacity already existed, but temporary hide/show workflows still needed a first-class `visible` boolean that preserves element membership in the model while skipping rendering and interaction.
 
 ```typescript
 element.setVisible(false);  // skip rendering and hit testing
 ```
 
-**Delivered scope:** `ElementBase` now supports `opacity`, and the tweening/export work already uses that property directly instead of string-encoded fill hacks.
+**Delivered scope:** `ElementBase` now supports a persisted `visible` property and fluent `setVisible(...)` API. Hidden elements are skipped during rendering and hit testing, clone/serialize round-trips preserve visibility state, and SVG interop maps hidden elements through `display="none"` on export and imported display/visibility state on load.
 
-**Remaining scope:** ~30-50 lines to add a `visible` property to `ElementBase` and honor it during rendering and hit testing.
+**Notes:** This closes the hidden-but-retained editing gap without conflating visibility with opacity.
 
 #### R10. Add Rounded Rectangle Support
+**Status:** Completed
+
 **Why:** Extremely common UI element. Canvas API now supports `roundRect()` natively.
 
 ```typescript
@@ -548,7 +549,9 @@ RectangleElement.create(0, 0, 100, 50).setCornerRadius(8);
 // Or: RectangleElement.create(0, 0, 100, 50).setCornerRadii(8, 4, 8, 4);
 ```
 
-**Scope:** ~30 lines added to `RectangleElement`.
+**Delivered scope:** `RectangleElement` now supports uniform and per-corner radii through `setCornerRadius(...)` and `setCornerRadii(...)`, with persisted serialization, clone support, canvas rendering, hit testing, and SVG export that uses `rx`/`ry` for uniform radii while falling back to `<path>` output for non-uniform rounded corners.
+
+**Notes:** Per-corner radii are normalized to fit the rectangle bounds during rendering so oversized radius combinations degrade predictably instead of producing invalid geometry.
 
 ### Tier 3: Enhancement — Polish & Differentiation
 

@@ -150,6 +150,27 @@ test('setElementStroke supports rgba stroke strings with width suffix', () => {
     expect(context.strokeStyle).toBe('rgba(95,145,210,' + 128 / 255 + ')');
 });
 
+test('setElementStroke applies dash pattern, line cap, and line join', () => {
+    const model = Model.create(10, 10);
+    const element = RectangleElement.create(0, 0, 5, 5)
+        .setStroke('#112233,3')
+        .setStrokeDash([5, 2, 1])
+        .setLineCap('round')
+        .setLineJoin('bevel');
+    const context = {
+        setLineDash: jest.fn(),
+    } as unknown as CanvasRenderingContext2D;
+
+    const applied = model.setElementStroke(context, element);
+
+    expect(applied).toBe(true);
+    expect(context.lineWidth).toBe(3);
+    expect(context.strokeStyle).toBe('rgb(17,34,51)');
+    expect(context.lineCap).toBe('round');
+    expect(context.lineJoin).toBe('bevel');
+    expect(context.setLineDash).toHaveBeenCalledWith([5, 2, 1]);
+});
+
 test('model toCanvas renders to a detached scaled canvas', () => {
     const model = Model.create(40, 30);
     const scaleSpy = jest.fn();

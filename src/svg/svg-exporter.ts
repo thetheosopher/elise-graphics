@@ -154,19 +154,7 @@ export class SVGExporter {
         }
 
         if (element instanceof RectangleElement) {
-            const location = element.getLocation();
-            const size = element.getSize();
-            if (!location || !size) {
-                return '';
-            }
-            const attributes = [
-                'x="' + SVGExporter.formatNumber(location.x) + '"',
-                'y="' + SVGExporter.formatNumber(location.y) + '"',
-                'width="' + SVGExporter.formatNumber(size.width) + '"',
-                'height="' + SVGExporter.formatNumber(size.height) + '"',
-            ];
-            SVGExporter.pushCommonAttributes(attributes, element, context, location, false);
-            return '<rect ' + attributes.join(' ') + ' />';
+            return SVGExporter.exportRectangleElement(element, context);
         }
 
         if (element instanceof EllipseElement) {
@@ -236,6 +224,68 @@ export class SVGExporter {
         }
 
         return '';
+    }
+
+    private static exportRectangleElement(element: RectangleElement, context: SVGExportContext): string {
+        const location = element.getLocation();
+        const size = element.getSize();
+        if (!location || !size) {
+            return '';
+        }
+
+        const radii = element.getCornerRadii(size);
+        const uniformRounded = radii[0] > 0 && radii[0] === radii[1] && radii[0] === radii[2] && radii[0] === radii[3];
+        const hasAnyRadius = radii.some((radius) => radius > 0);
+        if (hasAnyRadius && !uniformRounded) {
+            const attributes = ['d="' + SVGExporter.escapeAttribute(SVGExporter.exportRoundedRectanglePathData(location, size, radii)) + '"'];
+            SVGExporter.pushCommonAttributes(attributes, element, context, location, false);
+            return '<path ' + attributes.join(' ') + ' />';
+        }
+
+        const attributes = [
+            'x="' + SVGExporter.formatNumber(location.x) + '"',
+            'y="' + SVGExporter.formatNumber(location.y) + '"',
+            'width="' + SVGExporter.formatNumber(size.width) + '"',
+            'height="' + SVGExporter.formatNumber(size.height) + '"',
+        ];
+        if (uniformRounded) {
+            attributes.push('rx="' + SVGExporter.formatNumber(radii[0]) + '"');
+            attributes.push('ry="' + SVGExporter.formatNumber(radii[0]) + '"');
+        }
+        SVGExporter.pushCommonAttributes(attributes, element, context, location, false);
+        return '<rect ' + attributes.join(' ') + ' />';
+    }
+
+    private static exportRoundedRectanglePathData(location: Point, size: { width: number; height: number }, radii: [number, number, number, number]): string {
+        const x = location.x;
+        const y = location.y;
+        const width = size.width;
+        const height = size.height;
+        const topLeft = radii[0];
+        const topRight = radii[1];
+        const bottomRight = radii[2];
+        const bottomLeft = radii[3];
+
+        return [
+            'M ' + SVGExporter.formatNumber(x + topLeft) + ' ' + SVGExporter.formatNumber(y),
+            'L ' + SVGExporter.formatNumber(x + width - topRight) + ' ' + SVGExporter.formatNumber(y),
+            topRight > 0
+                ? 'Q ' + SVGExporter.formatNumber(x + width) + ' ' + SVGExporter.formatNumber(y) + ' ' + SVGExporter.formatNumber(x + width) + ' ' + SVGExporter.formatNumber(y + topRight)
+                : 'L ' + SVGExporter.formatNumber(x + width) + ' ' + SVGExporter.formatNumber(y),
+            'L ' + SVGExporter.formatNumber(x + width) + ' ' + SVGExporter.formatNumber(y + height - bottomRight),
+            bottomRight > 0
+                ? 'Q ' + SVGExporter.formatNumber(x + width) + ' ' + SVGExporter.formatNumber(y + height) + ' ' + SVGExporter.formatNumber(x + width - bottomRight) + ' ' + SVGExporter.formatNumber(y + height)
+                : 'L ' + SVGExporter.formatNumber(x + width) + ' ' + SVGExporter.formatNumber(y + height),
+            'L ' + SVGExporter.formatNumber(x + bottomLeft) + ' ' + SVGExporter.formatNumber(y + height),
+            bottomLeft > 0
+                ? 'Q ' + SVGExporter.formatNumber(x) + ' ' + SVGExporter.formatNumber(y + height) + ' ' + SVGExporter.formatNumber(x) + ' ' + SVGExporter.formatNumber(y + height - bottomLeft)
+                : 'L ' + SVGExporter.formatNumber(x) + ' ' + SVGExporter.formatNumber(y + height),
+            'L ' + SVGExporter.formatNumber(x) + ' ' + SVGExporter.formatNumber(y + topLeft),
+            topLeft > 0
+                ? 'Q ' + SVGExporter.formatNumber(x) + ' ' + SVGExporter.formatNumber(y) + ' ' + SVGExporter.formatNumber(x + topLeft) + ' ' + SVGExporter.formatNumber(y)
+                : 'L ' + SVGExporter.formatNumber(x) + ' ' + SVGExporter.formatNumber(y),
+            'Z',
+        ].join(' ');
     }
 
     private static exportModelFragment(model: Model, context: SVGExportContext): string {
@@ -442,12 +492,16 @@ export class SVGExporter {
 
     private static pushContainerAttributes(
         attributes: string[],
-        element: { id?: string; opacity?: number; transform?: string; clipPath?: ElementClipPath },
+        element: { id?: string; opacity?: number; visible?: boolean; transform?: string; clipPath?: ElementClipPath },
         origin: Point | undefined,
         context: SVGExportContext,
     ): void {
         if (element.id) {
             attributes.push('id="' + SVGExporter.escapeAttribute(element.id) + '"');
+        }
+
+        if (element.visible === false) {
+            attributes.push('display="none"');
         }
 
         if (element.opacity !== undefined && element.opacity >= 0 && element.opacity < 1) {
@@ -529,6 +583,15 @@ export class SVGExporter {
         const parsedStroke = StrokeInfo.parseStroke(element.stroke);
         attributes.push('stroke="' + SVGExporter.escapeAttribute(SVGExporter.toSVGColor(parsedStroke.color)) + '"');
         attributes.push('stroke-width="' + SVGExporter.formatNumber(parsedStroke.width) + '"');
+        if (element.strokeDash && element.strokeDash.length > 0) {
+            attributes.push('stroke-dasharray="' + element.strokeDash.map((value) => SVGExporter.formatNumber(value)).join(' ') + '"');
+        }
+        if (element.lineCap) {
+            attributes.push('stroke-linecap="' + element.lineCap + '"');
+        }
+        if (element.lineJoin) {
+            attributes.push('stroke-linejoin="' + element.lineJoin + '"');
+        }
         if (parsedStroke.color.a < 255) {
             attributes.push('stroke-opacity="' + SVGExporter.formatOpacity(parsedStroke.color.a) + '"');
         }

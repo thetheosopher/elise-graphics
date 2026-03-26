@@ -89,9 +89,29 @@ export class ElementBase implements IPointContainer {
     public stroke?: string;
 
     /**
+     * Optional stroke dash pattern
+     */
+    public strokeDash?: number[];
+
+    /**
+     * Stroke line cap style
+     */
+    public lineCap?: CanvasLineCap;
+
+    /**
+     * Stroke line join style
+     */
+    public lineJoin?: CanvasLineJoin;
+
+    /**
      * Element opacity (0 transparent to 1 opaque)
      */
     public opacity: number = 1;
+
+    /**
+     * Should element be rendered and participate in hit testing
+     */
+    public visible: boolean = true;
 
     /**
      * Transform property
@@ -214,7 +234,11 @@ export class ElementBase implements IPointContainer {
         this.setPointAt = this.setPointAt.bind(this);
         this.setSize = this.setSize.bind(this);
         this.setStroke = this.setStroke.bind(this);
+        this.setStrokeDash = this.setStrokeDash.bind(this);
+        this.setLineCap = this.setLineCap.bind(this);
+        this.setLineJoin = this.setLineJoin.bind(this);
         this.setTransform = this.setTransform.bind(this);
+        this.setVisible = this.setVisible.bind(this);
         this.applyRenderOpacity = this.applyRenderOpacity.bind(this);
         this.withClipPath = this.withClipPath.bind(this);
         this.isPointWithinClipPath = this.isPointWithinClipPath.bind(this);
@@ -371,8 +395,34 @@ export class ElementBase implements IPointContainer {
         if (o.stroke) {
             this.stroke = o.stroke as string;
         }
+        if (o.strokeDash !== undefined) {
+            if (Array.isArray(o.strokeDash)) {
+                this.strokeDash = o.strokeDash
+                    .map((value) => Number(value))
+                    .filter((value) => Number.isFinite(value) && value >= 0);
+                if (this.strokeDash.length === 0) {
+                    this.strokeDash = undefined;
+                }
+            }
+            else if (typeof o.strokeDash === 'string') {
+                const parsedStrokeDash = o.strokeDash
+                    .split(/[\s,]+/)
+                    .map((value) => Number(value))
+                    .filter((value) => Number.isFinite(value) && value >= 0);
+                this.strokeDash = parsedStrokeDash.length > 0 ? parsedStrokeDash : undefined;
+            }
+        }
+        if (o.lineCap === 'butt' || o.lineCap === 'round' || o.lineCap === 'square') {
+            this.lineCap = o.lineCap;
+        }
+        if (o.lineJoin === 'bevel' || o.lineJoin === 'miter' || o.lineJoin === 'round') {
+            this.lineJoin = o.lineJoin;
+        }
         if (o.opacity !== undefined) {
             this.opacity = o.opacity as number;
+        }
+        if (o.visible !== undefined) {
+            this.visible = Boolean(o.visible);
         }
         if (o.transform) {
             this.transform = o.transform as string;
@@ -458,8 +508,20 @@ export class ElementBase implements IPointContainer {
         if (this.stroke) {
             o.stroke = this.stroke;
         }
+        if (this.strokeDash && this.strokeDash.length > 0) {
+            o.strokeDash = this.strokeDash.slice();
+        }
+        if (this.lineCap) {
+            o.lineCap = this.lineCap;
+        }
+        if (this.lineJoin) {
+            o.lineJoin = this.lineJoin;
+        }
         if (this.opacity !== 1) {
             o.opacity = this.opacity;
+        }
+        if (!this.visible) {
+            o.visible = false;
         }
         if (this.transform) {
             o.transform = this.transform;
@@ -538,7 +600,13 @@ export class ElementBase implements IPointContainer {
         if (this.stroke) {
             e.stroke = this.stroke;
         }
+        if (this.strokeDash && this.strokeDash.length > 0) {
+            e.strokeDash = this.strokeDash.slice();
+        }
+        e.lineCap = this.lineCap;
+        e.lineJoin = this.lineJoin;
         e.opacity = this.opacity;
+        e.visible = this.visible;
         if (this.transform) {
             e.transform = this.transform;
         }
@@ -737,6 +805,9 @@ export class ElementBase implements IPointContainer {
      * @returns True if coordinate is contained within element
      */
     public hitTest(c: CanvasRenderingContext2D, tx: number, ty: number): boolean {
+        if (!this.visible) {
+            return false;
+        }
         if (this._size === undefined) {
             throw new Error(ErrorMessages.SizeUndefined);
         }
@@ -906,6 +977,43 @@ export class ElementBase implements IPointContainer {
     }
 
     /**
+     * Sets stroke dash pattern.
+     * @param strokeDash - Dash/gap pattern or undefined to clear
+     * @returns This element
+     */
+    public setStrokeDash(strokeDash: number[] | undefined) {
+        if (!strokeDash || strokeDash.length === 0) {
+            this.strokeDash = undefined;
+            return this;
+        }
+        const normalized = strokeDash
+            .map((value) => Number(value))
+            .filter((value) => Number.isFinite(value) && value >= 0);
+        this.strokeDash = normalized.length > 0 ? normalized : undefined;
+        return this;
+    }
+
+    /**
+     * Sets stroke line cap style.
+     * @param lineCap - Line cap style
+     * @returns This element
+     */
+    public setLineCap(lineCap: CanvasLineCap | undefined) {
+        this.lineCap = lineCap;
+        return this;
+    }
+
+    /**
+     * Sets stroke line join style.
+     * @param lineJoin - Line join style
+     * @returns This element
+     */
+    public setLineJoin(lineJoin: CanvasLineJoin | undefined) {
+        this.lineJoin = lineJoin;
+        return this;
+    }
+
+    /**
      * Sets fill used to fill element interior
      * @param fill - Fill definition
      * @returns This element
@@ -1004,6 +1112,16 @@ export class ElementBase implements IPointContainer {
      */
     public setTransform(transform: string) {
         this.transform = transform;
+        return this;
+    }
+
+    /**
+     * Sets element visibility used for rendering and hit testing.
+     * @param visible - Visibility flag
+     * @returns This element
+     */
+    public setVisible(visible: boolean) {
+        this.visible = visible;
         return this;
     }
 

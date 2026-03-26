@@ -654,6 +654,11 @@ export class Model extends ElementBase {
      */
     public setElementStroke(c: CanvasRenderingContext2D, el: ElementBase): boolean {
         const stroke = this.strokeForElement(el);
+        if (typeof c.setLineDash === 'function') {
+            c.setLineDash(el.strokeDash && el.strokeDash.length > 0 ? el.strokeDash : []);
+        }
+        c.lineCap = el.lineCap || 'butt';
+        c.lineJoin = el.lineJoin || 'miter';
         if (!stroke || stroke === 'no') {
             c.strokeStyle = Color.Transparent.toStyleString();
             return false;
@@ -797,7 +802,7 @@ export class Model extends ElementBase {
         const count = this.elements.length;
         for (let i = count - 1; i >= 0; i--) {
             const el = this.elements[i];
-            if (el.interactive && el.hitTest(c, tx, ty)) {
+            if (el.visible !== false && el.interactive && el.hitTest(c, tx, ty)) {
                 return el;
             }
         }
@@ -814,7 +819,7 @@ export class Model extends ElementBase {
     public elementsAt(c: CanvasRenderingContext2D, tx: number, ty: number): ElementBase[] {
         const els: ElementBase[] = [];
         this.elements.forEach(el => {
-            if (el.interactive && el.hitTest(c, tx, ty)) {
+            if (el.visible !== false && el.interactive && el.hitTest(c, tx, ty)) {
                 els.push(el);
             }
         });
@@ -884,7 +889,9 @@ export class Model extends ElementBase {
         c.globalAlpha = 1.0;
         const el = this.elements.length;
         for (let i = 0; i < el; i++) {
-            this.elements[i].draw(c);
+            if (this.elements[i].visible !== false) {
+                this.elements[i].draw(c);
+            }
         }
 
         // Stroke

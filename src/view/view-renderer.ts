@@ -92,6 +92,9 @@ export class ViewRenderer {
     }
 
     public renderElement(c: CanvasRenderingContext2D, el: ElementBase) {
+        if (el.visible === false) {
+            return;
+        }
         el.draw(c);
     }
 
@@ -119,6 +122,9 @@ export class ViewRenderer {
      * @returns True if element should be rendered
      */
     public shouldRender(el: ElementBase, bounds: Region): boolean {
+        if (el.visible === false) {
+            return false;
+        }
         // If no transform, check bounds
         if (!el.transform) {
             const b = el.getBounds();

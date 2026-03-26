@@ -103,9 +103,15 @@ describe('view renderer', () => {
 
     test('shouldRender returns true for transformed elements', () => {
         const renderer = new ViewRenderer({ offsetX: 0, offsetY: 0 });
-        const result = renderer.shouldRender({ transform: 'scale(2)' } as never, { x: 0 } as never);
+        const result = renderer.shouldRender({ visible: true, transform: 'scale(2)' } as never, { x: 0 } as never);
 
         expect(result).toBe(true);
+    });
+
+    test('shouldRender returns false for invisible elements', () => {
+        const renderer = new ViewRenderer({ offsetX: 0, offsetY: 0 });
+
+        expect(renderer.shouldRender({ visible: false } as never, { x: 0 } as never)).toBe(false);
     });
 
     test('shouldRender returns bounds intersection result and false for missing bounds', () => {
@@ -113,12 +119,15 @@ describe('view renderer', () => {
         const bounds = { id: 'region' } as never;
 
         const intersecting = {
+            visible: true,
             getBounds: jest.fn(() => ({ intersectsWith: jest.fn(() => true) })),
         };
         const outside = {
+            visible: true,
             getBounds: jest.fn(() => ({ intersectsWith: jest.fn(() => false) })),
         };
         const missing = {
+            visible: true,
             getBounds: jest.fn(() => undefined),
         };
 

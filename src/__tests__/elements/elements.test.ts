@@ -39,19 +39,23 @@ test('rectangle capabilities', () => {
 
 test('rectangle serialize/parse round-trip', () => {
     const rect = RectangleElement.create(10, 20, 100, 200);
-    rect.setFill('Red').setStroke('Black,2');
+    rect.setFill('Red').setStroke('Black,2').setVisible(false).setCornerRadius(12);
     rect.id = 'rect1';
     const serialized = rect.serialize();
     expect(serialized.type).toBe('rectangle');
     expect(serialized.id).toBe('rect1');
     expect(serialized.fill).toBe('Red');
     expect(serialized.stroke).toBe('Black,2');
+    expect(serialized.visible).toBe(false);
+    expect(serialized.cornerRadius).toBe(12);
 
     const parsed = new RectangleElement();
     parsed.parse(serialized);
     expect(parsed.id).toBe('rect1');
     expect(parsed.fill).toBe('Red');
     expect(parsed.stroke).toBe('Black,2');
+    expect(parsed.visible).toBe(false);
+    expect(parsed.cornerRadii).toEqual([12, 12, 12, 12]);
     const loc = parsed.getLocation()!;
     expect(loc.x).toBe(10);
     expect(loc.y).toBe(20);
@@ -59,14 +63,22 @@ test('rectangle serialize/parse round-trip', () => {
 
 test('rectangle clone', () => {
     const rect = RectangleElement.create(10, 20, 100, 200);
-    rect.setFill('Blue');
+    rect.setFill('Blue').setCornerRadii(10, 8, 6, 4).setVisible(false);
     rect.setClipPath({ commands: ['m0,0', 'l1,0', 'l1,1', 'z'], units: 'objectBoundingBox' });
     const cloned = rect.clone() as RectangleElement;
     expect(cloned.fill).toBe('Blue');
+    expect(cloned.visible).toBe(false);
+    expect(cloned.cornerRadii).toEqual([10, 8, 6, 4]);
     expect(cloned.clipPath).toBeDefined();
     expect(cloned.clipPath!.commands).toEqual(['m0,0', 'l1,0', 'l1,1', 'z']);
     expect(cloned.getLocation()!.x).toBe(10);
     expect(cloned.getSize()!.width).toBe(100);
+});
+
+test('rectangle setCornerRadii clamps overlapping radii to fit bounds', () => {
+    const rect = RectangleElement.create(0, 0, 10, 8).setCornerRadii(8, 8, 8, 8);
+
+    expect(rect.getCornerRadii()).toEqual([4, 4, 4, 4]);
 });
 
 test('rectangle serialize/parse preserves clip path', () => {
@@ -94,10 +106,13 @@ test('rectangle set location and size', () => {
 
 test('rectangle fluent setters', () => {
     const rect = RectangleElement.create(0, 0, 50, 50);
-    const result = rect.setFill('Green').setStroke('Red').setInteractive(true);
+    const result = rect.setFill('Green').setStroke('Red').setStrokeDash([4, 2]).setLineCap('round').setLineJoin('bevel').setInteractive(true);
     expect(result).toBe(rect);
     expect(rect.fill).toBe('Green');
     expect(rect.stroke).toBe('Red');
+    expect(rect.strokeDash).toEqual([4, 2]);
+    expect(rect.lineCap).toBe('round');
+    expect(rect.lineJoin).toBe('bevel');
     expect(rect.interactive).toBe(true);
 });
 

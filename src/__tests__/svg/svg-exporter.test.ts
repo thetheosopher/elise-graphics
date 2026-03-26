@@ -53,7 +53,14 @@ test('Model.toSVG exports path elements and basic styling', () => {
 
 test('Model.toSVG exports basic shape elements', () => {
     const model = Model.create(200, 150);
-    const rectangle = RectangleElement.create(10, 20, 30, 40).setFill('#112233');
+    const rectangle = RectangleElement.create(10, 20, 30, 40)
+        .setFill('#112233')
+        .setStroke('#334455,2')
+        .setStrokeDash([5, 3])
+        .setLineCap('round')
+        .setLineJoin('bevel')
+        .setCornerRadius(6)
+        .setVisible(false);
     const ellipse = EllipseElement.create(80, 60, 20, 10).setStroke('#445566, 3');
     const line = LineElement.create(5, 6, 25, 30).setStroke('#778899, 2');
     const polygon = PolygonElement.create().setPoints('0,0 20,0 10,15').setFill('#abcdef');
@@ -66,11 +73,24 @@ test('Model.toSVG exports basic shape elements', () => {
 
     const svgMarkup = model.toSVG();
 
-    expect(svgMarkup).toContain('<rect x="10" y="20" width="30" height="40"');
+    expect(svgMarkup).toContain('<rect x="10" y="20" width="30" height="40" rx="6" ry="6" display="none"');
+    expect(svgMarkup).toContain('stroke-dasharray="5 3"');
+    expect(svgMarkup).toContain('stroke-linecap="round"');
+    expect(svgMarkup).toContain('stroke-linejoin="bevel"');
     expect(svgMarkup).toContain('<ellipse cx="80" cy="60" rx="20" ry="10"');
     expect(svgMarkup).toContain('<line x1="5" y1="6" x2="25" y2="30"');
     expect(svgMarkup).toContain('<polygon points="0 0 20 0 10 15"');
     expect(svgMarkup).toContain('<polyline points="40 10 60 20 80 10"');
+});
+
+test('Model.toSVG exports non-uniform rounded rectangles as paths', () => {
+    const model = Model.create(120, 80);
+    const rectangle = RectangleElement.create(10, 20, 30, 40).setFill('#112233').setCornerRadii(6, 4, 8, 2);
+    model.add(rectangle);
+
+    const svgMarkup = model.toSVG();
+
+    expect(svgMarkup).toContain('<path d="M 16 20 L 36 20 Q 40 20 40 24 L 40 52 Q 40 60 32 60 L 12 60 Q 10 60 10 58 L 10 26 Q 10 20 16 20 Z"');
 });
 
 test('Model.toSVG exports smoothed polylines as paths', () => {

@@ -41,9 +41,13 @@ type SVGImportContext = {
     fill?: string;
     stroke?: string;
     strokeWidth?: string;
+    strokeDasharray?: string;
+    strokeLinecap?: string;
+    strokeLinejoin?: string;
     fillRule?: string;
     clipPath?: string;
     opacity: number;
+    visible: boolean;
     transform: Matrix2D;
     fontFamily?: string;
     fontSize?: string;
@@ -123,6 +127,7 @@ export class SVGImporter {
         };
         const context: SVGImportContext = {
             opacity: 1,
+            visible: true,
             transform: Matrix2D.IDENTITY,
         };
 
@@ -224,7 +229,16 @@ export class SVGImporter {
         const y = (SVGImporter.parseLength(element.getAttribute('y')) || 0) - state.viewBoxOffsetY;
         const width = SVGImporter.parseLength(element.getAttribute('width')) || 0;
         const height = SVGImporter.parseLength(element.getAttribute('height')) || 0;
-        return RectangleElement.create(x, y, width, height);
+        const rectangle = RectangleElement.create(x, y, width, height);
+        const rx = SVGImporter.parseLength(element.getAttribute('rx'));
+        const ry = SVGImporter.parseLength(element.getAttribute('ry'));
+        const radius = rx !== undefined && ry !== undefined
+            ? Math.min(rx, ry)
+            : (rx !== undefined ? rx : ry);
+        if (radius !== undefined && radius > 0) {
+            rectangle.setCornerRadius(radius);
+        }
+        return rectangle;
     }
 
     private static importEllipseElement(element: Element, state: SVGImportState): EllipseElement | undefined {
@@ -322,13 +336,19 @@ export class SVGImporter {
     private static mergeContext(element: Element, parentContext: SVGImportContext): SVGImportContext {
         const opacity = SVGImporter.parseOpacity(SVGImporter.getLocalStyleValue(element, 'opacity'));
         const localTransform = SVGImporter.parseSVGTransform(SVGImporter.getLocalStyleValue(element, 'transform'));
+        const display = SVGImporter.getLocalStyleValue(element, 'display');
+        const visibility = SVGImporter.getInheritedStyleValue(element, 'visibility', parentContext.visible ? 'visible' : 'hidden');
         return {
             fill: SVGImporter.getInheritedStyleValue(element, 'fill', parentContext.fill),
             stroke: SVGImporter.getInheritedStyleValue(element, 'stroke', parentContext.stroke),
             strokeWidth: SVGImporter.getInheritedStyleValue(element, 'stroke-width', parentContext.strokeWidth),
+            strokeDasharray: SVGImporter.getInheritedStyleValue(element, 'stroke-dasharray', parentContext.strokeDasharray),
+            strokeLinecap: SVGImporter.getInheritedStyleValue(element, 'stroke-linecap', parentContext.strokeLinecap),
+            strokeLinejoin: SVGImporter.getInheritedStyleValue(element, 'stroke-linejoin', parentContext.strokeLinejoin),
             fillRule: SVGImporter.getInheritedStyleValue(element, 'fill-rule', parentContext.fillRule),
             clipPath: SVGImporter.getInheritedStyleValue(element, 'clip-path', parentContext.clipPath),
             opacity: parentContext.opacity * opacity,
+            visible: parentContext.visible && display?.toLowerCase() !== 'none' && visibility?.toLowerCase() !== 'hidden',
             transform: Matrix2D.multiply(localTransform, parentContext.transform),
             fontFamily: SVGImporter.getInheritedStyleValue(element, 'font-family', parentContext.fontFamily),
             fontSize: SVGImporter.getInheritedStyleValue(element, 'font-size', parentContext.fontSize),
@@ -351,7 +371,7 @@ export class SVGImporter {
         }
 
         SVGImporter.applyFill(element, context.fill, state);
-        SVGImporter.applyStroke(element, context.stroke, context.strokeWidth);
+        SVGImporter.applyStroke(element, context.stroke, context.strokeWidth, context.strokeDasharray, context.strokeLinecap, context.strokeLinejoin);
 
         if (context.fillRule && context.fillRule.toLowerCase() === 'evenodd') {
             if (element instanceof PathElement || element instanceof PolygonElement) {
@@ -361,6 +381,10 @@ export class SVGImporter {
 
         if (context.opacity !== 1) {
             element.setOpacity(context.opacity);
+        }
+
+        if (!context.visible) {
+            element.setVisible(false);
         }
 
         if (!SVGImporter.isIdentityMatrix(context.transform)) {
@@ -399,7 +423,14 @@ export class SVGImporter {
         element.setFill(fill);
     }
 
-    private static applyStroke(element: ElementBase, stroke: string | undefined, strokeWidth: string | undefined): void {
+    private static applyStroke(
+        element: ElementBase,
+        stroke: string | undefined,
+        strokeWidth: string | undefined,
+        strokeDasharray?: string,
+        strokeLinecap?: string,
+        strokeLinejoin?: string,
+    ): void {
         if (!element.canStroke()) {
             return;
         }
@@ -413,6 +444,24 @@ export class SVGImporter {
         }
         else {
             element.setStroke(stroke);
+        }
+
+        if (strokeDasharray && strokeDasharray.toLowerCase() !== 'none') {
+            const dashPattern = strokeDasharray
+                .split(/[\s,]+/)
+                .map((value) => Number(value))
+                .filter((value) => Number.isFinite(value) && value >= 0);
+            if (dashPattern.length > 0) {
+                element.setStrokeDash(dashPattern);
+            }
+        }
+
+        if (strokeLinecap === 'butt' || strokeLinecap === 'round' || strokeLinecap === 'square') {
+            element.setLineCap(strokeLinecap);
+        }
+
+        if (strokeLinejoin === 'bevel' || strokeLinejoin === 'miter' || strokeLinejoin === 'round') {
+            element.setLineJoin(strokeLinejoin);
         }
     }
 

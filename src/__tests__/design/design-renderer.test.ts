@@ -1,6 +1,7 @@
 import { DesignRenderer } from '../../design/design-renderer';
 import { Point } from '../../core/point';
 import { Size } from '../../core/size';
+import { RectangleElement } from '../../elements/rectangle-element';
 import { FillFactory } from '../../fill/fill-factory';
 import type { IDesignController } from '../../design/design-controller-interface';
 
@@ -41,6 +42,7 @@ function createContext(): CanvasRenderingContext2D {
         beginPath: jest.fn(),
         moveTo: jest.fn(),
         lineTo: jest.fn(),
+        quadraticCurveTo: jest.fn(),
         bezierCurveTo: jest.fn(),
         closePath: jest.fn(),
         fillRect: jest.fn(),
@@ -107,27 +109,41 @@ describe('design renderer', () => {
         const c = createContext();
         const setElementFillSpy = jest.spyOn(FillFactory, 'setElementFill').mockReturnValue(true);
 
-        const model = {
+        const rectangle = RectangleElement.create(10, 20, 30, 40).setCornerRadius(6);
+        rectangle.fillOffsetX = 3;
+        rectangle.fillOffsetY = 4;
+        rectangle.model = {
+            resourceManager: {
+                get: jest.fn(),
+            },
+            add: jest.fn(() => 0),
+            getSize: jest.fn(() => new Size(100, 100)),
+            getFillScale: jest.fn(() => ({ rx: 1, ry: 1 })),
             setElementStroke: jest.fn(() => true),
             setRenderTransform: jest.fn(),
-        };
-
-        const rectangle = {
-            model,
-            fillOffsetX: 3,
-            fillOffsetY: 4,
-            getLocation: jest.fn(() => new Point(10, 20)),
-            getSize: jest.fn(() => new Size(30, 40)),
         };
 
         renderer.renderRectangleElement(c, rectangle as never);
 
         expect(setElementFillSpy).toHaveBeenCalledWith(c, rectangle);
         expect(c.translate).toHaveBeenNthCalledWith(1, 13, 24);
-        expect(c.fillRect).toHaveBeenCalledWith(-3, -4, 30, 40);
+        expect(c.beginPath).toHaveBeenCalledTimes(2);
+        expect(c.moveTo).toHaveBeenCalledWith(3, -4);
+        expect(c.quadraticCurveTo).toHaveBeenCalled();
+        expect(c.fill).toHaveBeenCalledTimes(1);
         expect(c.translate).toHaveBeenNthCalledWith(2, -13, -24);
-        expect(model.setElementStroke).toHaveBeenCalledWith(c, rectangle);
-        expect(c.strokeRect).toHaveBeenCalledWith(10, 20, 30, 40);
+        expect(rectangle.model!.setElementStroke).toHaveBeenCalledWith(c, rectangle);
+        expect(c.stroke).toHaveBeenCalledTimes(1);
+    });
+
+    test('renderElement skips invisible elements', () => {
+        const renderer = new DesignRenderer(createController());
+        const c = createContext();
+        const rectangleSpy = jest.spyOn(renderer, 'renderRectangleElement').mockImplementation(() => undefined);
+
+        renderer.renderElement(c, { type: 'rectangle', visible: false } as never);
+
+        expect(rectangleSpy).not.toHaveBeenCalled();
     });
 
     test('renderPathElement handles m/l/c/z and moving point in full depth mode', () => {

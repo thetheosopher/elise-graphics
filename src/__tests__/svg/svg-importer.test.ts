@@ -85,9 +85,9 @@ test('SVGImporter.parseDocument imports basic SVG shape elements with inherited 
         createFakeElement('svg', { width: '200', height: '120' }, [
             createFakeElement(
                 'g',
-                { transform: 'translate(5 6)', fill: '#112233', stroke: '#445566', 'stroke-width': '2' },
+                { transform: 'translate(5 6)', fill: '#112233', stroke: '#445566', 'stroke-width': '2', visibility: 'hidden' },
                 [
-                    createFakeElement('rect', { id: 'rect-1', x: '10', y: '20', width: '30', height: '40' }),
+                    createFakeElement('rect', { id: 'rect-1', x: '10', y: '20', width: '30', height: '40', rx: '6', ry: '8' }),
                     createFakeElement('ellipse', { cx: '80', cy: '60', rx: '20', ry: '10' }),
                     createFakeElement('line', { x1: '0', y1: '0', x2: '15', y2: '5' }),
                     createFakeElement('polygon', { points: '0,0 10,0 5,5' }),
@@ -106,12 +106,15 @@ test('SVGImporter.parseDocument imports basic SVG shape elements with inherited 
     expect(rectangle.id).toBe('rect-1');
     expect(rectangle.fill).toBe('#112233');
     expect(rectangle.stroke).toBe('#445566, 2');
+    expect(rectangle.visible).toBe(false);
+    expect(rectangle.cornerRadii).toEqual([6, 6, 6, 6]);
     expect(rectangle.transform).toBe('matrix(1,0,0,1,5,6)');
 
     const ellipse = model.elements[1] as EllipseElement;
     expect(ellipse).toBeInstanceOf(EllipseElement);
     expect(ellipse.fill).toBe('#112233');
     expect(ellipse.stroke).toBe('#445566, 2');
+    expect(ellipse.visible).toBe(false);
     expect(ellipse.transform).toBe('matrix(1,0,0,1,5,6)');
 
     const line = model.elements[2] as LineElement;
@@ -129,6 +132,32 @@ test('SVGImporter.parseDocument imports basic SVG shape elements with inherited 
     expect(polyline).toBeInstanceOf(PolylineElement);
     expect(polyline.stroke).toBe('#445566, 2');
     expect(polyline.getPoints()!.map((point) => point.toString())).toEqual(['20,10', '30,20', '40,10']);
+});
+
+test('SVGImporter.parseDocument imports stroke dash, line cap, and line join styles', () => {
+    const document = createFakeDocument(
+        createFakeElement('svg', { width: '120', height: '80' }, [
+            createFakeElement('rect', {
+                x: '10',
+                y: '20',
+                width: '30',
+                height: '40',
+                stroke: '#112233',
+                'stroke-width': '3',
+                'stroke-dasharray': '5 2 1',
+                'stroke-linecap': 'round',
+                'stroke-linejoin': 'bevel',
+            }),
+        ]),
+    );
+
+    const model = SVGImporter.parseDocument(document);
+    const rectangle = model.elements[0] as RectangleElement;
+
+    expect(rectangle.stroke).toBe('#112233, 3');
+    expect(rectangle.strokeDash).toEqual([5, 2, 1]);
+    expect(rectangle.lineCap).toBe('round');
+    expect(rectangle.lineJoin).toBe('bevel');
 });
 
 test('SVGImporter.parseDocument imports text and image elements with inherited transform and opacity', () => {

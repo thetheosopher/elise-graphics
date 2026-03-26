@@ -109,6 +109,9 @@ export class DesignRenderer {
      * @param el - Element to render
      */
     public renderElement(c: CanvasRenderingContext2D, el: ElementBase) {
+        if (el.visible === false) {
+            return;
+        }
         switch (el.type) {
             case 'image':
                 this.renderImageElement(c, el as ImageElement);
@@ -303,16 +306,22 @@ export class DesignRenderer {
                 const fillOffsetX = rectangle.fillOffsetX || 0;
                 const fillOffsetY = rectangle.fillOffsetY || 0;
                 c.translate(location.x + fillOffsetX, location.y + fillOffsetY);
-                c.fillRect(-fillOffsetX, -fillOffsetY, w, h);
+                c.beginPath();
+                rectangle.tracePath(c, new Point(-fillOffsetX, -fillOffsetY), new Size(w, h));
+                c.fill();
                 c.translate(-(location.x + fillOffsetX), -(location.y + fillOffsetY));
             } else {
                 c.translate(location.x, location.y);
-                c.fillRect(0, 0, w, h);
+                c.beginPath();
+                rectangle.tracePath(c, Point.Origin, new Size(w, h));
+                c.fill();
                 c.translate(-location.x, -location.y);
             }
         }
         if (model.setElementStroke(c, rectangle)) {
-            c.strokeRect(x, y, w, h);
+            c.beginPath();
+            rectangle.tracePath(c, location, size);
+            c.stroke();
         }
         c.restore();
     }
