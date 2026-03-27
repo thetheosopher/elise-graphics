@@ -100,6 +100,15 @@ function installCanvasOnly(controller: DesignController) {
     controller.draw = jest.fn();
 }
 
+function createControllerWithRectangles(...rectangles: RectangleElement[]) {
+    const controller = new DesignController();
+    const model = Model.create(200, 200);
+    rectangles.forEach((rectangle) => model.add(rectangle.setInteractive(true)));
+    installCanvasOnly(controller);
+    controller.setModel(model);
+    return { controller, model };
+}
+
 function installInteractiveCanvas(controller: DesignController, context?: Partial<CanvasRenderingContext2D>) {
     const canvasContext = {
         save: jest.fn(),
@@ -288,6 +297,74 @@ describe('design controller undo and redo', () => {
         expect(model.elements[0].getBounds()?.x).toBe(10);
         expect(model.elements[0].getBounds()?.y).toBe(10);
         expect(controller.selectedElements).toHaveLength(1);
+    });
+
+    test('bringToFront and sendToBack reorder the current selection while preserving relative order', () => {
+        const { controller, model } = createControllerWithRectangles(
+            RectangleElement.create(0, 0, 5, 5),
+            RectangleElement.create(10, 0, 5, 5),
+            RectangleElement.create(20, 0, 5, 5),
+            RectangleElement.create(30, 0, 5, 5)
+        );
+
+        controller.selectedElements = [model.elements[0], model.elements[2]];
+        controller.bringToFront();
+
+        expect(model.elements.map((element) => element.getBounds()?.x)).toEqual([10, 30, 0, 20]);
+
+        controller.undo();
+
+        expect(model.elements.map((element) => element.getBounds()?.x)).toEqual([0, 10, 20, 30]);
+
+        controller.selectedElements = [model.elements[0], model.elements[2]];
+        controller.sendToBack();
+
+        expect(model.elements.map((element) => element.getBounds()?.x)).toEqual([0, 20, 10, 30]);
+    });
+
+    test('bringForward and sendBackward move selected elements by one z-order step', () => {
+        const { controller, model } = createControllerWithRectangles(
+            RectangleElement.create(0, 0, 5, 5),
+            RectangleElement.create(10, 0, 5, 5),
+            RectangleElement.create(20, 0, 5, 5),
+            RectangleElement.create(30, 0, 5, 5)
+        );
+
+        controller.selectedElements = [model.elements[0], model.elements[2]];
+        controller.bringForward();
+
+        expect(model.elements.map((element) => element.getBounds()?.x)).toEqual([10, 0, 30, 20]);
+
+        controller.undo();
+
+        expect(model.elements.map((element) => element.getBounds()?.x)).toEqual([0, 10, 20, 30]);
+
+        controller.selectedElements = [model.elements[0], model.elements[2]];
+        controller.sendBackward();
+
+        expect(model.elements.map((element) => element.getBounds()?.x)).toEqual([0, 20, 10, 30]);
+    });
+
+    test('alignment commands align selected elements and support undo', () => {
+        const { controller, model } = createControllerWithRectangles(
+            RectangleElement.create(10, 20, 10, 10),
+            RectangleElement.create(40, 40, 20, 20),
+            RectangleElement.create(30, 60, 30, 20)
+        );
+
+        controller.selectedElements = model.elements.slice();
+        controller.alignSelectedHorizontally('center');
+
+        expect(model.elements.map((element) => element.getBounds()?.x)).toEqual([30, 25, 20]);
+
+        controller.undo();
+
+        expect(model.elements.map((element) => element.getBounds()?.x)).toEqual([10, 40, 30]);
+
+        controller.selectedElements = model.elements.slice();
+        controller.alignSelectedVertically('bottom');
+
+        expect(model.elements.map((element) => element.getBounds()?.y)).toEqual([70, 60, 60]);
     });
 
     test('tool-created elements become undoable when creation commits', () => {

@@ -753,6 +753,12 @@ export class DesignController implements IController {
         this.moveElementToTop = this.moveElementToTop.bind(this);
         this.moveElementBackward = this.moveElementBackward.bind(this);
         this.moveElementForward = this.moveElementForward.bind(this);
+        this.sendToBack = this.sendToBack.bind(this);
+        this.bringToFront = this.bringToFront.bind(this);
+        this.sendBackward = this.sendBackward.bind(this);
+        this.bringForward = this.bringForward.bind(this);
+        this.alignSelectedHorizontally = this.alignSelectedHorizontally.bind(this);
+        this.alignSelectedVertically = this.alignSelectedVertically.bind(this);
         this.movableSelectedElementCount = this.movableSelectedElementCount.bind(this);
         this.resizeableSelectedElementCount = this.resizeableSelectedElementCount.bind(this);
         this.nudgeableSelectedElementCount = this.nudgeableSelectedElementCount.bind(this);
@@ -3896,8 +3902,9 @@ export class DesignController implements IController {
 
     public onElementsReordered() {
         this.elementsReordered.trigger(this, this.selectedElements);
-        this.setIsDirty(true);
+        this.onModelUpdated();
         this.commitUndoSnapshot();
+        this.drawIfNeeded();
     }
 
     public moveElementToBottom(el: ElementBase) {
@@ -3945,6 +3952,134 @@ export class DesignController implements IController {
             this.model.elements.splice(index, 1);
             this.model.elements.splice(index + 1, 0, el);
             this.onElementsReordered();
+        }
+    }
+
+    /**
+     * Moves the provided element, or the current selection, to the back of the z-order.
+     * @param el - Optional element target
+     */
+    public sendToBack(el?: ElementBase): void {
+        this.reorderElements(this.getReorderTargets(el), 'back');
+    }
+
+    /**
+     * Moves the provided element, or the current selection, to the front of the z-order.
+     * @param el - Optional element target
+     */
+    public bringToFront(el?: ElementBase): void {
+        this.reorderElements(this.getReorderTargets(el), 'front');
+    }
+
+    /**
+     * Moves the provided element, or the current selection, one step toward the back.
+     * @param el - Optional element target
+     */
+    public sendBackward(el?: ElementBase): void {
+        this.reorderElements(this.getReorderTargets(el), 'backward');
+    }
+
+    /**
+     * Moves the provided element, or the current selection, one step toward the front.
+     * @param el - Optional element target
+     */
+    public bringForward(el?: ElementBase): void {
+        this.reorderElements(this.getReorderTargets(el), 'forward');
+    }
+
+    /**
+     * Aligns selected movable elements horizontally.
+     * @param alignment - left, center, or right
+     */
+    public alignSelectedHorizontally(alignment: 'left' | 'center' | 'right'): void {
+        const bounds = this.getSelectedMovableBounds();
+        if (!bounds) {
+            return;
+        }
+
+        let changed = false;
+        for (const selectedElement of this.selectedElements) {
+            if (!selectedElement.canMove()) {
+                continue;
+            }
+            const elementBounds = selectedElement.getBounds();
+            if (!elementBounds) {
+                continue;
+            }
+
+            let targetX = elementBounds.x;
+            if (alignment === 'left') {
+                targetX = bounds.x;
+            }
+            else if (alignment === 'center') {
+                targetX = bounds.x + bounds.width / 2 - elementBounds.width / 2;
+            }
+            else {
+                targetX = bounds.x + bounds.width - elementBounds.width;
+            }
+
+            if (Math.abs(targetX - elementBounds.x) > EPSILON) {
+                selectedElement.setLocation(new Point(targetX, elementBounds.y));
+                const newLocation = selectedElement.getLocation();
+                if (newLocation) {
+                    this.onElementMoved(selectedElement, newLocation);
+                }
+                changed = true;
+            }
+        }
+
+        if (changed) {
+            this.onModelUpdated();
+            this.commitUndoSnapshot();
+            this.drawIfNeeded();
+        }
+    }
+
+    /**
+     * Aligns selected movable elements vertically.
+     * @param alignment - top, middle, or bottom
+     */
+    public alignSelectedVertically(alignment: 'top' | 'middle' | 'bottom'): void {
+        const bounds = this.getSelectedMovableBounds();
+        if (!bounds) {
+            return;
+        }
+
+        let changed = false;
+        for (const selectedElement of this.selectedElements) {
+            if (!selectedElement.canMove()) {
+                continue;
+            }
+            const elementBounds = selectedElement.getBounds();
+            if (!elementBounds) {
+                continue;
+            }
+
+            let targetY = elementBounds.y;
+            if (alignment === 'top') {
+                targetY = bounds.y;
+            }
+            else if (alignment === 'middle') {
+                targetY = bounds.y + bounds.height / 2 - elementBounds.height / 2;
+            }
+            else {
+                targetY = bounds.y + bounds.height - elementBounds.height;
+            }
+
+            if (Math.abs(targetY - elementBounds.y) > EPSILON) {
+                selectedElement.setLocation(new Point(elementBounds.x, targetY));
+                const newLocation = selectedElement.getLocation();
+                if (newLocation) {
+                    this.onElementMoved(selectedElement, newLocation);
+                }
+                changed = true;
+            }
+        }
+
+        if (changed) {
+            this.onModelUpdated();
+            this.commitUndoSnapshot();
+            this.drawIfNeeded();
         }
     }
 
@@ -4502,6 +4637,96 @@ export class DesignController implements IController {
             .map((selection) => `${selection.id ?? ''}@${selection.index}:${selection.editPoints ? 1 : 0}`)
             .join('|');
         return `${this.buildModelStateSignature(model)}::${isDirty ? 1 : 0}::${selectionSignature}`;
+    }
+
+    private getReorderTargets(el?: ElementBase): ElementBase[] {
+        if (el) {
+            return [el];
+        }
+        return this.selectedElements.slice();
+    }
+
+    private reorderElements(targets: ElementBase[], direction: 'back' | 'front' | 'backward' | 'forward'): void {
+        if (!this.model || targets.length === 0) {
+            return;
+        }
+
+        const targetSet = new Set(targets);
+        const original = this.model.elements.slice();
+        let reordered = original.slice();
+
+        if (direction === 'back') {
+            reordered = original.filter((element) => targetSet.has(element)).concat(original.filter((element) => !targetSet.has(element)));
+        }
+        else if (direction === 'front') {
+            reordered = original.filter((element) => !targetSet.has(element)).concat(original.filter((element) => targetSet.has(element)));
+        }
+        else if (direction === 'backward') {
+            for (let index = 1; index < reordered.length; index++) {
+                if (targetSet.has(reordered[index]) && !targetSet.has(reordered[index - 1])) {
+                    const temp = reordered[index - 1];
+                    reordered[index - 1] = reordered[index];
+                    reordered[index] = temp;
+                }
+            }
+        }
+        else {
+            for (let index = reordered.length - 2; index >= 0; index--) {
+                if (targetSet.has(reordered[index]) && !targetSet.has(reordered[index + 1])) {
+                    const temp = reordered[index + 1];
+                    reordered[index + 1] = reordered[index];
+                    reordered[index] = temp;
+                }
+            }
+        }
+
+        if (DesignController.elementsMatchOrder(original, reordered)) {
+            return;
+        }
+
+        this.model.elements = reordered;
+        this.onElementsReordered();
+    }
+
+    private getSelectedMovableBounds(): Region | undefined {
+        let minX = Number.POSITIVE_INFINITY;
+        let minY = Number.POSITIVE_INFINITY;
+        let maxX = Number.NEGATIVE_INFINITY;
+        let maxY = Number.NEGATIVE_INFINITY;
+        let found = false;
+
+        for (const selectedElement of this.selectedElements) {
+            if (!selectedElement.canMove()) {
+                continue;
+            }
+            const bounds = selectedElement.getBounds();
+            if (!bounds) {
+                continue;
+            }
+            found = true;
+            minX = Math.min(minX, bounds.x);
+            minY = Math.min(minY, bounds.y);
+            maxX = Math.max(maxX, bounds.x + bounds.width);
+            maxY = Math.max(maxY, bounds.y + bounds.height);
+        }
+
+        if (!found) {
+            return undefined;
+        }
+
+        return new Region(minX, minY, maxX - minX, maxY - minY);
+    }
+
+    private static elementsMatchOrder(left: ElementBase[], right: ElementBase[]): boolean {
+        if (left.length !== right.length) {
+            return false;
+        }
+        for (let index = 0; index < left.length; index++) {
+            if (left[index] !== right[index]) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private buildModelStateSignature(model: Model): string {
