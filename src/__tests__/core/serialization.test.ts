@@ -86,6 +86,28 @@ test('model serialize/parse with text', () => {
     expect(pTxt.typesize).toBe(16);
 });
 
+test('model serialize/parse with rich text properties', () => {
+    const model = Model.create(400, 300);
+    const txt = TextElement.create(undefined, 10, 10, 200, 50);
+    txt.setTypeface('Arial').setTypesize(16).setFill('Black');
+    txt.setLetterSpacing(1.25).setTextDecoration('underline');
+    txt.setRichText([
+        { text: 'Hello ' },
+        { text: 'World', typestyle: 'italic', decoration: 'underline' },
+    ]);
+    model.add(txt);
+
+    const json = model.formattedJSON();
+    const parsed = Model.parse(json);
+    const pTxt = parsed.elements[0] as TextElement;
+    expect(pTxt.letterSpacing).toBe(1.25);
+    expect(pTxt.textDecoration).toBe('underline');
+    expect(pTxt.richText).toEqual([
+        { text: 'Hello ' },
+        { text: 'World', typestyle: 'italic', decoration: 'underline' },
+    ]);
+});
+
 test('model serialize/parse with path', () => {
     const model = Model.create(400, 300);
     const path = PathElement.create();

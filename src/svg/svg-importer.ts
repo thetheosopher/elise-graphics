@@ -10,7 +10,7 @@ import { PathElement } from '../elements/path-element';
 import { PolygonElement } from '../elements/polygon-element';
 import { PolylineElement } from '../elements/polyline-element';
 import { RectangleElement } from '../elements/rectangle-element';
-import { TextElement } from '../elements/text-element';
+import { TextElement, type TextRun } from '../elements/text-element';
 import { LinearGradientFill } from '../fill/linear-gradient-fill';
 import { RadialGradientFill } from '../fill/radial-gradient-fill';
 import { BitmapResource } from '../resource/bitmap-resource';
@@ -53,8 +53,15 @@ type SVGImportContext = {
     fontSize?: string;
     fontStyle?: string;
     fontWeight?: string;
+    letterSpacing?: string;
+    textDecoration?: string;
     textAnchor?: string;
     dominantBaseline?: string;
+};
+
+type ImportedTextRuns = {
+    text: string;
+    runs?: TextRun[];
 };
 
 type SVGImportState = {
@@ -287,18 +294,18 @@ export class SVGImporter {
     }
 
     private static importTextElement(element: Element, context: SVGImportContext, state: SVGImportState): TextElement | undefined {
-        const text = SVGImporter.getTextContent(element);
-        if (!text || text.length === 0) {
+        const importedText = SVGImporter.getTextRuns(element, context);
+        if (!importedText.text || importedText.text.length === 0) {
             return undefined;
         }
 
         const x = (SVGImporter.parseLength(element.getAttribute('x')) || 0) - state.viewBoxOffsetX;
         const y = (SVGImporter.parseLength(element.getAttribute('y')) || 0) - state.viewBoxOffsetY;
         const fontSize = SVGImporter.parseLength(context.fontSize) || 10;
-        const lines = text.split('\n');
+        const lines = importedText.text.split('\n');
         const estimatedWidth = SVGImporter.parseLength(element.getAttribute('width')) || SVGImporter.estimateTextWidth(lines, fontSize);
         const estimatedHeight = SVGImporter.parseLength(element.getAttribute('height')) || fontSize * lines.length;
-        const textElement = TextElement.create(text, x, y, estimatedWidth, estimatedHeight);
+        const textElement = TextElement.create(importedText.text, x, y, estimatedWidth, estimatedHeight);
 
         if (context.fontFamily) {
             textElement.setTypeface(context.fontFamily);
@@ -310,9 +317,23 @@ export class SVGImporter {
             textElement.setTypestyle(typestyle);
         }
 
+        const letterSpacing = SVGImporter.parseLength(context.letterSpacing);
+        if (letterSpacing !== undefined) {
+            textElement.setLetterSpacing(letterSpacing);
+        }
+
+        const textDecoration = SVGImporter.normalizeTextDecoration(context.textDecoration);
+        if (textDecoration) {
+            textElement.setTextDecoration(textDecoration);
+        }
+
         const alignment = SVGImporter.buildTextAlignment(context.textAnchor, context.dominantBaseline);
         if (alignment) {
             textElement.setAlignment(alignment);
+        }
+
+        if (importedText.runs && importedText.runs.length > 0) {
+            textElement.setRichText(importedText.runs);
         }
 
         return textElement;
@@ -354,6 +375,8 @@ export class SVGImporter {
             fontSize: SVGImporter.getInheritedStyleValue(element, 'font-size', parentContext.fontSize),
             fontStyle: SVGImporter.getInheritedStyleValue(element, 'font-style', parentContext.fontStyle),
             fontWeight: SVGImporter.getInheritedStyleValue(element, 'font-weight', parentContext.fontWeight),
+            letterSpacing: SVGImporter.getInheritedStyleValue(element, 'letter-spacing', parentContext.letterSpacing),
+            textDecoration: SVGImporter.getInheritedStyleValue(element, 'text-decoration', parentContext.textDecoration),
             textAnchor: SVGImporter.getInheritedStyleValue(element, 'text-anchor', parentContext.textAnchor),
             dominantBaseline: SVGImporter.getInheritedStyleValue(element, 'dominant-baseline', parentContext.dominantBaseline),
         };
@@ -491,20 +514,148 @@ export class SVGImporter {
         return points;
     }
 
-    private static getTextContent(element: Element): string | undefined {
-        const tspans = element.getElementsByTagName('tspan');
-        if (tspans.length > 0) {
-            const lines: string[] = [];
-            for (let index = 0; index < tspans.length; index++) {
-                const content = tspans[index].textContent;
-                if (content) {
-                    lines.push(content);
-                }
+    private static getTextRuns(element: Element, context: SVGImportContext): ImportedTextRuns {
+        const tspanChildren: Element[] = [];
+        for (let index = 0; index < element.children.length; index++) {
+            const child = element.children[index];
+            if (child.nodeName.toLowerCase() === 'tspan') {
+                tspanChildren.push(child);
             }
-            return lines.join('\n');
         }
 
-        return element.textContent ? element.textContent.trim() : undefined;
+        if (tspanChildren.length === 0) {
+            const text = element.textContent || '';
+            return { text };
+        }
+
+        const textParts: string[] = [];
+        const runs: TextRun[] = [];
+        let hasStyledRuns = false;
+        for (let index = 0; index < tspanChildren.length; index++) {
+            const child = tspanChildren[index];
+            const childContext = SVGImporter.mergeContext(child, context);
+            const childImported = SVGImporter.getTextRuns(child, childContext);
+            if (!childImported.text) {
+                continue;
+            }
+
+            if (index > 0 && SVGImporter.startsNewTextLine(child)) {
+                textParts.push('\n');
+                SVGImporter.appendTextToLastRun(runs, '\n');
+            }
+
+            textParts.push(childImported.text);
+            const childRuns = childImported.runs && childImported.runs.length > 0
+                ? childImported.runs.map((run) => SVGImporter.cloneTextRun(run))
+                : [SVGImporter.createTextRun(childImported.text, childContext)];
+            hasStyledRuns = hasStyledRuns || childImported.runs !== undefined;
+
+            if (!SVGImporter.runsMatchContext(childRuns, context)) {
+                hasStyledRuns = true;
+            }
+
+            runs.push(...childRuns);
+        }
+
+        return {
+            text: textParts.join(''),
+            runs: hasStyledRuns ? runs : undefined,
+        };
+    }
+
+    private static createTextRun(text: string, context: SVGImportContext): TextRun {
+        const run: TextRun = { text };
+        if (context.fontFamily) {
+            run.typeface = context.fontFamily;
+        }
+        const fontSize = SVGImporter.parseLength(context.fontSize);
+        if (fontSize !== undefined) {
+            run.typesize = fontSize;
+        }
+        const typestyle = SVGImporter.buildTypographyStyle(context.fontWeight, context.fontStyle);
+        if (typestyle) {
+            run.typestyle = typestyle;
+        }
+        const letterSpacing = SVGImporter.parseLength(context.letterSpacing);
+        if (letterSpacing !== undefined) {
+            run.letterSpacing = letterSpacing;
+        }
+        const decoration = SVGImporter.normalizeTextDecoration(context.textDecoration);
+        if (decoration) {
+            run.decoration = decoration;
+        }
+        return run;
+    }
+
+    private static cloneTextRun(run: TextRun): TextRun {
+        return {
+            text: run.text,
+            typeface: run.typeface,
+            typesize: run.typesize,
+            typestyle: run.typestyle,
+            letterSpacing: run.letterSpacing,
+            decoration: run.decoration,
+        };
+    }
+
+    private static runsMatchContext(runs: TextRun[], context: SVGImportContext): boolean {
+        const expectedTypeface = context.fontFamily;
+        const expectedTypesize = SVGImporter.parseLength(context.fontSize);
+        const expectedTypestyle = SVGImporter.buildTypographyStyle(context.fontWeight, context.fontStyle);
+        const expectedLetterSpacing = SVGImporter.parseLength(context.letterSpacing);
+        const expectedDecoration = SVGImporter.normalizeTextDecoration(context.textDecoration);
+
+        for (const run of runs) {
+            if ((run.typeface || undefined) !== expectedTypeface) {
+                return false;
+            }
+            if (run.typesize !== expectedTypesize) {
+                return false;
+            }
+            if ((run.typestyle || undefined) !== expectedTypestyle) {
+                return false;
+            }
+            if (run.letterSpacing !== expectedLetterSpacing) {
+                return false;
+            }
+            if ((run.decoration || undefined) !== expectedDecoration) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static appendTextToLastRun(runs: TextRun[], value: string): void {
+        if (runs.length === 0) {
+            runs.push({ text: value });
+            return;
+        }
+        runs[runs.length - 1].text += value;
+    }
+
+    private static startsNewTextLine(element: Element): boolean {
+        return element.getAttribute('x') !== null || element.getAttribute('y') !== null || element.getAttribute('dy') !== null;
+    }
+
+    private static normalizeTextDecoration(value: string | undefined): string | undefined {
+        if (!value) {
+            return undefined;
+        }
+        const parts = value
+            .split(/[\s,]+/)
+            .map((part) => part.trim().toLowerCase())
+            .filter((part) => part.length > 0 && part !== 'none');
+        if (parts.length === 0) {
+            return undefined;
+        }
+        const unique: string[] = [];
+        for (const part of parts) {
+            if (unique.indexOf(part) === -1) {
+                unique.push(part);
+            }
+        }
+        return unique.join(',');
     }
 
     private static estimateTextWidth(lines: string[], fontSize: number): number {

@@ -184,6 +184,83 @@ export class Color {
     }
 
     /**
+     * Creates a color from HSL channel values.
+     * @param h - Hue in degrees
+     * @param s - Saturation percentage in the range 0-100
+     * @param l - Lightness percentage in the range 0-100
+     * @param a - Optional alpha in the range 0-1
+     * @returns New color
+     */
+    public static fromHSL(h: number, s: number, l: number, a?: number): Color {
+        const hue = ((Number(h) % 360) + 360) % 360;
+        const saturation = Color.clamp01((Number(s) || 0) / 100);
+        const lightness = Color.clamp01((Number(l) || 0) / 100);
+        const alpha = a === undefined ? 1 : Color.clamp01(Number(a) || 0);
+
+        if (saturation === 0) {
+            const channel = Math.round(lightness * 255);
+            return new Color(Math.round(alpha * 255), channel, channel, channel);
+        }
+
+        const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation;
+        const segment = hue / 60;
+        const x = chroma * (1 - Math.abs((segment % 2) - 1));
+        let r1 = 0;
+        let g1 = 0;
+        let b1 = 0;
+
+        if (segment >= 0 && segment < 1) {
+            r1 = chroma;
+            g1 = x;
+        }
+        else if (segment < 2) {
+            r1 = x;
+            g1 = chroma;
+        }
+        else if (segment < 3) {
+            g1 = chroma;
+            b1 = x;
+        }
+        else if (segment < 4) {
+            g1 = x;
+            b1 = chroma;
+        }
+        else if (segment < 5) {
+            r1 = x;
+            b1 = chroma;
+        }
+        else {
+            r1 = chroma;
+            b1 = x;
+        }
+
+        const match = lightness - chroma / 2;
+        return new Color(
+            Math.round(alpha * 255),
+            Math.round((r1 + match) * 255),
+            Math.round((g1 + match) * 255),
+            Math.round((b1 + match) * 255),
+        );
+    }
+
+    /**
+     * Interpolates between two colors.
+     * @param from - Start color
+     * @param to - End color
+     * @param t - Interpolation fraction in the range 0-1
+     * @returns Interpolated color
+     */
+    public static lerp(from: Color, to: Color, t: number): Color {
+        const progress = Color.clamp01(Number(t) || 0);
+        return new Color(
+            Math.round(from.a + (to.a - from.a) * progress),
+            Math.round(from.r + (to.r - from.r) * progress),
+            Math.round(from.g + (to.g - from.g) * progress),
+            Math.round(from.b + (to.b - from.b) * progress),
+        );
+    }
+
+    /**
      * Parses a string representation of a color into a color instance,
      * handling known color names and hex formatted color strings
      * @param color - String representation of color or color instance to clone
@@ -196,42 +273,54 @@ export class Color {
             return color.clone();
         }
 
+        let evalString = color.trim();
+        let alphaMultiplier = 1;
+        if (evalString.indexOf(';') !== -1) {
+            const colorParts = evalString.split(';');
+            evalString = colorParts[colorParts.length - 1].trim();
+            alphaMultiplier = parseFloat(colorParts[0]);
+            if (!Number.isFinite(alphaMultiplier)) {
+                alphaMultiplier = 1;
+            }
+            alphaMultiplier = Color.clamp01(alphaMultiplier);
+        }
+
         let a: number;
         let r: number;
         let g: number;
         let b: number;
 
         // Parse hex prefixed color
-        if (color.charAt(0) === '#') {
-            switch (color.length) {
+        if (evalString.charAt(0) === '#') {
+            switch (evalString.length) {
                 // Three digits shorthand (#RGB → #RRGGBB)
                 case 4:
-                    r = parseInt(color.charAt(1) + color.charAt(1), 16);
-                    g = parseInt(color.charAt(2) + color.charAt(2), 16);
-                    b = parseInt(color.charAt(3) + color.charAt(3), 16);
-                    return new Color(255, r, g, b);
+                    r = parseInt(evalString.charAt(1) + evalString.charAt(1), 16);
+                    g = parseInt(evalString.charAt(2) + evalString.charAt(2), 16);
+                    b = parseInt(evalString.charAt(3) + evalString.charAt(3), 16);
+                    return new Color(Math.round(alphaMultiplier * 255), r, g, b);
 
                 // Four digits shorthand (#RGBA → #RRGGBBAA)
                 case 5:
-                    r = parseInt(color.charAt(1) + color.charAt(1), 16);
-                    g = parseInt(color.charAt(2) + color.charAt(2), 16);
-                    b = parseInt(color.charAt(3) + color.charAt(3), 16);
-                    a = parseInt(color.charAt(4) + color.charAt(4), 16);
+                    r = parseInt(evalString.charAt(1) + evalString.charAt(1), 16);
+                    g = parseInt(evalString.charAt(2) + evalString.charAt(2), 16);
+                    b = parseInt(evalString.charAt(3) + evalString.charAt(3), 16);
+                    a = Math.round(parseInt(evalString.charAt(4) + evalString.charAt(4), 16) * alphaMultiplier);
                     return new Color(a, r, g, b);
 
                 // Six digits
                 case 7:
-                    r = parseInt(color.substring(1, 3), 16);
-                    g = parseInt(color.substring(3, 5), 16);
-                    b = parseInt(color.substring(5, 7), 16);
-                    return new Color(255, r, g, b);
+                    r = parseInt(evalString.substring(1, 3), 16);
+                    g = parseInt(evalString.substring(3, 5), 16);
+                    b = parseInt(evalString.substring(5, 7), 16);
+                    return new Color(Math.round(alphaMultiplier * 255), r, g, b);
 
                 // Eight digits - with alpha
                 case 9:
-                    r = parseInt(color.substring(1, 3), 16);
-                    g = parseInt(color.substring(3, 5), 16);
-                    b = parseInt(color.substring(5, 7), 16);
-                    a = parseInt(color.substring(7, 9), 16);
+                    r = parseInt(evalString.substring(1, 3), 16);
+                    g = parseInt(evalString.substring(3, 5), 16);
+                    b = parseInt(evalString.substring(5, 7), 16);
+                    a = Math.round(parseInt(evalString.substring(7, 9), 16) * alphaMultiplier);
                     return new Color(a, r, g, b);
 
                 default:
@@ -240,28 +329,26 @@ export class Color {
         }
 
         // Parse rgb(r,g,b) or rgba(r,g,b,a) format
-        const rgbaMatch = color.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)$/);
+        const rgbaMatch = evalString.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)$/i);
         if (rgbaMatch) {
             r = parseInt(rgbaMatch[1], 10);
             g = parseInt(rgbaMatch[2], 10);
             b = parseInt(rgbaMatch[3], 10);
-            a = rgbaMatch[4] !== undefined ? Math.round(parseFloat(rgbaMatch[4]) * 255) : 255;
+            a = rgbaMatch[4] !== undefined ? Math.round(Color.clamp01(parseFloat(rgbaMatch[4])) * 255) : 255;
+            a = Math.round(a * alphaMultiplier);
             return new Color(a, r, g, b);
         }
 
-        let evalString = color.toLowerCase();
-        let alpha = 1;
-        if (color.indexOf(';') !== -1) {
-            const colorParts = evalString.split(';');
-            evalString = colorParts[1];
-            alpha = parseFloat(colorParts[0]);
-            if (alpha > 1) {
-                alpha = 1;
-            }
-            else if (alpha < 0) {
-                alpha = 0;
-            }
+        const hslaMatch = evalString.match(/^hsla?\(\s*(-?[\d.]+)(?:deg)?\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%\s*(?:,\s*([\d.]+)\s*)?\)$/i);
+        if (hslaMatch) {
+            const h = parseFloat(hslaMatch[1]);
+            const s = parseFloat(hslaMatch[2]);
+            const l = parseFloat(hslaMatch[3]);
+            const alpha = hslaMatch[4] !== undefined ? Color.clamp01(parseFloat(hslaMatch[4])) : 1;
+            return Color.fromHSL(h, s, l, alpha * alphaMultiplier);
         }
+
+        evalString = evalString.toLowerCase();
 
         // Lookup known color
         if (evalString === 'transparent') {
@@ -269,11 +356,11 @@ export class Color {
         }
         const namedColor = Color.namedColorLookup.get(evalString);
         if (namedColor) {
-            if (alpha === 1) {
+            if (alphaMultiplier === 1) {
                 return new Color(namedColor.color.a, namedColor.color.r, namedColor.color.g, namedColor.color.b);
             }
             else {
-                return new Color(Math.round(alpha * 255), namedColor.color.r, namedColor.color.g, namedColor.color.b);
+                return new Color(Math.round(alphaMultiplier * 255), namedColor.color.r, namedColor.color.g, namedColor.color.b);
             }
         }
         throw new Error(ErrorMessages.InvalidColorString + ': ' + color);
@@ -403,6 +490,47 @@ export class Color {
         return Color.namedHueLookup.has(Color.hueKey(this.r, this.g, this.b));
     }
 
+    /**
+     * Converts this color to HSL channel values.
+     * @returns HSL representation with alpha in the range 0-1
+     */
+    public toHSL(): { h: number; s: number; l: number; a: number } {
+        const red = this.r / 255;
+        const green = this.g / 255;
+        const blue = this.b / 255;
+        const max = Math.max(red, green, blue);
+        const min = Math.min(red, green, blue);
+        const delta = max - min;
+        const lightness = (max + min) / 2;
+
+        let hue = 0;
+        let saturation = 0;
+
+        if (delta !== 0) {
+            saturation = delta / (1 - Math.abs(2 * lightness - 1));
+            if (max === red) {
+                hue = 60 * (((green - blue) / delta) % 6);
+            }
+            else if (max === green) {
+                hue = 60 * (((blue - red) / delta) + 2);
+            }
+            else {
+                hue = 60 * (((red - green) / delta) + 4);
+            }
+        }
+
+        if (hue < 0) {
+            hue += 360;
+        }
+
+        return {
+            h: hue,
+            s: saturation * 100,
+            l: lightness * 100,
+            a: this.a / 255,
+        };
+    }
+
     public clone() {
         return new Color(this.a, this.r, this.g, this.b);
     }
@@ -417,6 +545,16 @@ export class Color {
             return '0' + n.toString(16);
         }
         return n.toString(16);
+    }
+
+    private static clamp01(value: number): number {
+        if (value < 0) {
+            return 0;
+        }
+        if (value > 1) {
+            return 1;
+        }
+        return value;
     }
 }
 

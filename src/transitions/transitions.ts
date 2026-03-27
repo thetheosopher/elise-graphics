@@ -101,7 +101,8 @@ export class TransitionRenderer {
         sprite: SpriteElement,
         sourceFrame: number,
         targetFrame: number,
-        transition: string
+        transition: string,
+        durationSeconds?: number
     ) {
         const size = sprite.getSize();
         if (!size) {
@@ -151,7 +152,7 @@ export class TransitionRenderer {
         if (sprite.timerHandle) {
             cancelAnimationFrame(sprite.timerHandle);
         }
-        const durationMs = 200;
+        const durationMs = Math.max(1, Math.round((durationSeconds !== undefined ? durationSeconds : 0.2) * 1000));
         const startTime = performance.now();
         const tick = () => {
             const elapsed = performance.now() - startTime;
@@ -193,7 +194,8 @@ export class TransitionRenderer {
         const ec: ElementCommand = ElementCommand.parse(command);
         const sourceFrame: number = el.frameIndex;
         const targetFrame: number = parseInt(ec.parameter, 10);
-        TransitionRenderer.transitionSprite(c, el, sourceFrame, targetFrame, 'fade');
+        const targetState = el.frames ? el.frames[targetFrame] : undefined;
+        TransitionRenderer.transitionSprite(c, el, sourceFrame, targetFrame, 'fade', targetState?.transitionDuration);
     }
 
     public static popFrameTransition(
@@ -217,7 +219,8 @@ export class TransitionRenderer {
         if (el.frameStack.length === 0) {
             el.frameStack = undefined;
         }
-        TransitionRenderer.transitionSprite(c, el, sourceFrame, targetFrame, 'fade');
+        const targetState = el.frames ? el.frames[targetFrame] : undefined;
+        TransitionRenderer.transitionSprite(c, el, sourceFrame, targetFrame, 'fade', targetState?.transitionDuration);
     }
 
     public static spriteIncrementHandler(

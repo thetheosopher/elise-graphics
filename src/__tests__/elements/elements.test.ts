@@ -41,6 +41,7 @@ test('rectangle serialize/parse round-trip', () => {
     const rect = RectangleElement.create(10, 20, 100, 200);
     rect.setFill('Red').setStroke('Black,2').setVisible(false).setCornerRadius(12);
     rect.setShadow({ color: 'rgba(0,0,0,0.3)', blur: 10, offsetX: 4, offsetY: 5 });
+    rect.setBlendMode('multiply');
     rect.id = 'rect1';
     const serialized = rect.serialize();
     expect(serialized.type).toBe('rectangle');
@@ -48,6 +49,7 @@ test('rectangle serialize/parse round-trip', () => {
     expect(serialized.fill).toBe('Red');
     expect(serialized.stroke).toBe('Black,2');
     expect(serialized.shadow).toEqual({ color: 'rgba(0,0,0,0.3)', blur: 10, offsetX: 4, offsetY: 5 });
+    expect(serialized.blendMode).toBe('multiply');
     expect(serialized.visible).toBe(false);
     expect(serialized.cornerRadius).toBe(12);
 
@@ -57,6 +59,7 @@ test('rectangle serialize/parse round-trip', () => {
     expect(parsed.fill).toBe('Red');
     expect(parsed.stroke).toBe('Black,2');
     expect(parsed.shadow).toEqual({ color: 'rgba(0,0,0,0.3)', blur: 10, offsetX: 4, offsetY: 5 });
+    expect(parsed.blendMode).toBe('multiply');
     expect(parsed.visible).toBe(false);
     expect(parsed.cornerRadii).toEqual([12, 12, 12, 12]);
     const loc = parsed.getLocation()!;
@@ -68,11 +71,13 @@ test('rectangle clone', () => {
     const rect = RectangleElement.create(10, 20, 100, 200);
     rect.setFill('Blue').setCornerRadii(10, 8, 6, 4).setVisible(false);
     rect.setShadow({ color: '#000000', blur: 6, offsetX: 2, offsetY: 3 });
+    rect.setBlendMode('screen');
     rect.setClipPath({ commands: ['m0,0', 'l1,0', 'l1,1', 'z'], units: 'objectBoundingBox' });
     const cloned = rect.clone() as RectangleElement;
     expect(cloned.fill).toBe('Blue');
     expect(cloned.visible).toBe(false);
     expect(cloned.shadow).toEqual({ color: '#000000', blur: 6, offsetX: 2, offsetY: 3 });
+    expect(cloned.blendMode).toBe('screen');
     expect(cloned.cornerRadii).toEqual([10, 8, 6, 4]);
     expect(cloned.clipPath).toBeDefined();
     expect(cloned.clipPath!.commands).toEqual(['m0,0', 'l1,0', 'l1,1', 'z']);
@@ -111,7 +116,7 @@ test('rectangle set location and size', () => {
 
 test('rectangle fluent setters', () => {
     const rect = RectangleElement.create(0, 0, 50, 50);
-    const result = rect.setFill('Green').setStroke('Red').setStrokeDash([4, 2]).setLineCap('round').setLineJoin('bevel').setShadow({ color: '#000000', blur: 8, offsetX: 2, offsetY: 1 }).setInteractive(true);
+    const result = rect.setFill('Green').setStroke('Red').setStrokeDash([4, 2]).setLineCap('round').setLineJoin('bevel').setShadow({ color: '#000000', blur: 8, offsetX: 2, offsetY: 1 }).setBlendMode('multiply').setInteractive(true);
     expect(result).toBe(rect);
     expect(rect.fill).toBe('Green');
     expect(rect.stroke).toBe('Red');
@@ -119,18 +124,21 @@ test('rectangle fluent setters', () => {
     expect(rect.lineCap).toBe('round');
     expect(rect.lineJoin).toBe('bevel');
     expect(rect.shadow).toEqual({ color: '#000000', blur: 8, offsetX: 2, offsetY: 1 });
+    expect(rect.blendMode).toBe('multiply');
     expect(rect.interactive).toBe(true);
 });
 
-test('applyRenderOpacity applies opacity and shadow together', () => {
+test('applyRenderOpacity applies opacity, blend mode, and shadow together', () => {
     const rect = RectangleElement.create(0, 0, 50, 50);
     rect.setOpacity(0.5);
     rect.setShadow({ color: 'rgba(0,0,0,0.25)', blur: 12, offsetX: 3, offsetY: 4 });
-    const context = { globalAlpha: 1 } as CanvasRenderingContext2D;
+    rect.setBlendMode('screen');
+    const context = { globalAlpha: 1, globalCompositeOperation: 'source-over' } as CanvasRenderingContext2D;
 
     rect.applyRenderOpacity(context);
 
     expect(context.globalAlpha).toBe(0.5);
+    expect(context.globalCompositeOperation).toBe('screen');
     expect(context.shadowColor).toBe('rgba(0,0,0,' + 64 / 255 + ')');
     expect(context.shadowBlur).toBe(12);
     expect(context.shadowOffsetX).toBe(3);
@@ -616,6 +624,33 @@ test('text serialize/parse round-trip', () => {
     expect(parsed.alignment).toBe('center,middle');
 });
 
+test('text serialize/parse preserves letter spacing decoration and rich text', () => {
+    const txt = TextElement.create(undefined, 10, 20, 200, 50);
+    txt.setTypeface('Arial, sans-serif').setTypesize(16).setTypestyle('bold');
+    txt.setLetterSpacing(1.5).setTextDecoration('underline,line-through');
+    txt.setRichText([
+        { text: 'Hello ', typestyle: 'bold' },
+        { text: 'World', typestyle: 'italic', letterSpacing: 2, decoration: 'underline' },
+    ]);
+
+    const serialized = txt.serialize();
+    expect(serialized.letterSpacing).toBe(1.5);
+    expect(serialized.textDecoration).toBe('underline,line-through');
+    expect(serialized.richText).toEqual([
+        { text: 'Hello ', typestyle: 'bold' },
+        { text: 'World', typestyle: 'italic', letterSpacing: 2, decoration: 'underline' },
+    ]);
+
+    const parsed = new TextElement();
+    parsed.parse(serialized);
+    expect(parsed.letterSpacing).toBe(1.5);
+    expect(parsed.textDecoration).toBe('underline,line-through');
+    expect(parsed.richText).toEqual([
+        { text: 'Hello ', typestyle: 'bold' },
+        { text: 'World', typestyle: 'italic', letterSpacing: 2, decoration: 'underline' },
+    ]);
+});
+
 test('text setText clears source', () => {
     const txt = TextElement.create(undefined, 0, 0, 200, 50);
     txt.setSource('my-resource');
@@ -630,6 +665,20 @@ test('text setSource clears text', () => {
     txt.setSource('my-resource');
     expect(txt.source).toBe('my-resource');
     expect(txt.text).toBeUndefined();
+});
+
+test('text content setters clear rich text', () => {
+    const txt = TextElement.create(undefined, 0, 0, 200, 50);
+    txt.setRichText([{ text: 'Hello' }, { text: ' world', typestyle: 'italic' }]);
+    expect(txt.richText).toEqual([{ text: 'Hello' }, { text: ' world', typestyle: 'italic' }]);
+
+    txt.setText('Plain text');
+    expect(txt.richText).toBeUndefined();
+
+    txt.setRichText([{ text: 'From runs' }]);
+    txt.setSource('resource-key');
+    expect(txt.richText).toBeUndefined();
+    expect(txt.source).toBe('resource-key');
 });
 
 // --- ImageElement ---

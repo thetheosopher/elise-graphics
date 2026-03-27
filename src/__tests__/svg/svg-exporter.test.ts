@@ -124,6 +124,28 @@ test('Model.toSVG exports text with layout and font attributes', () => {
     expect(svgMarkup).toContain('<tspan x="60" y="24">Hello</tspan><tspan x="60" y="40">World</tspan>');
 });
 
+test('Model.toSVG exports letter spacing text decoration and rich text tspans', () => {
+    const model = Model.create(200, 80);
+    const text = TextElement.create('Seed', 10, 20, 100, 40)
+        .setFill('#112233')
+        .setTypeface('Arial')
+        .setTypesize(16)
+        .setLetterSpacing(1.5)
+        .setTextDecoration('underline');
+    text.setRichText([
+        { text: 'Hello ', typestyle: 'bold' },
+        { text: 'World', typestyle: 'italic', decoration: 'line-through' },
+    ]);
+    model.add(text);
+
+    const svgMarkup = model.toSVG();
+
+    expect(svgMarkup).toContain('letter-spacing="1.5"');
+    expect(svgMarkup).toContain('text-decoration="underline"');
+    expect(svgMarkup).toContain('<tspan x="10" y="20" font-weight="bold">Hello </tspan>');
+    expect(svgMarkup).toContain('<tspan font-style="italic" text-decoration="line-through">World</tspan>');
+});
+
 test('Model.toSVG exports gradients and valid SVG transform matrices', () => {
     const model = Model.create(120, 80);
     const gradient = LinearGradientFill.create('0,0', '20,0');

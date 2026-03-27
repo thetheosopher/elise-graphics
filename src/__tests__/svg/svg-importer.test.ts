@@ -219,6 +219,37 @@ test('SVGImporter.parseDocument imports text and image elements with inherited t
     expect(resource.uri).toBe('/images/logo.png');
 });
 
+test('SVGImporter.parseDocument imports text letter spacing decoration and styled tspans', () => {
+    const document = createFakeDocument(
+        createFakeElement('svg', { width: '160', height: '90' }, [
+            createFakeElement('text', {
+                x: '20',
+                y: '30',
+                fill: '#112233',
+                'font-family': 'Arial',
+                'font-size': '16',
+                'letter-spacing': '1.5',
+                'text-decoration': 'underline',
+            }, [
+                createFakeElement('tspan', { 'font-weight': 'bold' }, [], 'Hello '),
+                createFakeElement('tspan', { 'font-style': 'italic', 'text-decoration': 'line-through' }, [], 'World'),
+            ]),
+        ]),
+    );
+
+    const model = SVGImporter.parseDocument(document);
+    const text = model.elements[0] as TextElement;
+
+    expect(text.text).toBeUndefined();
+    expect(text.getResolvedText()).toBe('Hello World');
+    expect(text.letterSpacing).toBe(1.5);
+    expect(text.textDecoration).toBe('underline');
+    expect(text.richText).toEqual([
+        { text: 'Hello ', typeface: 'Arial', typesize: 16, typestyle: 'bold', letterSpacing: 1.5, decoration: 'underline' },
+        { text: 'World', typeface: 'Arial', typesize: 16, typestyle: 'italic', letterSpacing: 1.5, decoration: 'line-through' },
+    ]);
+});
+
 test('SVGImporter.parseDocument offsets imported geometry using viewBox origin', () => {
     const document = createFakeDocument(
         createFakeElement('svg', { viewBox: '5 5 20 10' }, [

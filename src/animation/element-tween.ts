@@ -543,12 +543,7 @@ export class ElementTween {
             if (property.kind === 'number') {
                 property.apply(property.from + (property.to - property.from) * eased);
             } else {
-                const next = new Color(
-                    Math.round(property.from.a + (property.to.a - property.from.a) * eased),
-                    Math.round(property.from.r + (property.to.r - property.from.r) * eased),
-                    Math.round(property.from.g + (property.to.g - property.from.g) * eased),
-                    Math.round(property.from.b + (property.to.b - property.from.b) * eased)
-                );
+                const next = Color.lerp(property.from, property.to, eased);
                 property.apply(next.toStyleString());
             }
         }

@@ -111,6 +111,46 @@ test('parse rgba format opaque', () => {
     expect(color.b).toBe(0);
 });
 
+test('parse hsl and hsla formats', () => {
+    const hsl = Color.parse('hsl(120,100%,50%)');
+    const hsla = Color.parse('hsla(240,100%,50%,0.25)');
+
+    expect(hsl.r).toBe(0);
+    expect(hsl.g).toBe(255);
+    expect(hsl.b).toBe(0);
+    expect(hsl.a).toBe(255);
+
+    expect(hsla.r).toBe(0);
+    expect(hsla.g).toBe(0);
+    expect(hsla.b).toBe(255);
+    expect(hsla.a).toBe(64);
+});
+
+test('fromHSL and toHSL round-trip primary red', () => {
+    const color = Color.fromHSL(0, 100, 50, 0.5);
+    const hsl = color.toHSL();
+
+    expect(color.r).toBe(255);
+    expect(color.g).toBe(0);
+    expect(color.b).toBe(0);
+    expect(color.a).toBe(128);
+    expect(hsl.h).toBeCloseTo(0);
+    expect(hsl.s).toBeCloseTo(100);
+    expect(hsl.l).toBeCloseTo(50);
+    expect(hsl.a).toBeCloseTo(128 / 255);
+});
+
+test('lerp interpolates color channels', () => {
+    const from = Color.parse('rgba(0,0,0,0)');
+    const to = Color.parse('rgba(255,255,255,1)');
+    const midway = Color.lerp(from, to, 0.5);
+
+    expect(midway.r).toBe(128);
+    expect(midway.g).toBe(128);
+    expect(midway.b).toBe(128);
+    expect(midway.a).toBe(128);
+});
+
 test('parse throws on invalid color name', () => {
     expect(() => Color.parse('NotAColor')).toThrow();
 });

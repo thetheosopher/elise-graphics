@@ -12,7 +12,7 @@ import { PathElement } from '../elements/path-element';
 import { PolygonElement } from '../elements/polygon-element';
 import { PolylineElement } from '../elements/polyline-element';
 import { RectangleElement } from '../elements/rectangle-element';
-import { TextElement } from '../elements/text-element';
+import { TextElement, type TextRun } from '../elements/text-element';
 import { Color } from '../core/color';
 import { FillInfo } from '../fill/fill-info';
 import { LinearGradientFill } from '../fill/linear-gradient-fill';
@@ -423,7 +423,8 @@ export class SVGExporter {
         const location = element.getLocation();
         const size = element.getSize();
         const text = SVGExporter.resolveTextContent(element);
-        if (!location || !size || !text) {
+        const runs = element.getResolvedTextRuns();
+        if (!location || !size || !text || runs.length === 0) {
             return '';
         }
 
@@ -470,26 +471,15 @@ export class SVGExporter {
         if (element.typestyle) {
             SVGExporter.pushTextStyleAttributes(attributes, element.typestyle);
         }
+        SVGExporter.pushTextExtensionAttributes(attributes, element.letterSpacing, element.textDecoration);
 
         SVGExporter.pushCommonAttributes(attributes, element, context, location, false);
 
-        if (lines.length === 1) {
+        if (lines.length === 1 && (!element.richText || element.richText.length === 0)) {
             return '<text ' + attributes.join(' ') + '>' + SVGExporter.escapeText(lines[0]) + '</text>';
         }
 
-        const tspans: string[] = [];
-        for (let index = 0; index < lines.length; index++) {
-            const y = startY + index * lineHeight;
-            tspans.push(
-                '<tspan x="' +
-                    SVGExporter.formatNumber(x) +
-                    '" y="' +
-                    SVGExporter.formatNumber(y) +
-                    '">' +
-                    SVGExporter.escapeText(lines[index]) +
-                    '</tspan>'
-            );
-        }
+        const tspans = SVGExporter.exportTextRunsAsTspans(element, runs, x, startY, lineHeight);
 
         return '<text ' + attributes.join(' ') + '>' + tspans.join('') + '</text>';
     }
@@ -502,6 +492,70 @@ export class SVGExporter {
         if (parts.indexOf('bold') !== -1) {
             attributes.push('font-weight="bold"');
         }
+    }
+
+    private static pushTextExtensionAttributes(
+        attributes: string[],
+        letterSpacing: number | undefined,
+        textDecoration: string | undefined,
+    ): void {
+        if (letterSpacing !== undefined && letterSpacing !== 0) {
+            attributes.push('letter-spacing="' + SVGExporter.formatNumber(letterSpacing) + '"');
+        }
+        if (textDecoration) {
+            attributes.push('text-decoration="' + SVGExporter.escapeAttribute(textDecoration.replace(/,/g, ' ')) + '"');
+        }
+    }
+
+    private static exportTextRunsAsTspans(
+        element: TextElement,
+        runs: TextRun[],
+        x: number,
+        startY: number,
+        lineHeight: number,
+    ): string[] {
+        const tspans: string[] = [];
+        let lineIndex = 0;
+        let firstSegmentOnLine = true;
+
+        for (const run of runs) {
+            const parts = run.text.split('\n');
+            for (let index = 0; index < parts.length; index++) {
+                const content = parts[index];
+                if (content.length > 0 || firstSegmentOnLine) {
+                    const attributes: string[] = [];
+                    if (firstSegmentOnLine) {
+                        attributes.push('x="' + SVGExporter.formatNumber(x) + '"');
+                        attributes.push('y="' + SVGExporter.formatNumber(startY + lineIndex * lineHeight) + '"');
+                    }
+                    if (run.typeface && run.typeface !== element.typeface) {
+                        attributes.push('font-family="' + SVGExporter.escapeAttribute(run.typeface) + '"');
+                    }
+                    if (run.typesize !== undefined && run.typesize !== element.typesize) {
+                        attributes.push('font-size="' + SVGExporter.formatNumber(run.typesize) + '"');
+                    }
+                    if (run.typestyle && run.typestyle !== element.typestyle) {
+                        SVGExporter.pushTextStyleAttributes(attributes, run.typestyle);
+                    }
+                    SVGExporter.pushTextExtensionAttributes(
+                        attributes,
+                        run.letterSpacing !== undefined && run.letterSpacing !== element.letterSpacing ? run.letterSpacing : undefined,
+                        run.decoration !== undefined && run.decoration !== element.textDecoration ? run.decoration : undefined,
+                    );
+                    tspans.push(
+                        '<tspan ' + attributes.join(' ') + '>' + SVGExporter.escapeText(content) + '</tspan>'
+                    );
+                    firstSegmentOnLine = false;
+                }
+
+                if (index < parts.length - 1) {
+                    lineIndex++;
+                    firstSegmentOnLine = true;
+                }
+            }
+        }
+
+        return tspans;
     }
 
     private static pushContainerAttributes(
@@ -729,13 +783,7 @@ export class SVGExporter {
     }
 
     private static resolveTextContent(element: TextElement): string | undefined {
-        if (element.source && element.model && element.model.resourceManager) {
-            const resource = element.model.resourceManager.get(element.source) as { text?: string } | undefined;
-            if (resource && resource.text) {
-                return resource.text;
-            }
-        }
-        return element.text;
+        return element.getResolvedText();
     }
 
     private static resolveImageHref(element: ImageElement): string | undefined {

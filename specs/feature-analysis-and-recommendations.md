@@ -33,11 +33,12 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 **Key Gaps:**
 
 - **Partial SVG interop** — no SVG rendering backend, SVG import/export still omit some SVG features and element/resource cases, and full round-trip fidelity is not yet available
-- No property-level keyframe animation or tweening
+- No property-level keyframe or timeline animation composition API
 - No WebGL renderer or GPU acceleration path
-- No first-class persisted arc/quadratic path editing commands o- No blend modes, filters, or post-processing effects
-- No accessibility features
-- Missing HSL/HSV color models and color interpolation
+- No first-class persisted arc path editing command
+- No event bubbling through the model hierarchy
+- No accessibility layer
+- No filters, masks, or post-processing effects
 
 ---
 
@@ -102,7 +103,7 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Polyline | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Polygon | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Path (cubic Bézier) | ✅ | ✅ | ❌ (custom) | ✅ | ✅ |
-| Path (quadratic Bézier) | ⚠️ (normalized import/export) | ✅ | ❌ | ✅ | ✅ |
+| Path (quadratic Bézier) | ✅ | ✅ | ❌ | ✅ | ✅ |
 | Path (arc) | ⚠️ (normalized import/export) | ✅ | ✅ | ✅ | ✅ |
 | Star/Regular polygon | ❌ | ✅ | ✅ | ✅ | ✅ |
 | Arrow | ❌ | ❌ | ✅ | ❌ | ❌ |
@@ -110,12 +111,12 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Ring/Annulus | ❌ | ❌ | ✅ | ❌ | ❌ |
 | Rounded rectangle | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Text | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Rich/multi-style text | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Rich/multi-style text | ✅ | ✅ | ❌ | ❌ | ❌ |
 | Image | ✅ | ✅ | ✅ | ✅ (raster) | ✅ |
 | Sprite | ✅ | ✅ | ✅ | ❌ | ✅ |
 | Group/Container | ✅ (Model) | ✅ | ✅ | ✅ | ✅ |
 
-**Analysis:** Elise covers the essential primitives well. The main remaining path-related gaps are **first-class persisted arc/quadratic editing commands** and exact SVG path round-trip fidelity, alongside remaining **convenience shapes** (star, wedge, ring). Fabric.js still leads in primitive variety.
+**Analysis:** Elise covers the essential primitives well. The main remaining path-related gaps are **first-class persisted arc editing commands** and exact SVG path round-trip fidelity, alongside remaining **convenience shapes** (star, wedge, ring). Fabric.js still leads in primitive variety.
 
 ### 3.3 Path System
 
@@ -124,20 +125,20 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Move to (`M`) | ✅ | ✅ | ✅ | ✅ |
 | Line to (`L`) | ✅ | ✅ | ✅ | ✅ |
 | Cubic Bézier (`C`) | ✅ | ✅ | ✅ | ✅ |
-| Quadratic Bézier (`Q`) | ⚠️ (normalized import/export) | ✅ | ✅ | ✅ |
+| Quadratic Bézier (`Q`) | ✅ | ✅ | ✅ | ✅ |
 | Arc (`A`) | ⚠️ (normalized import/export) | ✅ | ✅ | ✅ |
 | Smooth cubic (`S`) | ⚠️ (normalized import/export) | ✅ | ✅ | ❌ |
 | Smooth quadratic (`T`) | ⚠️ (normalized import/export) | ✅ | ✅ | ❌ |
 | Horizontal line (`H`) | ⚠️ (normalized import/export) | ✅ | ✅ | ❌ |
 | Vertical line (`V`) | ⚠️ (normalized import/export) | ✅ | ✅ | ❌ |
 | Close (`Z`) | ✅ | ✅ | ✅ | ✅ |
-| SVG path string parsing | ⚠️ (normalized import) | ✅ | ✅ | ✅ |
+| SVG path string parsing | ✅ | ✅ | ✅ | ✅ |
 | Boolean operations (union/intersect) | ❌ | ❌ | ✅ | ❌ |
 | Path simplification | ❌ | ✅ | ✅ | ❌ |
 | Path offsetting | ❌ | ❌ | ✅ | ❌ |
 | Winding rules | ✅ | ✅ | ✅ | ✅ |
 
-**Analysis:** This remains a meaningful gap, but Elise is no longer at zero. Internally, editable persisted paths still use the 4-command `m`/`l`/`c`/`z` model, while SVG path parsing now accepts standard SVG path strings and normalizes quadratic, shorthand, horizontal/vertical, and arc commands into explicit line and cubic segments. Paper.js is still the clear leader with full Boolean path operations and first-class path manipulation.
+**Analysis:** Elise now supports standard SVG path parsing with persisted quadratic commands, which closes a significant portion of the earlier path gap. The main remaining weaknesses are native persisted arc semantics, exact preservation of shorthand SVG command structure, and higher-level path tooling such as Boolean operations, simplification, and offsetting. Paper.js is still the clear leader with full Boolean path operations and first-class path manipulation.
 
 ### 3.4 Transform System
 
@@ -170,11 +171,11 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Stroke width | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Line cap/join | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Miter limit | ❌ | ✅ | ✅ | ✅ | ❌ |
-| Blend modes | ❌ | ❌ | ✅ | ✅ | ❌ |
-| Opacity (element) | Via fill modifier | ✅ | ✅ | ✅ | ✅ |
-| Shadow | ❌ | ✅ | ✅ | ✅ | ❌ |
+| Blend modes | ✅ | ❌ | ✅ | ✅ | ❌ |
+| Opacity (element) | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Shadow | ✅ | ✅ | ✅ | ✅ | ❌ |
 
-**Analysis:** Elise has unique strengths in **model fills** (using a nested model as a pattern source) and **fill inheritance** (parent fills cascade to children). With dash patterns and line cap/join styles now implemented, the main remaining paint-style gap in this area is **shadow/drop shadow** support.
+**Analysis:** Elise has unique strengths in **model fills** (using a nested model as a pattern source) and **fill inheritance** (parent fills cascade to children). With dash patterns, line cap/join styles, element opacity, blend modes, and drop shadows now implemented, the main remaining paint-style gaps in this area are **miter limit**, filters, and mask-style composition features.
 
 ### 3.6 Text Rendering
 
@@ -188,15 +189,27 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Horizontal alignment | ✅ | ✅ | ✅ | ✅ |
 | Vertical alignment | ✅ | ✅ | ✅ | ❌ |
 | Line height | ✅ (auto) | ✅ | ✅ | ✅ |
-| Letter spacing | ❌ | ✅ | ✅ | ❌ |
-| Text decoration | ❌ | ✅ | ✅ | ❌ |
-| Rich text (mixed styles) | ❌ | ✅ | ❌ | ❌ |
+| Letter spacing | ✅ | ✅ | ✅ | ❌ |
+| Text decoration | ✅ | ✅ | ✅ | ❌ |
+| Rich text (mixed styles) | ✅ | ✅ | ❌ | ❌ |
 | Text on path | ❌ | ❌ | ✅ (plugin) | ✅ |
 | Text resource (localization) | ✅ | ❌ | ❌ | ❌ |
 | Text from URL | ✅ | ❌ | ❌ | ❌ |
 | RTL/Bidi | ❌ | ❌ | ❌ | ❌ |
 
-**Analysis:** Elise has a unique advantage in **text resource management** with locale-aware resolution — no competitor matches this. However, it lacks text decoration, letter spacing, and text-on-path features that are common elsewhere.
+**Status:** Partially completed
+
+**Delivered scope:** `TextElement` now supports persisted `letterSpacing`, `textDecoration`, and run-based `richText` content. Text layout/rendering is shared between runtime and design rendering, and SVG import/export now preserves `letter-spacing`, `text-decoration`, and styled `<tspan>` runs. Serialization and clone round-trips cover the new text model.
+
+**Analysis:** Elise still has a unique advantage in **text resource management** with locale-aware resolution, and it now closes the most obvious typography gap by supporting letter spacing, text decoration, and mixed-style rich text at the model/render/SVG levels. The main remaining text gaps are **authoring UX** for editing styled ranges, **text on path**, explicit **line spacing control**, and **RTL/Bidi** support.
+
+#### Plan: Rich Text Authoring And Design UX
+
+1. Add public `TextElement` editing helpers for run inspection and mutation: range replacement, insertion, deletion, style application, and run normalization/merge behavior for adjacent compatible runs.
+2. Extend text-tool/controller state to track caret position, selection range, and active text style within a selected text element instead of treating text as a single opaque string.
+3. Introduce design-surface text edit mode with keyboard entry, caret movement, selection expansion, delete/backspace behavior, and undo-friendly mutation boundaries.
+4. Add formatting commands for selected text ranges: bold, italic, underline, line-through, typeface, size, and letter spacing, reusing the existing command/undo pipeline.
+5. Harden interop and tests for partial-line style changes, nested `<tspan>` import, whitespace preservation between runs, and mixed-style round-trip behavior before taking on text-on-path or RTL/Bidi.
 
 ### 3.7 Animation
 
@@ -213,9 +226,9 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Sketch animation | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Timer events | ✅ | ❌ | ❌ | ✅ | ✅ |
 | RAF loop | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Custom animation duration | ✅ (property tweens) / ❌ (hardcoded transitions) | ✅ | ✅ | N/A | ✅ |
+| Custom animation duration | ✅ | ✅ | ✅ | N/A | ✅ |
 
-**Analysis:** Elise now combines its strong sprite and transition system with a shipped property tweening API for animating geometry, color, opacity, fill transforms, and text properties. That closes one of the most important competitive gaps identified in this analysis. The remaining animation weakness is that transition renderer durations are still effectively fixed, so sprite and pane transitions remain less configurable than the new tween API.
+**Analysis:** Elise now combines its strong sprite and transition system with a shipped property tweening API for animating geometry, color, opacity, fill transforms, and text properties. Configurable transition duration closes another important gap. The main remaining animation weakness is the lack of a higher-level keyframe or timeline composition API rather than low-level tween or transition duration control.
 
 ### 3.8 Interactivity & Events
 
@@ -228,7 +241,7 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Drag & drop | ✅ | ✅ | ✅ | ❌ |
 | Touch events | ✅ | ✅ | ✅ | ✅ |
 | Multi-touch/pinch | ✅ (design) | ✅ | ✅ | ❌ |
-| Keyboard events | ❌ | ✅ | ✅ | ✅ |
+| Keyboard events | ⚠️ (design surface only) | ✅ | ✅ | ✅ |
 | Cursor management | ✅ (design) | ✅ | ✅ | ✅ |
 | Hit regions | ✅ | ✅ | ✅ | ✅ |
 | Custom hit areas | ❌ | ❌ | ✅ | ❌ |
@@ -236,7 +249,7 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Command dispatch | ✅ | ❌ | ❌ | ❌ |
 | File drop | ✅ (design) | ❌ | ❌ | ❌ |
 
-**Analysis:** Elise now covers the core mobile interaction gap with single-touch routing in runtime and design controllers plus pinch support on the design surface. Keyboard events and event bubbling through the model hierarchy remain notable gaps. The command dispatch pattern is unique and powerful for building interactive applications.
+**Analysis:** Elise now covers the core mobile interaction gap with single-touch routing in runtime and design controllers plus pinch support on the design surface. Design mode also includes practical keyboard handling for undo/redo, select-all, delete/backspace, and arrow-key nudge operations, but runtime keyboard events and event bubbling through the model hierarchy remain notable gaps. The command dispatch pattern is unique and powerful for building interactive applications.
 
 ### 3.9 Design Surface (Interactive Editing)
 
@@ -256,10 +269,10 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Dirty tracking | ✅ | ✅ | ❌ | ❌ |
 | Undo/redo | ✅ | ❌ | ❌ | ❌ |
 | Copy/paste | ❌ | ✅ | ❌ | ❌ |
-| Alignment/distribute | ❌ | ❌ | ❌ | ❌ |
-| Z-order controls | ❌ | ✅ | ✅ | ❌ |
+| Alignment/distribute | ⚠️ (alignment only) | ❌ | ❌ | ❌ |
+| Z-order controls | ✅ | ✅ | ✅ | ❌ |
 
-**Analysis:** Elise has the **most comprehensive built-in design surface** of any library in this comparison. The combination of 9 creation tools, component registry, rubber-band selection, grid snapping, dirty tracking, and now built-in undo/redo is unmatched. The main remaining workflow gaps are **z-order controls** (bring to front/send to back), plus broader clipboard and layout tooling.
+**Analysis:** Elise has the **most comprehensive built-in design surface** of any library in this comparison. The combination of 9 creation tools, component registry, rubber-band selection, grid snapping, dirty tracking, undo/redo, z-order controls, alignment helpers, resize-to-match helpers, and duplication workflows is unmatched. The main remaining workflow gaps are broader clipboard support, distribute tools, and richer text-edit authoring UX.
 
 ### 3.10 Serialization & Persistence
 
@@ -306,7 +319,7 @@ Elise now has **partial SVG capability**:
 - ❌ No SVG rendering backend (canvas-only)
 - ⚠️ SVG import now covers `<path>`, `<rect>`, `<ellipse>`, `<circle>`, `<line>`, `<polygon>`, `<polyline>`, `<text>`, and `<image>`, including recursive group traversal, inherited basic styles, gradient fills and clip paths from `<defs>`, `viewBox` origin offset handling, and SVG transform import via normalized matrix transforms
 - ⚠️ SVG export supports the base `Model`, `PathElement`, `RectangleElement`, `EllipseElement`, `LineElement`, `PolygonElement`, `PolylineElement`, `TextElement`, `ImageElement`, and `ModelElement`, but broader element/resource coverage is still incomplete
-- ⚠️ Standard SVG path strings are supported at import time and normalized into Elise's internal line/cubic command representation rather than stored as first-class SVG commands
+- ⚠️ Standard SVG path strings are supported at import time with persisted quadratic segments, while arc, shorthand, and axis-aligned commands are still normalized during import/export rather than preserved exactly as authored
 - ⚠️ Elise transform strings are converted to valid SVG matrix transforms during export, but Elise still does not use native SVG transform syntax as its internal authoring format
 
 ### Why SVG Support Matters
@@ -327,7 +340,7 @@ Elise now has **partial SVG capability**:
 
 - Status: Completed
 - Elise now parses standard SVG path `d` attribute strings, including quadratic, arc, shorthand, horizontal/vertical, relative, and absolute commands
-- Parsed SVG commands are normalized into Elise's internal line and cubic command representation so design-time editing continues to operate on explicit segments rather than native SVG shorthand or arc command storage
+- Parsed SVG commands preserve quadratic segments where possible, while arc, shorthand, and axis-aligned commands are normalized into Elise's editable internal command representation so design-time editing continues to operate on explicit segments rather than native SVG shorthand or arc command storage
 
 #### Phase 2 — SVG Export
 
@@ -376,14 +389,11 @@ Elise now has **partial SVG capability**:
 
 | Gap | Impact | Difficulty |
 | --- | ------ | ---------- |
-| No shadow/drop shadow | Missing common visual effect | Low |
-| No blend modes | Cannot achieve overlay/multiply effects | Low |
-| No z-order controls (bring to front/back) | Design surface limited | Low |
-| Keyboard shortcut coverage is still partial | Design mode now supports undo/redo, select-all, delete, and nudge shortcuts, but broader editing shortcuts are still missing | Medium |
-| No HSL/HSV color model | Limits color manipulation use cases | Low |
+| Keyboard shortcut coverage is still partial | Design mode now supports undo/redo, select-all, delete/backspace, and nudge shortcuts, but broader editing shortcuts are still missing | Medium |
 | No event bubbling | Events don't propagate up model hierarchy | Medium |
-| Hardcoded 200ms transition duration | Cannot customize animation timing | Low |
-| No first-class persisted quadratic Bézier command | Quadratic segments import/export, but normalize to cubic segments internally | Low |
+| No system clipboard copy/paste in design mode | Missing a standard editing workflow beyond duplication | Medium |
+| No distribute tools | Alignment exists, but distribution/layout tooling is still incomplete | Low |
+| No exact SVG path round-trip fidelity | Imported shorthand and arc semantics are still normalized rather than preserved exactly as authored | Medium |
 
 ### 5.3 Nice-to-Have Gaps (Would enhance competitive position)
 
@@ -394,12 +404,10 @@ Elise now has **partial SVG capability**:
 | No filters (blur, brightness, etc.) | Cannot apply Canvas filter effects | Medium |
 | No mask support | Cannot apply luminance/alpha masking effects from SVG or runtime composition | Medium |
 | No boolean path operations | Cannot union/intersect/subtract paths | High |
-| No text decoration (underline, etc.) | Text styling limited | Low |
-| No letter/line spacing control | Typography limited | Low |
+| No rich-text authoring UI | Mixed-style text exists through model APIs, but not through direct design-surface editing yet | Medium |
+| No explicit line spacing control | Typography is still limited to automatic line height | Low |
 | No text on path | Missing creative text capability | Medium |
 | No schema versioning | forward/backward compat risk | Low |
-| No copy/paste in design mode | Missing standard editing feature | Medium |
-| No alignment/distribute tools | Design surface less capable | Medium |
 
 ---
 
@@ -474,7 +482,7 @@ model.downloadAs('output.png');                   // triggers browser download
 
 Elise now supports `PathElement.fromSVGPath(d)` for standard SVG path strings, including `q`, `a`, `s`, `t`, `h`, `v` and uppercase absolute variants, normalizing them into Elise's existing editable internal command set based on explicit line and cubic segments.
 
-**Delivered scope:** Elise uses a normalized internal model rather than storing SVG commands as first-class persisted path commands. Horizontal/vertical segments are converted to line commands, quadratic and shorthand curve commands are converted to explicit cubic segments, and arc commands are approximated as one or more cubic segments. This preserves the current point-editing architecture in `DesignController`, `HandleFactory`, and `DesignRenderer` while unlocking SVG-compatible import.
+**Delivered scope:** Elise uses a normalized internal model rather than storing every SVG command as a first-class persisted path command. Horizontal/vertical segments are converted to line commands, quadratic commands are preserved as persisted quadratic segments, shorthand curve commands are expanded to explicit control points, and arc commands are approximated as one or more cubic segments. This preserves the current point-editing architecture in `DesignController`, `HandleFactory`, and `DesignRenderer` while unlocking SVG-compatible import.
 
 **Tradeoff:** This choice favors lower implementation risk and stable design-surface editing over exact SVG path round-trip fidelity. If exact preservation of original SVG path command structure becomes a requirement later, Elise can revisit a native SVG command model after import/export support is established.
 
@@ -571,13 +579,17 @@ RectangleElement.create(0, 0, 100, 50).setCornerRadius(8);
 
 #### R11. Shadow/Drop Shadow Support
 
+**Status:** Completed
+
 ```typescript
 element.setShadow({ color: 'rgba(0,0,0,0.3)', blur: 10, offsetX: 4, offsetY: 4 });
 ```
 
-Maps directly to `ctx.shadowColor`, `ctx.shadowBlur`, `ctx.shadowOffsetX/Y`.
+**Delivered scope:** `ElementBase` now persists `shadow`, exposes `setShadow(...)`, and applies drop shadow centrally through shared render-state helpers so model, view, design, and element rendering paths all inherit the behavior consistently.
 
 #### R12. Z-Order Controls in Design Mode
+
+**Status:** Completed
 
 ```typescript
 designController.bringToFront(element);
@@ -586,7 +598,11 @@ designController.bringForward(element);
 designController.sendBackward(element);
 ```
 
+**Delivered scope:** `DesignController` now supports single-step and absolute z-order changes for either an explicit element or the current selection, preserving relative order inside multi-selection operations. Design-mode alignment, same-size resize tools, selection duplication, and undoable resource cleanup were added alongside the layering workflow improvements.
+
 #### R13. HSL Color Support
+
+**Status:** Completed
 
 ```typescript
 Color.fromHSL(240, 100, 50);  // returns Color
@@ -594,17 +610,23 @@ color.toHSL();                  // returns { h, s, l }
 Color.lerp(colorA, colorB, t); // interpolation
 ```
 
+**Delivered scope:** `Color` now supports `hsl(...)` and `hsla(...)` parsing, `Color.fromHSL(...)`, `color.toHSL()`, and `Color.lerp(...)`. Tweened fill/stroke animation now uses the shared interpolation helper, and HSL input works anywhere Elise already accepts CSS color strings.
+
 #### R14. Blend Modes
+
+**Status:** Completed
 
 ```typescript
 element.setBlendMode('multiply');  // maps to ctx.globalCompositeOperation
 ```
 
-Canvas 2D supports 26 composite operations natively.
+**Delivered scope:** `ElementBase` now persists `blendMode`, exposes `setBlendMode(...)`, and applies it during rendering through the shared render-state path so blend/composite operations participate in clone, serialization, undo snapshots, and normal canvas rendering.
 
 #### R15. Configurable Transition Duration
 
-Remove the hardcoded 200ms transition duration. Allow per-transition and per-pane-transition duration configuration.
+**Status:** Completed
+
+**Delivered scope:** Sprite transition playback no longer relies on a hardcoded `200ms` duration in `TransitionRenderer.transitionSprite(...)`; it now uses the configured frame transition duration when present and still falls back to `0.2s` for legacy callers. Pane transitions were already duration-configurable through `SurfacePane.replaceSurface(...)` and the concrete `PaneTransition*` classes.
 
 #### R16. Event Bubbling
 
@@ -612,7 +634,11 @@ Implement parent-aware event propagation so that `ModelElement` containers can c
 
 #### R17. Keyboard Support for Design Surface
 
-Add keyboard handlers for Delete (remove element), Ctrl+A (select all), arrow keys (nudge), Shift+resize (aspect lock toggle), Escape (deselect).
+**Status:** Partially Completed
+
+**Delivered scope:** Design mode now supports keyboard handling for Delete/Backspace remove, Ctrl/Cmd+A select-all, Ctrl/Cmd+Z undo, Ctrl/Cmd+Shift+Z and Ctrl/Cmd+Y redo, plus arrow-key nudging and modifier-based size nudges.
+
+**Remaining scope:** Escape-to-deselect, richer clipboard shortcuts, deeper text-edit-mode shortcuts, and any broader runtime keyboard event model are still open.
 
 #### R18. Accessibility Layer
 
@@ -670,13 +696,3 @@ The recommended path forward is:
 3. **Polish and differentiate** (Tier 3) to leverage unique strengths
 
 This strategy preserves Elise's architectural advantages while making it competitive on the features developers expect as baseline.
-e weakness is now **ecosystem isolation** around interchange and export rather than runtime interactivity. SVG import/export remains the largest missing capability for many common use cases despite Elise's unique strengths in design-time editing, surfaces, animation, and touch support.
-
-The recommended path forward is:
-$21. **Close critical gaps** (Tier 1) to make Elise viable for common use cases
-2. **Add SVG interop** (Tier 2) to break ecosystem isolation
-3. **Polish and differentiate** (Tier 3) to leverage unique strengths
-
-This strategy preserves Elise's architectural advantages while making it competitive on the features developers expect as baseline.
-
-

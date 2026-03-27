@@ -41,6 +41,8 @@ export interface ElementShadow {
     offsetY?: number;
 }
 
+export type ElementBlendMode = GlobalCompositeOperation;
+
 /**
  * Base class for renderable model elements
  */
@@ -119,6 +121,11 @@ export class ElementBase implements IPointContainer {
      * Optional drop shadow applied during rendering.
      */
     public shadow?: ElementShadow;
+
+    /**
+     * Optional canvas compositing mode applied during rendering.
+     */
+    public blendMode?: ElementBlendMode;
 
     /**
      * Should element be rendered and participate in hit testing
@@ -246,6 +253,7 @@ export class ElementBase implements IPointContainer {
         this.setPointAt = this.setPointAt.bind(this);
         this.setSize = this.setSize.bind(this);
         this.setShadow = this.setShadow.bind(this);
+        this.setBlendMode = this.setBlendMode.bind(this);
         this.setStroke = this.setStroke.bind(this);
         this.setStrokeDash = this.setStrokeDash.bind(this);
         this.setLineCap = this.setLineCap.bind(this);
@@ -254,6 +262,7 @@ export class ElementBase implements IPointContainer {
         this.setVisible = this.setVisible.bind(this);
         this.applyRenderOpacity = this.applyRenderOpacity.bind(this);
         this.applyRenderShadow = this.applyRenderShadow.bind(this);
+        this.applyRenderBlendMode = this.applyRenderBlendMode.bind(this);
         this.withClipPath = this.withClipPath.bind(this);
         this.isPointWithinClipPath = this.isPointWithinClipPath.bind(this);
         this.animate = this.animate.bind(this);
@@ -449,6 +458,9 @@ export class ElementBase implements IPointContainer {
                 this.shadow = undefined;
             }
         }
+        if (o.blendMode !== undefined && o.blendMode !== null) {
+            this.blendMode = String(o.blendMode) as ElementBlendMode;
+        }
         if (o.visible !== undefined) {
             this.visible = Boolean(o.visible);
         }
@@ -556,6 +568,9 @@ export class ElementBase implements IPointContainer {
                 offsetY: this.shadow.offsetY || 0,
             };
         }
+        if (this.blendMode) {
+            o.blendMode = this.blendMode;
+        }
         if (!this.visible) {
             o.visible = false;
         }
@@ -650,6 +665,7 @@ export class ElementBase implements IPointContainer {
                 offsetY: this.shadow.offsetY || 0,
             };
         }
+        e.blendMode = this.blendMode;
         e.visible = this.visible;
         if (this.transform) {
             e.transform = this.transform;
@@ -1170,6 +1186,16 @@ export class ElementBase implements IPointContainer {
     }
 
     /**
+     * Sets canvas blend mode used during rendering.
+     * @param blendMode - Canvas globalCompositeOperation value or undefined to clear
+     * @returns This element
+     */
+    public setBlendMode(blendMode: ElementBlendMode | undefined) {
+        this.blendMode = blendMode;
+        return this;
+    }
+
+    /**
      * Sets affine transform used for rendering element
      * @param transform - Transform definition
      * @returns This element
@@ -1194,6 +1220,7 @@ export class ElementBase implements IPointContainer {
      * @param c - Rendering context
      */
     public applyRenderOpacity(c: CanvasRenderingContext2D): void {
+        this.applyRenderBlendMode(c);
         if (this.opacity >= 0 && this.opacity < 1) {
             c.globalAlpha *= this.opacity;
         }
@@ -1201,6 +1228,18 @@ export class ElementBase implements IPointContainer {
             c.globalAlpha = 0;
         }
         this.applyRenderShadow(c);
+    }
+
+    /**
+     * Applies this element's compositing mode to the current canvas state.
+     * @param c - Rendering context
+     */
+    public applyRenderBlendMode(c: CanvasRenderingContext2D): void {
+        if (!this.blendMode) {
+            return;
+        }
+
+        c.globalCompositeOperation = this.blendMode;
     }
 
     /**
