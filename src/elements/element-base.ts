@@ -34,6 +34,13 @@ export interface ElementClipPath {
     units?: 'userSpaceOnUse' | 'objectBoundingBox';
 }
 
+export interface ElementShadow {
+    color: string;
+    blur?: number;
+    offsetX?: number;
+    offsetY?: number;
+}
+
 /**
  * Base class for renderable model elements
  */
@@ -107,6 +114,11 @@ export class ElementBase implements IPointContainer {
      * Element opacity (0 transparent to 1 opaque)
      */
     public opacity: number = 1;
+
+    /**
+     * Optional drop shadow applied during rendering.
+     */
+    public shadow?: ElementShadow;
 
     /**
      * Should element be rendered and participate in hit testing
@@ -233,6 +245,7 @@ export class ElementBase implements IPointContainer {
         this.setOpacity = this.setOpacity.bind(this);
         this.setPointAt = this.setPointAt.bind(this);
         this.setSize = this.setSize.bind(this);
+        this.setShadow = this.setShadow.bind(this);
         this.setStroke = this.setStroke.bind(this);
         this.setStrokeDash = this.setStrokeDash.bind(this);
         this.setLineCap = this.setLineCap.bind(this);
@@ -240,6 +253,7 @@ export class ElementBase implements IPointContainer {
         this.setTransform = this.setTransform.bind(this);
         this.setVisible = this.setVisible.bind(this);
         this.applyRenderOpacity = this.applyRenderOpacity.bind(this);
+        this.applyRenderShadow = this.applyRenderShadow.bind(this);
         this.withClipPath = this.withClipPath.bind(this);
         this.isPointWithinClipPath = this.isPointWithinClipPath.bind(this);
         this.animate = this.animate.bind(this);
@@ -421,6 +435,20 @@ export class ElementBase implements IPointContainer {
         if (o.opacity !== undefined) {
             this.opacity = o.opacity as number;
         }
+        if (o.shadow !== undefined && o.shadow !== null) {
+            const value = o.shadow as Partial<ElementShadow>;
+            if (typeof value.color === 'string' && value.color.length > 0) {
+                this.shadow = {
+                    color: value.color,
+                    blur: Math.max(0, Number(value.blur) || 0),
+                    offsetX: Number(value.offsetX) || 0,
+                    offsetY: Number(value.offsetY) || 0,
+                };
+            }
+            else {
+                this.shadow = undefined;
+            }
+        }
         if (o.visible !== undefined) {
             this.visible = Boolean(o.visible);
         }
@@ -520,6 +548,14 @@ export class ElementBase implements IPointContainer {
         if (this.opacity !== 1) {
             o.opacity = this.opacity;
         }
+        if (this.shadow) {
+            o.shadow = {
+                color: this.shadow.color,
+                blur: this.shadow.blur || 0,
+                offsetX: this.shadow.offsetX || 0,
+                offsetY: this.shadow.offsetY || 0,
+            };
+        }
         if (!this.visible) {
             o.visible = false;
         }
@@ -606,6 +642,14 @@ export class ElementBase implements IPointContainer {
         e.lineCap = this.lineCap;
         e.lineJoin = this.lineJoin;
         e.opacity = this.opacity;
+        if (this.shadow) {
+            e.shadow = {
+                color: this.shadow.color,
+                blur: this.shadow.blur || 0,
+                offsetX: this.shadow.offsetX || 0,
+                offsetY: this.shadow.offsetY || 0,
+            };
+        }
         e.visible = this.visible;
         if (this.transform) {
             e.transform = this.transform;
@@ -1106,6 +1150,26 @@ export class ElementBase implements IPointContainer {
     }
 
     /**
+     * Sets drop shadow used during rendering.
+     * @param shadow - Shadow definition or undefined to clear
+     * @returns This element
+     */
+    public setShadow(shadow: ElementShadow | undefined) {
+        if (!shadow) {
+            this.shadow = undefined;
+            return this;
+        }
+
+        this.shadow = {
+            color: shadow.color,
+            blur: Math.max(0, Number(shadow.blur) || 0),
+            offsetX: Number(shadow.offsetX) || 0,
+            offsetY: Number(shadow.offsetY) || 0,
+        };
+        return this;
+    }
+
+    /**
      * Sets affine transform used for rendering element
      * @param transform - Transform definition
      * @returns This element
@@ -1136,6 +1200,22 @@ export class ElementBase implements IPointContainer {
         else if (this.opacity <= 0) {
             c.globalAlpha = 0;
         }
+        this.applyRenderShadow(c);
+    }
+
+    /**
+     * Applies this element's drop shadow to the current canvas state.
+     * @param c - Rendering context
+     */
+    public applyRenderShadow(c: CanvasRenderingContext2D): void {
+        if (!this.shadow) {
+            return;
+        }
+
+        c.shadowColor = Color.parse(this.shadow.color).toStyleString();
+        c.shadowBlur = Math.max(0, this.shadow.blur || 0);
+        c.shadowOffsetX = this.shadow.offsetX || 0;
+        c.shadowOffsetY = this.shadow.offsetY || 0;
     }
 
     /**

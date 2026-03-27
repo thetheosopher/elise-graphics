@@ -870,6 +870,7 @@ export class Model extends ElementBase {
         if (this.transform) {
             this.setRenderTransform(c, this.transform, location);
         }
+        this.applyRenderOpacity(c);
 
         // Fill
         if (FillFactory.setElementFill(c, this)) {

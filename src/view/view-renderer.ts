@@ -82,6 +82,7 @@ export class ViewRenderer {
                 model.setRenderTransform(c, model.transform, location);
             }
         }
+        model.applyRenderOpacity(c);
 
         // Fill
         if (FillFactory.setElementFill(c, model)) {

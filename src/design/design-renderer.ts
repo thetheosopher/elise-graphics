@@ -76,6 +76,7 @@ export class DesignRenderer {
         if (model.transform) {
             model.setRenderTransform(c, model.transform, b.location);
         }
+        model.applyRenderOpacity(c);
 
         // Fill
         if (FillFactory.setElementFill(c, model)) {

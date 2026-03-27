@@ -171,6 +171,36 @@ test('setElementStroke applies dash pattern, line cap, and line join', () => {
     expect(context.setLineDash).toHaveBeenCalledWith([5, 2, 1]);
 });
 
+test('model renderToContext applies model shadow before fill and stroke', () => {
+    const model = Model.create(10, 10);
+    model.setFill('#112233');
+    model.setStroke('#445566,2');
+    model.setShadow({ color: 'rgba(0,0,0,0.25)', blur: 6, offsetX: 2, offsetY: 3 });
+    const context = {
+        save: jest.fn(),
+        beginPath: jest.fn(),
+        rect: jest.fn(),
+        clip: jest.fn(),
+        fillRect: jest.fn(),
+        strokeRect: jest.fn(),
+        restore: jest.fn(),
+        translate: jest.fn(),
+        rotate: jest.fn(),
+        transform: jest.fn(),
+        globalAlpha: 1,
+        setLineDash: jest.fn(),
+    } as unknown as CanvasRenderingContext2D;
+
+    model.renderToContext(context);
+
+    expect(context.shadowColor).toBe('rgba(0,0,0,' + 64 / 255 + ')');
+    expect(context.shadowBlur).toBe(6);
+    expect(context.shadowOffsetX).toBe(2);
+    expect(context.shadowOffsetY).toBe(3);
+    expect(context.fillRect).toHaveBeenCalled();
+    expect(context.strokeRect).toHaveBeenCalled();
+});
+
 test('model toCanvas renders to a detached scaled canvas', () => {
     const model = Model.create(40, 30);
     const scaleSpy = jest.fn();
