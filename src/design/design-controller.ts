@@ -28,6 +28,7 @@ import { ElementRotationArgs } from '../elements/element-rotation-args';
 import { ElementSizeArgs } from '../elements/element-size-args';
 import { ElementSizeProps } from '../elements/element-size-props';
 import { MoveLocation } from '../elements/move-location';
+import { RectangleElement } from '../elements/rectangle-element';
 import { ResizeSize } from '../elements/resize-size';
 import { Component } from './component/component';
 import { ComponentElement } from './component/component-element';
@@ -468,6 +469,11 @@ export class DesignController implements IController {
     public isMovingPoint: boolean;
 
     /**
+     * True when a rectangle corner radius handle is being dragged.
+     */
+    public isMovingCornerRadius: boolean;
+
+    /**
      * True when drag operation is in effect
      */
     public isDragging: boolean;
@@ -758,6 +764,8 @@ export class DesignController implements IController {
         this.getElementMoveLocation = this.getElementMoveLocation.bind(this);
         this.nudgeSize = this.nudgeSize.bind(this);
         this.nudgeLocation = this.nudgeLocation.bind(this);
+        this.setSelectedRectangleCornerRadius = this.setSelectedRectangleCornerRadius.bind(this);
+        this.setSelectedRectangleCornerRadii = this.setSelectedRectangleCornerRadii.bind(this);
         this.setRubberBandActive = this.setRubberBandActive.bind(this);
         this.setRubberBandRegion = this.setRubberBandRegion.bind(this);
         this.setGridType = this.setGridType.bind(this);
@@ -781,6 +789,7 @@ export class DesignController implements IController {
         this.isRotating = false;
         this.isMovingPivot = false;
         this.isMovingPoint = false;
+        this.isMovingCornerRadius = false;
         this.isDragging = false;
         this.lastClientX = -1;
         this.lastClientY = -1;
@@ -832,6 +841,7 @@ export class DesignController implements IController {
         this.isRotating = false;
         this.isMovingPivot = false;
         this.isMovingPoint = false;
+        this.isMovingCornerRadius = false;
         this.isDragging = false;
         this.mouseDownPosition = undefined;
         this.mouseOverElement = undefined;
@@ -1560,6 +1570,10 @@ export class DesignController implements IController {
                         this.originalPivotCenter = new Point(this.rotationCenter.x, this.rotationCenter.y);
                     }
                     return;
+                } else if (typeof hid === 'string' && hid.startsWith('cornerRadius-')) {
+                    this.sizeHandles.push(selectedHandle);
+                    this.isMovingCornerRadius = true;
+                    return;
                 }
 
                 if (this.resizeableSelectedElementCount() > 0) {
@@ -1798,6 +1812,26 @@ export class DesignController implements IController {
                     let dx = Math.round(deltaX);
                     let dy = Math.round(deltaY);
                     // Convert screen-space deltas to local element space for transformed elements
+                    const el = h.element;
+                    if (el.transform && this.model) {
+                        const b = el.getBounds();
+                        if (b) {
+                            const ref = new Point(b.x, b.y);
+                            const mat = Matrix2D.fromTransformString(el.transform, ref);
+                            const inv = mat.inverse();
+                            const local = inv.transformVector(deltaX, deltaY);
+                            dx = Math.round(local.x);
+                            dy = Math.round(local.y);
+                        }
+                    }
+                    h.handleMoved(h, { deltaX: dx, deltaY: dy, shiftKey: e.shiftKey });
+                }
+            });
+        } else if (this.isMovingCornerRadius && this.sizeHandles && this.sizeHandles.length > 0) {
+            this.sizeHandles.forEach((h) => {
+                if (h.handleMoved) {
+                    let dx = Math.round(deltaX);
+                    let dy = Math.round(deltaY);
                     const el = h.element;
                     if (el.transform && this.model) {
                         const b = el.getBounds();
@@ -2196,6 +2230,21 @@ export class DesignController implements IController {
                     this.movingPointLocation = undefined;
                     this.invalidate();
                     this.canvas.style.cursor = 'crosshair';
+                } else if (this.isMovingCornerRadius) {
+                    const selectedHandle = this.sizeHandles && this.sizeHandles.length > 0 ? this.sizeHandles[0] : undefined;
+                    const originalRadii = DesignController.getHandleCornerRadii(selectedHandle);
+                    if (selectedHandle?.element instanceof RectangleElement && originalRadii) {
+                        selectedHandle.element.setCornerRadii(
+                            originalRadii[0],
+                            originalRadii[1],
+                            originalRadii[2],
+                            originalRadii[3],
+                        );
+                    }
+                    this.sizeHandles = undefined;
+                    this.isMovingCornerRadius = false;
+                    this.invalidate();
+                    this.canvas.style.cursor = 'crosshair';
                 } else if (this.isRotating) {
                     // Restore original transform on cancel
                     if (this.selectedElements.length > 0) {
@@ -2305,6 +2354,29 @@ export class DesignController implements IController {
                 this.movingPointLocation = undefined;
                 this.setIsDirty(true);
                 this.commitUndoSnapshot();
+                this.invalidate();
+                this.canvas.style.cursor = 'crosshair';
+            } else if (this.isMovingCornerRadius) {
+                const selectedHandle = this.sizeHandles && this.sizeHandles.length > 0 ? this.sizeHandles[0] : undefined;
+                let changed = false;
+                const startRadii = DesignController.getHandleCornerRadii(selectedHandle);
+                if (selectedHandle?.element instanceof RectangleElement && startRadii) {
+                    const currentRadii = selectedHandle.element.cornerRadii
+                        ? [
+                            selectedHandle.element.cornerRadii[0],
+                            selectedHandle.element.cornerRadii[1],
+                            selectedHandle.element.cornerRadii[2],
+                            selectedHandle.element.cornerRadii[3],
+                        ]
+                        : undefined;
+                    changed = !DesignController.areCornerRadiiEqual(startRadii, currentRadii);
+                }
+                this.sizeHandles = undefined;
+                this.isMovingCornerRadius = false;
+                if (changed) {
+                    this.setIsDirty(true);
+                    this.commitUndoSnapshot();
+                }
                 this.invalidate();
                 this.canvas.style.cursor = 'crosshair';
             } else if (this.isRotating) {
@@ -3356,6 +3428,31 @@ export class DesignController implements IController {
             };
         }
 
+        if (this.isMovingCornerRadius && this.sizeHandles && this.sizeHandles.length > 0) {
+            const handle = this.sizeHandles[0];
+            const rectangle = handle.element;
+            if (rectangle instanceof RectangleElement) {
+                const cornerNames = ['top-left', 'top-right', 'bottom-right', 'bottom-left'];
+                const cornerIndex = handle.handleIndex ?? 0;
+                const radii = rectangle.getCornerRadii();
+                let anchor = new Point(handle.x, handle.y);
+                if (rectangle.transform) {
+                    const bounds = rectangle.getBounds();
+                    if (bounds) {
+                        const matrix = Matrix2D.fromTransformString(rectangle.transform, bounds.location);
+                        anchor = matrix.transformPoint(anchor);
+                    }
+                }
+                return {
+                    lines: [
+                        `corner ${cornerNames[cornerIndex] ?? cornerIndex}`,
+                        `radius ${this.formatIndicatorValue(radii[cornerIndex] ?? 0)}`,
+                    ],
+                    anchor,
+                };
+            }
+        }
+
         const bounds = this.getInteractionIndicatorBounds();
         if (!bounds) {
             return undefined;
@@ -4186,6 +4283,68 @@ export class DesignController implements IController {
     }
 
     /**
+     * Sets a uniform corner radius on all selected rectangle elements.
+     * @param radius - Corner radius value
+     */
+    public setSelectedRectangleCornerRadius(radius: number): void {
+        this.setSelectedRectangleCornerRadii(radius, radius, radius, radius);
+    }
+
+    /**
+     * Sets individual corner radii on all selected rectangle elements.
+     * @param topLeft - Top-left corner radius
+     * @param topRight - Top-right corner radius
+     * @param bottomRight - Bottom-right corner radius
+     * @param bottomLeft - Bottom-left corner radius
+     */
+    public setSelectedRectangleCornerRadii(
+        topLeft: number,
+        topRight: number = topLeft,
+        bottomRight: number = topLeft,
+        bottomLeft: number = topLeft,
+    ): void {
+        let changed = false;
+
+        for (const selectedElement of this.selectedElements) {
+            if (!(selectedElement instanceof RectangleElement)) {
+                continue;
+            }
+
+            const previousRadii = selectedElement.cornerRadii
+                ? [
+                    selectedElement.cornerRadii[0],
+                    selectedElement.cornerRadii[1],
+                    selectedElement.cornerRadii[2],
+                    selectedElement.cornerRadii[3],
+                ]
+                : undefined;
+
+            selectedElement.setCornerRadii(topLeft, topRight, bottomRight, bottomLeft);
+
+            const nextRadii = selectedElement.cornerRadii
+                ? [
+                    selectedElement.cornerRadii[0],
+                    selectedElement.cornerRadii[1],
+                    selectedElement.cornerRadii[2],
+                    selectedElement.cornerRadii[3],
+                ]
+                : undefined;
+
+            if (!DesignController.areCornerRadiiEqual(previousRadii, nextRadii)) {
+                changed = true;
+            }
+        }
+
+        if (!changed) {
+            return;
+        }
+
+        this.onModelUpdated();
+        this.commitUndoSnapshot();
+        this.drawIfNeeded();
+    }
+
+    /**
      * Sets rubber band active state
      * @param value - Rubber band state
      */
@@ -4352,6 +4511,33 @@ export class DesignController implements IController {
         return `${model.rawJSON()}::${interactiveSignature}`;
     }
 
+    private static areCornerRadiiEqual(
+        left?: [number, number, number, number] | number[],
+        right?: [number, number, number, number] | number[],
+    ): boolean {
+        if (!left && !right) {
+            return true;
+        }
+        if (!left || !right || left.length !== right.length) {
+            return false;
+        }
+        for (let index = 0; index < left.length; index++) {
+            if (left[index] !== right[index]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static getHandleCornerRadii(handle?: Handle): [number, number, number, number] | undefined {
+        if (!handle || !Array.isArray(handle.dragValue) || handle.dragValue.length < 4) {
+            return undefined;
+        }
+
+        const values = handle.dragValue as number[];
+        return [0, 1, 2, 3].map((index) => Math.max(0, Number(values[index]) || 0)) as [number, number, number, number];
+    }
+
     private cloneModelForUndo(model: Model): Model {
         const clone = model.clone();
         clone.basePath = model.basePath;
@@ -4485,6 +4671,7 @@ export class DesignController implements IController {
         this.isRotating = false;
         this.isMovingPivot = false;
         this.isMovingPoint = false;
+        this.isMovingCornerRadius = false;
         this.mouseDownPosition = undefined;
         this.currentWidth = 0;
         this.currentHeight = 0;

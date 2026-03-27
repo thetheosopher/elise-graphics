@@ -1,8 +1,10 @@
 import { DesignController } from '../../design/design-controller';
+import { EllipseElement } from '../../elements/ellipse-element';
 import { Model } from '../../core/model';
 import { RectangleElement } from '../../elements/rectangle-element';
 import { Size } from '../../core/size';
 import { Point } from '../../core/point';
+import { Region } from '../../core/region';
 import { Handle } from '../../design/handle';
 import { HandleMovedArgs } from '../../design/handle-moved-args';
 import { RectangleTool } from '../../design/tools/rectangle-tool';
@@ -96,6 +98,33 @@ function installCanvasOnly(controller: DesignController) {
         getContext: () => ({}) as CanvasRenderingContext2D,
     } as unknown as HTMLCanvasElement;
     controller.draw = jest.fn();
+}
+
+function installInteractiveCanvas(controller: DesignController, context?: Partial<CanvasRenderingContext2D>) {
+    const canvasContext = {
+        save: jest.fn(),
+        restore: jest.fn(),
+        beginPath: jest.fn(),
+        moveTo: jest.fn(),
+        lineTo: jest.fn(),
+        quadraticCurveTo: jest.fn(),
+        rect: jest.fn(),
+        closePath: jest.fn(),
+        isPointInPath: jest.fn(() => false),
+        ...context,
+    } as unknown as CanvasRenderingContext2D;
+
+    controller.canvas = {
+        width: 100,
+        height: 100,
+        style: { cursor: 'default', touchAction: 'none' },
+        parentElement: { style: {} } as unknown as HTMLDivElement,
+        getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 }),
+        getContext: () => canvasContext,
+    } as unknown as HTMLCanvasElement;
+    controller.draw = jest.fn();
+
+    return canvasContext;
 }
 
 function createOverlayContext() {
@@ -310,6 +339,181 @@ describe('design controller undo and redo', () => {
         expect(undoSpy).toHaveBeenCalledTimes(1);
         expect(redoSpy).toHaveBeenCalledTimes(1);
     });
+
+    test('setSelectedRectangleCornerRadius updates selected rectangles and supports undo', () => {
+        const controller = new DesignController();
+        const model = Model.create(100, 100);
+        const rectangleA = RectangleElement.create(10, 10, 20, 15).setInteractive(true);
+        const rectangleB = RectangleElement.create(40, 30, 25, 20).setInteractive(true);
+        model.add(rectangleA);
+        model.add(rectangleB);
+        installCanvasOnly(controller);
+        controller.setModel(model);
+        controller.selectedElements = [rectangleA, rectangleB];
+
+        controller.setSelectedRectangleCornerRadius(9);
+
+        expect(rectangleA.cornerRadii).toEqual([9, 9, 9, 9]);
+        expect(rectangleB.cornerRadii).toEqual([9, 9, 9, 9]);
+        expect(controller.canUndo).toBe(true);
+
+        controller.undo();
+
+        expect((model.elements[0] as RectangleElement).cornerRadii).toBeUndefined();
+        expect((model.elements[1] as RectangleElement).cornerRadii).toBeUndefined();
+
+        controller.redo();
+
+        expect((model.elements[0] as RectangleElement).cornerRadii).toEqual([9, 9, 9, 9]);
+        expect((model.elements[1] as RectangleElement).cornerRadii).toEqual([9, 9, 9, 9]);
+    });
+
+    test('setSelectedRectangleCornerRadii ignores non-rectangle selections', () => {
+        const controller = new DesignController();
+        const model = Model.create(100, 100);
+        const rectangle = RectangleElement.create(10, 10, 20, 15).setInteractive(true);
+        const ellipse = EllipseElement.create(60, 40, 10, 8).setInteractive(true);
+        model.add(rectangle);
+        model.add(ellipse);
+        installCanvasOnly(controller);
+        controller.setModel(model);
+        controller.selectedElements = [rectangle, ellipse];
+
+        controller.setSelectedRectangleCornerRadii(8, 6, 4, 2);
+
+        expect(rectangle.cornerRadii).toEqual([8, 6, 4, 2]);
+        expect('cornerRadii' in ellipse).toBe(false);
+    });
+
+    test('shift-click on a selected rectangle enters corner radius edit mode', () => {
+        const controller = new DesignController();
+        const model = Model.create(100, 100);
+        const rectangle = RectangleElement.create(10, 10, 20, 15).setInteractive(true);
+        const fakeWindowScope = installFakeWindow();
+        model.add(rectangle);
+        installInteractiveCanvas(controller);
+        controller.setModel(model);
+        controller.selectElement(rectangle);
+
+        model.elementsAt = jest.fn(() => [rectangle]);
+        jest.spyOn(controller, 'getElementHandles').mockReturnValue([]);
+
+        controller.onCanvasMouseDown({
+            button: 0,
+            clientX: 15,
+            clientY: 15,
+            shiftKey: true,
+            ctrlKey: false,
+            metaKey: false,
+        });
+
+        expect(rectangle.editPoints).toBe(true);
+
+        fakeWindowScope.restore();
+    });
+
+    test('clicking a selected rectangle exits corner radius edit mode', () => {
+        const controller = new DesignController();
+        const model = Model.create(100, 100);
+        const rectangle = RectangleElement.create(10, 10, 20, 15).setInteractive(true);
+        const fakeWindowScope = installFakeWindow();
+        rectangle.editPoints = true;
+        model.add(rectangle);
+        installInteractiveCanvas(controller);
+        controller.setModel(model);
+        controller.selectElement(rectangle);
+
+        model.elementsAt = jest.fn(() => [rectangle]);
+        jest.spyOn(controller, 'getElementHandles').mockReturnValue([]);
+
+        controller.onCanvasMouseDown({
+            button: 0,
+            clientX: 15,
+            clientY: 15,
+            shiftKey: false,
+            ctrlKey: false,
+            metaKey: false,
+        });
+
+        expect(rectangle.editPoints).toBe(false);
+
+        fakeWindowScope.restore();
+    });
+
+    test('dragging a rectangle radius handle without shift applies a uniform radius and supports undo', () => {
+        const controller = new DesignController();
+        const model = Model.create(100, 100);
+        const rectangle = RectangleElement.create(10, 10, 30, 20).setInteractive(true).setCornerRadius(4);
+        const fakeWindowScope = installFakeWindow();
+        model.add(rectangle);
+        installInteractiveCanvas(controller);
+        controller.setModel(model);
+        controller.selectElement(rectangle);
+        rectangle.editPoints = true;
+        controller.onSelectionChanged();
+
+        const handle = new Handle(14, 14, rectangle, controller);
+        handle.scale = 1;
+        handle.handleId = 'cornerRadius-topLeft';
+        handle.handleIndex = 0;
+        handle.handleMoved = Handle.moveRectangleCornerRadius;
+        handle.dragValue = [4, 4, 4, 4];
+        handle.region = new Region(11, 11, 6, 6);
+        jest.spyOn(controller, 'getElementHandles').mockReturnValue([handle]);
+
+        controller.onCanvasMouseDown({ button: 0, clientX: 14, clientY: 14, shiftKey: false, ctrlKey: false, metaKey: false });
+        controller.onCanvasMouseMove({ button: 0, clientX: 20, clientY: 20, shiftKey: false, ctrlKey: false, metaKey: false });
+
+        expect(rectangle.cornerRadii).toEqual([10, 10, 10, 10]);
+
+        controller.onCanvasMouseUp({ button: 0, clientX: 20, clientY: 20, shiftKey: false, ctrlKey: false, metaKey: false });
+
+        expect(controller.canUndo).toBe(true);
+
+        controller.undo();
+
+        expect((model.elements[0] as RectangleElement).cornerRadii).toEqual([4, 4, 4, 4]);
+
+        fakeWindowScope.restore();
+    });
+
+    test('dragging a rectangle radius handle with shift updates only the dragged corner', () => {
+        const rectangle = RectangleElement.create(10, 10, 40, 30).setCornerRadii(4, 8, 12, 16);
+        const handle = new Handle(42, 18, rectangle, {
+            model: undefined,
+            isMoving: false,
+            isResizing: false,
+            isMovingPoint: false,
+            isRotating: false,
+            isMovingPivot: false,
+            rotationStartAngle: 0,
+            originalRotation: 0,
+            minElementSize: new Size(4, 4),
+            snapToGrid: false,
+            lockAspect: true,
+            isSelected: () => false,
+            selectedElementCount: () => 1,
+            getElementMoveLocation: () => new Point(10, 10),
+            getElementResizeSize: () => new Size(40, 30),
+            setElementMoveLocation: () => undefined,
+            setElementResizeSize: () => undefined,
+            clearElementMoveLocations: () => undefined,
+            clearElementResizeSizes: () => undefined,
+            getNearestSnapX: (x) => x,
+            getNearestSnapY: (y) => y,
+            invalidate: () => undefined,
+        });
+        handle.handleId = 'cornerRadius-topRight';
+        handle.handleIndex = 1;
+        handle.dragValue = [4, 8, 12, 16];
+
+        const args = new HandleMovedArgs(-5, 3);
+        args.shiftKey = true;
+
+        Handle.moveRectangleCornerRadius(handle, args);
+
+        expect(rectangle.cornerRadii).toEqual([4, 11, 12, 16]);
+    });
 });
 
 describe('design controller resize aspect locking', () => {
@@ -506,5 +710,30 @@ describe('design controller interaction indicators', () => {
 
         expect(context.fillText).toHaveBeenCalledWith('pt 2', expect.any(Number), expect.any(Number));
         expect(context.fillText).toHaveBeenCalledWith('x 12 y 34', expect.any(Number), expect.any(Number));
+    });
+
+    test('draw shows corner radius indicator while editing rectangle corners', () => {
+        const controller = new DesignController();
+        const model = Model.create(100, 100);
+        const context = createOverlayContext();
+        const rectangle = RectangleElement.create(10, 20, 30, 20).setCornerRadius(9).setInteractive(true);
+        const handle = new Handle(19, 29, rectangle, controller);
+        handle.handleId = 'cornerRadius-topLeft';
+        handle.handleIndex = 0;
+
+        installDrawCanvas(controller, context);
+        controller.model = model;
+        controller.renderer = { renderToContext: jest.fn() } as never;
+        controller.selectedElements = [rectangle];
+        controller.isMovingCornerRadius = true;
+        controller.sizeHandles = [handle];
+
+        jest.spyOn(controller, 'renderGrid').mockImplementation(() => undefined);
+        jest.spyOn(controller, 'getElementHandles').mockReturnValue([]);
+
+        controller.draw();
+
+        expect(context.fillText).toHaveBeenCalledWith('corner top-left', expect.any(Number), expect.any(Number));
+        expect(context.fillText).toHaveBeenCalledWith('radius 9', expect.any(Number), expect.any(Number));
     });
 });

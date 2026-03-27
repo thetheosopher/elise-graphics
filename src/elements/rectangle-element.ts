@@ -318,10 +318,26 @@ export class RectangleElement extends ElementBase {
     }
 
     /**
+     * Rectangles cannot be resized while corner radius edit handles are active.
+     * @returns True when not in edit mode
+     */
+    public canResize(): boolean {
+        return !this.editPoints;
+    }
+
+    /**
      * Can element be filled
      * @returns Can fill
      */
     public canFill(): boolean {
+        return true;
+    }
+
+    /**
+     * Rectangles support a corner-radius edit mode via edit handles.
+     * @returns True
+     */
+    public canEditPoints(): boolean {
         return true;
     }
 

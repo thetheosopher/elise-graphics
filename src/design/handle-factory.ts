@@ -4,6 +4,7 @@ import { PointDepth } from '../core/point-depth';
 import { Size } from '../core/size';
 import { ElementBase } from '../elements/element-base';
 import { PathElement } from '../elements/path-element';
+import { RectangleElement } from '../elements/rectangle-element';
 import { Handle } from './handle';
 import type { IDesignController } from './design-controller-interface';
 
@@ -51,7 +52,12 @@ export class HandleFactory {
      */
     public static handlesForElement(el: ElementBase, c: IDesignController, scale: number): Handle[] {
         let handles: Handle[];
-        if (el.type === 'path') {
+        if (el.type === 'rectangle') {
+            if (el.editPoints) {
+                return HandleFactory.rectangleCornerRadiusHandles(el as RectangleElement, c, scale);
+            }
+            handles = HandleFactory.rectangularElementHandles(el, c, scale);
+        } else if (el.type === 'path') {
             if (el.editPoints) {
                 return HandleFactory.pathShapeHandles(el as PathElement, c, scale);
             }
@@ -71,6 +77,53 @@ export class HandleFactory {
         if (el.canRotate() && c.selectedElementCount() === 1) {
             handles = handles.concat(HandleFactory.rotationHandles(el, c, scale));
         }
+        return handles;
+    }
+
+    /**
+     * Creates corner-radius edit handles for rectangles.
+     * @param el - Rectangle element
+     * @param c - Design controller
+     * @param scale - Controller rendering scale
+     * @returns Array of handles for rectangle radius editing
+     */
+    public static rectangleCornerRadiusHandles(el: RectangleElement, c: IDesignController, scale: number): Handle[] {
+        const handles: Handle[] = [];
+        const bounds = el.getBounds();
+        if (!bounds) {
+            return handles;
+        }
+
+        let location = bounds.location;
+        if (c.isMoving && c.isSelected(el) && el.canMove()) {
+            const moveLocation = c.getElementMoveLocation(el);
+            location = new Point(moveLocation.x, moveLocation.y);
+        }
+
+        const size = bounds.size;
+        const radii = el.getCornerRadii(size);
+        const points = [
+            new Point(location.x + radii[0], location.y + radii[0]),
+            new Point(location.x + size.width - radii[1], location.y + radii[1]),
+            new Point(location.x + size.width - radii[2], location.y + size.height - radii[2]),
+            new Point(location.x + radii[3], location.y + size.height - radii[3]),
+        ];
+        const ids = ['cornerRadius-topLeft', 'cornerRadius-topRight', 'cornerRadius-bottomRight', 'cornerRadius-bottomLeft'];
+        const cursors = ['nw-resize', 'ne-resize', 'se-resize', 'sw-resize'];
+
+        for (let index = 0; index < points.length; index++) {
+            const handle = new Handle(points[index].x, points[index].y, el, c);
+            handle.scale = scale;
+            handle.handleId = ids[index];
+            handle.handleIndex = index;
+            handle.shape = 'circle';
+            handle.cursor = cursors[index];
+            handle.handleMoved = Handle.moveRectangleCornerRadius;
+            handle.dragValue = radii.slice() as [number, number, number, number];
+            handle.region = handle.getBounds();
+            handles.push(handle);
+        }
+
         return handles;
     }
 

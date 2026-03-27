@@ -5,6 +5,7 @@ import { PointDepth } from '../core/point-depth';
 import { Region } from '../core/region';
 import { Size } from '../core/size';
 import { ElementBase } from '../elements/element-base';
+import { RectangleElement } from '../elements/rectangle-element';
 import { HandleMovedArgs } from './handle-moved-args';
 import type { IDesignController } from './design-controller-interface';
 
@@ -441,6 +442,71 @@ export class Handle {
     }
 
     /**
+     * Handles movement of a rectangle corner-radius edit handle.
+     * Shift limits the change to the dragged corner; otherwise all corners adopt the same radius.
+     * @param h - Handle being moved
+     * @param args - Handle movement info
+     */
+    public static moveRectangleCornerRadius(h: Handle, args: HandleMovedArgs): void {
+        const rectangle = h.element;
+        if (!(rectangle instanceof RectangleElement)) {
+            return;
+        }
+        const bounds = rectangle.getBounds();
+        const cornerIndex = h.handleIndex;
+        if (!bounds || cornerIndex === undefined || !Array.isArray(h.dragValue) || h.dragValue.length < 4) {
+            return;
+        }
+
+        const values = h.dragValue as number[];
+        const startRadii = [0, 1, 2, 3].map((index) => Math.max(0, Number(values[index]) || 0)) as [
+            number,
+            number,
+            number,
+            number,
+        ];
+        const startRadius = startRadii[cornerIndex];
+
+        let proposed = startRadius;
+        switch (cornerIndex) {
+            case 0:
+                proposed = Math.min(startRadius + args.deltaX, startRadius + args.deltaY);
+                break;
+            case 1:
+                proposed = Math.min(startRadius - args.deltaX, startRadius + args.deltaY);
+                break;
+            case 2:
+                proposed = Math.min(startRadius - args.deltaX, startRadius - args.deltaY);
+                break;
+            case 3:
+                proposed = Math.min(startRadius + args.deltaX, startRadius - args.deltaY);
+                break;
+        }
+
+        let nextRadius = Math.max(0, proposed);
+        const width = Math.max(0, bounds.width);
+        const height = Math.max(0, bounds.height);
+        if (args.shiftKey) {
+            const perCornerMax = [
+                Math.min(width - startRadii[1], height - startRadii[3]),
+                Math.min(width - startRadii[0], height - startRadii[2]),
+                Math.min(width - startRadii[3], height - startRadii[1]),
+                Math.min(width - startRadii[2], height - startRadii[0]),
+            ];
+            nextRadius = Math.min(nextRadius, Math.max(0, perCornerMax[cornerIndex] ?? 0));
+            const nextRadii = startRadii.slice() as [number, number, number, number];
+            nextRadii[cornerIndex] = nextRadius;
+            rectangle.setCornerRadii(nextRadii[0], nextRadii[1], nextRadii[2], nextRadii[3]);
+        } else {
+            nextRadius = Math.min(nextRadius, width / 2, height / 2);
+            rectangle.setCornerRadius(nextRadius);
+        }
+
+        rectangle.clearBounds();
+        h.controller.invalidate();
+    }
+
+    /**
      * Handles rotation of element via rotation handle drag
      * @param h - Handle being moved
      * @param args - Handle movement info with mouse position
@@ -608,6 +674,11 @@ export class Handle {
      * Handle index
      */
     public handleIndex?: number;
+
+    /**
+     * Optional drag-start value used by some specialized handles.
+     */
+    public dragValue?: unknown;
 
     /**
      * Rendering scale
