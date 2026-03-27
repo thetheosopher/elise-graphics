@@ -69,10 +69,10 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Path | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Polygon | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Polyline | ✅ | ❌ | ✅ | ✅ | ❌ | ✅ | ✅ |
-| Text | ❌ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
+| Text | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
 | Image | ❌ | N/A | ✅ | ✅ | ✅ | ❌ | ✅ |
 | Sprite | ❌ | N/A | ✅ | ✅ | ❌ | ❌ | ✅ |
-| Model | ❌ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
+| Model | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
 
 ---
 
