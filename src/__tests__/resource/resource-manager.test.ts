@@ -2,6 +2,8 @@ import { ResourceLoaderState } from '../../resource/resource-loader-state';
 import { Resource } from '../../resource/resource';
 import { ResourceManager } from '../../resource/resource-manager';
 import { TextResource } from '../../resource/text-resource';
+import { Model } from '../../core/model';
+import { RectangleElement } from '../../elements/rectangle-element';
 
 class TestResource extends Resource {
     private readonly success: boolean;
@@ -171,4 +173,24 @@ test('resource manager loadNext completes immediately when no pending resources 
     rm.loadNext();
 
     expect(completion).toHaveBeenCalledWith(true);
+});
+
+test('resource manager pruneUnusedResources removes only keys not referenced by the model', () => {
+    const model = Model.create(100, 100);
+    const rectangle = RectangleElement.create(0, 0, 10, 10);
+    rectangle.setFill('image(hero)');
+    model.add(rectangle);
+
+    const usedEn = createBitmapLikeResource('hero', '/hero-en.png', 'en-US');
+    const usedFr = createBitmapLikeResource('hero', '/hero-fr.png', 'fr-FR');
+    const unused = createBitmapLikeResource('unused', '/unused.png');
+
+    model.resourceManager.add(usedEn);
+    model.resourceManager.add(usedFr);
+    model.resourceManager.add(unused);
+
+    const removed = model.resourceManager.pruneUnusedResources();
+
+    expect(removed.map((resource) => resource.key)).toEqual(['unused']);
+    expect(model.resources.map((resource) => resource.key)).toEqual(['hero', 'hero']);
 });

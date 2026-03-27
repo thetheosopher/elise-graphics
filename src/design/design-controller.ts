@@ -759,6 +759,11 @@ export class DesignController implements IController {
         this.bringForward = this.bringForward.bind(this);
         this.alignSelectedHorizontally = this.alignSelectedHorizontally.bind(this);
         this.alignSelectedVertically = this.alignSelectedVertically.bind(this);
+        this.resizeSelectedToSameWidth = this.resizeSelectedToSameWidth.bind(this);
+        this.resizeSelectedToSameHeight = this.resizeSelectedToSameHeight.bind(this);
+        this.resizeSelectedToSameSize = this.resizeSelectedToSameSize.bind(this);
+        this.duplicateSelectedElements = this.duplicateSelectedElements.bind(this);
+        this.removeUnusedResourcesFromResourceManager = this.removeUnusedResourcesFromResourceManager.bind(this);
         this.movableSelectedElementCount = this.movableSelectedElementCount.bind(this);
         this.resizeableSelectedElementCount = this.resizeableSelectedElementCount.bind(this);
         this.nudgeableSelectedElementCount = this.nudgeableSelectedElementCount.bind(this);
@@ -3900,6 +3905,13 @@ export class DesignController implements IController {
         }
     }
 
+    /**
+     * Duplicates the current selection.
+     */
+    public duplicateSelectedElements(): void {
+        this.duplicateSelected();
+    }
+
     public onElementsReordered() {
         this.elementsReordered.trigger(this, this.selectedElements);
         this.onModelUpdated();
@@ -4081,6 +4093,62 @@ export class DesignController implements IController {
             this.commitUndoSnapshot();
             this.drawIfNeeded();
         }
+    }
+
+    /**
+     * Resizes selected elements to the width of the first resizable selected element.
+     */
+    public resizeSelectedToSameWidth(): void {
+        const referenceSize = this.getReferenceResizeSize();
+        if (!referenceSize) {
+            return;
+        }
+
+        this.resizeSelectedElements(referenceSize.width, undefined);
+    }
+
+    /**
+     * Resizes selected elements to the height of the first resizable selected element.
+     */
+    public resizeSelectedToSameHeight(): void {
+        const referenceSize = this.getReferenceResizeSize();
+        if (!referenceSize) {
+            return;
+        }
+
+        this.resizeSelectedElements(undefined, referenceSize.height);
+    }
+
+    /**
+     * Resizes selected elements to the size of the first resizable selected element.
+     */
+    public resizeSelectedToSameSize(): void {
+        const referenceSize = this.getReferenceResizeSize();
+        if (!referenceSize) {
+            return;
+        }
+
+        this.resizeSelectedElements(referenceSize.width, referenceSize.height);
+    }
+
+    /**
+     * Removes resources that are no longer referenced by the current model.
+     * @returns Number of removed resources
+     */
+    public removeUnusedResourcesFromResourceManager(): number {
+        if (!this.model) {
+            return 0;
+        }
+
+        const removed = this.model.resourceManager.pruneUnusedResources();
+        if (removed.length === 0) {
+            return 0;
+        }
+
+        this.onModelUpdated();
+        this.commitUndoSnapshot();
+        this.drawIfNeeded();
+        return removed.length;
     }
 
     public setIsDirty(isDirty: boolean) {
@@ -4715,6 +4783,82 @@ export class DesignController implements IController {
         }
 
         return new Region(minX, minY, maxX - minX, maxY - minY);
+    }
+
+    private getReferenceResizeSize(): Size | undefined {
+        for (const selectedElement of this.selectedElements) {
+            if (!selectedElement.canResize()) {
+                continue;
+            }
+
+            const size = selectedElement.getSize();
+            if (size) {
+                return new Size(size.width, size.height);
+            }
+
+            const bounds = selectedElement.getBounds();
+            if (bounds) {
+                return new Size(bounds.width, bounds.height);
+            }
+        }
+
+        return undefined;
+    }
+
+    private resizeSelectedElements(targetWidth?: number, targetHeight?: number): void {
+        let changed = false;
+
+        for (const selectedElement of this.selectedElements) {
+            if (!selectedElement.canResize()) {
+                continue;
+            }
+
+            const bounds = selectedElement.getBounds();
+            if (!bounds) {
+                continue;
+            }
+
+            const nextWidth = targetWidth ?? bounds.width;
+            const nextHeight = targetHeight ?? bounds.height;
+            if (nextWidth <= 0 || nextHeight <= 0) {
+                continue;
+            }
+
+            const nextSize = this.getConstrainedResizeTarget(selectedElement, bounds.location, new Size(nextWidth, nextHeight));
+            if (Math.abs(nextSize.width - bounds.width) <= EPSILON && Math.abs(nextSize.height - bounds.height) <= EPSILON) {
+                continue;
+            }
+
+            selectedElement.setSize(nextSize);
+            this.onElementSized(selectedElement, nextSize);
+            this.setElementResizeSize(selectedElement, nextSize, bounds.location);
+            changed = true;
+        }
+
+        if (changed) {
+            this.onModelUpdated();
+            this.commitUndoSnapshot();
+            this.drawIfNeeded();
+        }
+    }
+
+    private getConstrainedResizeTarget(el: ElementBase, location: Point, size: Size): Size {
+        let newWidth = size.width;
+        let newHeight = size.height;
+
+        if (this.constrainToBounds && el.model) {
+            const modelSize = el.model.getSize();
+            if (modelSize) {
+                if (location.x + newWidth > modelSize.width) {
+                    newWidth = modelSize.width - location.x;
+                }
+                if (location.y + newHeight > modelSize.height) {
+                    newHeight = modelSize.height - location.y;
+                }
+            }
+        }
+
+        return new Size(Math.max(newWidth, this.minElementSize.width), Math.max(newHeight, this.minElementSize.height));
     }
 
     private static elementsMatchOrder(left: ElementBase[], right: ElementBase[]): boolean {

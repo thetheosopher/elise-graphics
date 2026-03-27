@@ -8,6 +8,7 @@ import { Region } from '../../core/region';
 import { Handle } from '../../design/handle';
 import { HandleMovedArgs } from '../../design/handle-moved-args';
 import { RectangleTool } from '../../design/tools/rectangle-tool';
+import { BitmapResource } from '../../resource/bitmap-resource';
 
 function installFakeWindow() {
     const globals = globalThis as unknown as { window?: any };
@@ -365,6 +366,68 @@ describe('design controller undo and redo', () => {
         controller.alignSelectedVertically('bottom');
 
         expect(model.elements.map((element) => element.getBounds()?.y)).toEqual([70, 60, 60]);
+    });
+
+    test('same-size resize commands use the first selected resizable element and support undo', () => {
+        const { controller, model } = createControllerWithRectangles(
+            RectangleElement.create(10, 10, 20, 15),
+            RectangleElement.create(50, 10, 35, 25),
+            RectangleElement.create(100, 10, 45, 30)
+        );
+
+        controller.selectedElements = model.elements.slice();
+        controller.resizeSelectedToSameWidth();
+
+        expect(model.elements.map((element) => element.getBounds()?.width)).toEqual([20, 20, 20]);
+        expect(model.elements.map((element) => element.getBounds()?.height)).toEqual([15, 25, 30]);
+
+        controller.resizeSelectedToSameHeight();
+
+        expect(model.elements.map((element) => element.getBounds()?.height)).toEqual([15, 15, 15]);
+
+        controller.undo();
+
+        expect(model.elements.map((element) => element.getBounds()?.height)).toEqual([15, 25, 30]);
+
+        controller.selectedElements = model.elements.slice();
+        controller.resizeSelectedToSameSize();
+
+        expect(model.elements.map((element) => element.getBounds()?.width)).toEqual([20, 20, 20]);
+        expect(model.elements.map((element) => element.getBounds()?.height)).toEqual([15, 15, 15]);
+    });
+
+    test('duplicateSelectedElements duplicates the current selection and selects the clones', () => {
+        const { controller, model } = createControllerWithRectangles(
+            RectangleElement.create(10, 10, 20, 15),
+            RectangleElement.create(40, 30, 25, 20)
+        );
+
+        controller.selectedElements = model.elements.slice();
+        controller.duplicateSelectedElements();
+
+        expect(model.elements).toHaveLength(4);
+        expect(controller.selectedElements).toHaveLength(2);
+        expect(controller.selectedElements[0]).toBe(model.elements[2]);
+        expect(controller.selectedElements[1]).toBe(model.elements[3]);
+    });
+
+    test('removeUnusedResourcesFromResourceManager removes unused resources and supports undo', () => {
+        const controller = new DesignController();
+        const model = Model.create(100, 100);
+        const rectangle = RectangleElement.create(10, 10, 20, 15).setInteractive(true);
+        rectangle.setFill('image(hero)');
+        model.add(rectangle);
+        BitmapResource.create('hero', '/hero.png').addTo(model);
+        BitmapResource.create('unused', '/unused.png').addTo(model);
+        installCanvasOnly(controller);
+        controller.setModel(model);
+
+        expect(controller.removeUnusedResourcesFromResourceManager()).toBe(1);
+        expect(model.resources.map((resource) => resource.key)).toEqual(['hero']);
+
+        controller.undo();
+
+        expect(model.resources.map((resource) => resource.key)).toEqual(['hero', 'unused']);
     });
 
     test('tool-created elements become undoable when creation commits', () => {

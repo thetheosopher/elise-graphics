@@ -8,6 +8,7 @@ import { UrlProxy } from './url-proxy';
 interface ResourceOwner {
     basePath: string;
     resources: Resource[];
+    getResourceKeyReferenceCounts?(localeId: string): { [index: string]: number };
 }
 
 /**
@@ -84,6 +85,7 @@ export class ResourceManager {
         this.get = this.get.bind(this);
         this.register = this.register.bind(this);
         this.unregister = this.unregister.bind(this);
+        this.pruneUnusedResources = this.pruneUnusedResources.bind(this);
         this.oncomplete = this.oncomplete.bind(this);
         this.load = this.load.bind(this);
         this.loadNext = this.loadNext.bind(this);
@@ -342,6 +344,44 @@ export class ResourceManager {
         if (this.completionCallback) {
             this.completionCallback(success);
         }
+    }
+
+    /**
+     * Removes resources whose keys are not referenced by the current model.
+     * @returns Removed resources
+     */
+    public pruneUnusedResources(): Resource[] {
+        if (!this.model || !this.model.getResourceKeyReferenceCounts) {
+            return [];
+        }
+
+        const usedKeys = this.model.getResourceKeyReferenceCounts(this.currentLocaleId || '');
+        const removed: Resource[] = [];
+
+        this.model.resources = this.model.resources.filter((resource) => {
+            if (!resource.key || usedKeys[resource.key]) {
+                return true;
+            }
+
+            removed.push(resource);
+            resource.registered = false;
+            resource.resourceManager = undefined;
+            return false;
+        });
+
+        if (removed.length === 0) {
+            return removed;
+        }
+
+        const removedSet = new Set(removed);
+        this.pendingResources = (this.pendingResources || []).filter((resource) => !removedSet.has(resource));
+        this.pendingResourceCount = this.pendingResources.length;
+        this.totalResourceCount = this.pendingResourceCount;
+        this.numberLoaded = 0;
+        this.resourceFailed = false;
+        this.completionCallback = undefined;
+
+        return removed;
     }
 
     /**
