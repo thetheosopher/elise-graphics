@@ -72,8 +72,8 @@ export class SVGExporter {
     }
 
     /**
-     * Converts a normalized PathElement into SVG path data while preserving
-     * simple horizontal and vertical line commands when possible.
+     * Converts a PathElement into SVG path data while preserving
+     * simple line and quadratic commands when possible.
      * @param pathElement - Path element to encode
      * @returns SVG path data
      */
@@ -127,6 +127,20 @@ export class SVGExporter {
                         SVGExporter.formatNumber(parseFloat(parts[5]))
                 );
                 current = new Point(parseFloat(parts[4]), parseFloat(parts[5]));
+            }
+            else if (command.charAt(0) === 'q' || command.charAt(0) === 'Q') {
+                const parts = command.substring(1).split(',');
+                svgCommands.push(
+                    'Q ' +
+                        SVGExporter.formatNumber(parseFloat(parts[0])) +
+                        ' ' +
+                        SVGExporter.formatNumber(parseFloat(parts[1])) +
+                        ' ' +
+                        SVGExporter.formatNumber(parseFloat(parts[2])) +
+                        ' ' +
+                        SVGExporter.formatNumber(parseFloat(parts[3]))
+                );
+                current = new Point(parseFloat(parts[2]), parseFloat(parts[3]));
             }
             else if (command.charAt(0) === 'z') {
                 svgCommands.push('Z');

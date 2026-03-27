@@ -694,6 +694,27 @@ export class DesignRenderer {
                         }
                     }
                     c.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endX, endY);
+                } else if (command.charAt(0) === 'q' || command.charAt(0) === 'Q') {
+                    const parts = command.substring(1, command.length).split(',');
+                    let cpx = (parseFloat(parts[0]) - b.x) * scaleX + b.x + offsetX;
+                    let cpy = (parseFloat(parts[1]) - b.y) * scaleY + b.y + offsetY;
+                    let endX = (parseFloat(parts[2]) - b.x) * scaleX + b.x + offsetX;
+                    let endY = (parseFloat(parts[3]) - b.y) * scaleY + b.y + offsetY;
+                    current++;
+                    if (movingPointLocation) {
+                        if (current === movingPointIndex) {
+                            endX = movingPointLocation.x;
+                            endY = movingPointLocation.y;
+                        }
+                        if (depth === PointDepth.Full) {
+                            current++;
+                            if (current === movingPointIndex) {
+                                cpx = movingPointLocation.x;
+                                cpy = movingPointLocation.y;
+                            }
+                        }
+                    }
+                    c.quadraticCurveTo(cpx, cpy, endX, endY);
                 } else if (command.charAt(0) === 'z') {
                     c.closePath();
                 }

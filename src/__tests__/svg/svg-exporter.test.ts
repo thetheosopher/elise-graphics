@@ -22,12 +22,12 @@ test('SVGExporter.exportPathData preserves simple line commands where possible',
     expect(svgPathData).toBe('M 10 20 H 30 V 40 L 50 60 Z');
 });
 
-test('SVGExporter.exportPathData falls back to cubic commands for curves', () => {
+test('SVGExporter.exportPathData preserves quadratic commands for quadratic curves', () => {
     const path = PathElement.fromSVGPath('M 0 0 Q 10 10 20 0');
 
     const svgPathData = SVGExporter.exportPathData(path);
 
-    expect(svgPathData.startsWith('M 0 0 C ')).toBe(true);
+    expect(svgPathData).toBe('M 0 0 Q 10 10 20 0');
 });
 
 test('Model.toSVG exports path elements and basic styling', () => {

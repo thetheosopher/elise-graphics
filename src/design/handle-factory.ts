@@ -485,6 +485,52 @@ export class HandleFactory {
 
                         createHandle = false;
                     }
+                } else if (command.charAt(0) === 'q' || command.charAt(0) === 'Q') {
+                    const parts = command.substring(1, command.length).split(',');
+                    const controlPoint = new Point(parseFloat(parts[0]), parseFloat(parts[1]));
+                    const endPoint = new Point(parseFloat(parts[2]), parseFloat(parts[3]));
+                    handleIndex++;
+                    handlePoint = endPoint;
+
+                    if (depth === PointDepth.Full) {
+                        if (handleIndex === movingPointIndex && c.movingPointLocation) {
+                            handlePoint = c.movingPointLocation;
+                        }
+
+                        const hend = new Handle(handlePoint.x + offsetX, handlePoint.y + offsetY, el, c);
+                        hend.scale = scale;
+                        hend.handleIndex = handleIndex;
+                        hend.handleMoved = Handle.movePointContainerPoint;
+                        hend.canMoveHorizontal = true;
+                        hend.canMoveVertical = true;
+                        hend.region = hend.getBounds();
+                        hend.cursor = 'move';
+                        handles.push(hend);
+                        if (connectToPrevious && previous) {
+                            hend.connectedHandles = [previous];
+                        }
+                        previous = hend;
+
+                        handleIndex++;
+                        handlePoint = controlPoint;
+                        if (handleIndex === movingPointIndex && c.movingPointLocation) {
+                            handlePoint = c.movingPointLocation;
+                        }
+
+                        const hcp = new Handle(handlePoint.x + offsetX, handlePoint.y + offsetY, el, c);
+                        hcp.scale = scale;
+                        hcp.handleIndex = handleIndex;
+                        hcp.shape = 'circle';
+                        hcp.handleMoved = Handle.movePointContainerPoint;
+                        hcp.canMoveHorizontal = true;
+                        hcp.canMoveVertical = true;
+                        hcp.region = hcp.getBounds();
+                        hcp.cursor = 'move';
+                        handles.push(hcp);
+                        hcp.connectedHandles = [previous];
+
+                        createHandle = false;
+                    }
                 } else {
                     createHandle = false;
                     previous = undefined;

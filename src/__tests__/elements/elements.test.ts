@@ -318,15 +318,15 @@ test('path fromSVGPath normalizes horizontal, vertical, and close commands', () 
     expect(path.pointCount()).toBe(3);
 });
 
-test('path fromSVGPath normalizes quadratic and smooth quadratic commands into cubics', () => {
+test('path fromSVGPath preserves quadratic commands and expands smooth quadratic commands into explicit quadratics', () => {
     const path = PathElement.fromSVGPath('M 0 0 Q 10 10 20 0 T 40 0');
     const commands = path.getCommands();
 
     expect(commands).toBeDefined();
     expect(commands![0]).toBe('m0,0');
-    expect(commands![1].charAt(0)).toBe('c');
-    expect(commands![2].charAt(0)).toBe('c');
-    expect(path.pointCount()).toBe(7);
+    expect(commands![1]).toBe('Q10,10,20,0');
+    expect(commands![2]).toBe('Q30,-10,40,0');
+    expect(path.pointCount()).toBe(5);
 });
 
 test('path fromSVGPath normalizes smooth cubic commands into explicit cubics', () => {
@@ -367,9 +367,20 @@ test('path setCommands normalizes mixed legacy and SVG commands', () => {
     expect(commands![0]).toBe('m0,0');
     expect(commands![1]).toBe('l10,0');
     expect(commands![2]).toBe('l15,0');
-    expect(commands![3].charAt(0)).toBe('c');
-    expect(commands![4].charAt(0)).toBe('c');
+    expect(commands![3]).toBe('Q5,5,10,0');
+    expect(commands![4]).toBe('Q15,-5,10,-5');
     expect(commands![5]).toBe('z');
+});
+
+test('path serialize and parse preserve quadratic commands', () => {
+    const path = PathElement.create();
+    path.setCommands('m(0,0) q(10,10,20,0) l(30,0) z');
+
+    const serialized = path.serialize();
+    const parsed = new PathElement();
+    parsed.parse(serialized);
+
+    expect(parsed.getCommands()).toEqual(['m0,0', 'Q10,10,20,0', 'l30,0', 'z']);
 });
 
 test('path translate preserves close commands', () => {

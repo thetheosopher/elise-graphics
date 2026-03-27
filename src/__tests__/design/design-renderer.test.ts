@@ -190,6 +190,49 @@ describe('design renderer', () => {
         expect(c.stroke).toHaveBeenCalledTimes(1);
     });
 
+    test('renderPathElement handles quadratic commands and moving quadratic control point in full depth mode', () => {
+        const controller = createController();
+        controller.isMovingPoint = true;
+        controller.movingPointIndex = 2;
+        controller.movingPointLocation = new Point(50, 60);
+        (controller.isSelected as jest.Mock).mockReturnValue(true);
+        (controller.selectedElementCount as jest.Mock).mockReturnValue(1);
+
+        const renderer = new DesignRenderer(controller);
+        const c = createContext();
+        jest.spyOn(FillFactory, 'setElementFill').mockReturnValue(false);
+
+        const model = {
+            setElementStroke: jest.fn(() => true),
+            setRenderTransform: jest.fn(),
+        };
+
+        const bounds = {
+            location: new Point(0, 0),
+            size: new Size(100, 100),
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 100,
+        };
+
+        const pathElement = {
+            model,
+            getBounds: jest.fn(() => bounds),
+            getLocation: jest.fn(() => new Point(0, 0)),
+            getCommands: jest.fn(() => ['m0,0', 'Q10,20,30,40', 'z']),
+        };
+
+        renderer.renderPathElement(c, pathElement as never);
+
+        expect(c.beginPath).toHaveBeenCalledTimes(1);
+        expect(c.moveTo).toHaveBeenCalledWith(0, 0);
+        expect(c.quadraticCurveTo).toHaveBeenCalledWith(50, 60, 30, 40);
+        expect(c.closePath).toHaveBeenCalledTimes(1);
+        expect(model.setElementStroke).toHaveBeenCalledWith(c, pathElement);
+        expect(c.stroke).toHaveBeenCalledTimes(1);
+    });
+
     test('renderPathElement fills with nonzero winding and translates with fill offsets', () => {
         const renderer = new DesignRenderer(createController());
         const c = createContext();

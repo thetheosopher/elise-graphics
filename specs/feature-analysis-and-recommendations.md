@@ -35,8 +35,7 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 - **Partial SVG interop** — no SVG rendering backend, SVG import/export still omit some SVG features and element/resource cases, and full round-trip fidelity is not yet available
 - No property-level keyframe animation or tweening
 - No WebGL renderer or GPU acceleration path
-- No first-class persisted arc/quadratic path editing commands or exact SVG path round-trip fidelity
-- No blend modes, filters, or post-processing effects
+- No first-class persisted arc/quadratic path editing commands o- No blend modes, filters, or post-processing effects
 - No accessibility features
 - Missing HSL/HSV color models and color interpolation
 
@@ -671,3 +670,13 @@ The recommended path forward is:
 3. **Polish and differentiate** (Tier 3) to leverage unique strengths
 
 This strategy preserves Elise's architectural advantages while making it competitive on the features developers expect as baseline.
+e weakness is now **ecosystem isolation** around interchange and export rather than runtime interactivity. SVG import/export remains the largest missing capability for many common use cases despite Elise's unique strengths in design-time editing, surfaces, animation, and touch support.
+
+The recommended path forward is:
+$21. **Close critical gaps** (Tier 1) to make Elise viable for common use cases
+2. **Add SVG interop** (Tier 2) to break ecosystem isolation
+3. **Polish and differentiate** (Tier 3) to leverage unique strengths
+
+This strategy preserves Elise's architectural advantages while making it competitive on the features developers expect as baseline.
+
+

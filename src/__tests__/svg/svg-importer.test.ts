@@ -368,6 +368,7 @@ test('SVGImporter.parseDocument produces non-zero bounds height for quadratic cu
     expect(bounds).toBeDefined();
     expect(bounds!.height).toBeGreaterThan(0);
     expect(bounds!.y).toBeLessThan(350);
+    expect(path.getCommands()).toEqual(['m100,350', 'Q250,50,400,350']);
 });
 
 test('SVGImporter.parseDocument imported path survives setSize without NaN corruption', () => {
