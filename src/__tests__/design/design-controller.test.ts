@@ -477,6 +477,43 @@ describe('design controller undo and redo', () => {
         fakeWindowScope.restore();
     });
 
+    test('dragging a rectangle radius handle can process repeated mouse moves without losing bounds', () => {
+        const controller = new DesignController();
+        const model = Model.create(100, 100);
+        const rectangle = RectangleElement.create(10, 10, 30, 20).setInteractive(true).setCornerRadius(4);
+        const fakeWindowScope = installFakeWindow();
+        model.add(rectangle);
+        installInteractiveCanvas(controller);
+        controller.setModel(model);
+        controller.selectElement(rectangle);
+        rectangle.editPoints = true;
+        controller.onSelectionChanged();
+
+        const handle = new Handle(14, 14, rectangle, controller);
+        handle.scale = 1;
+        handle.handleId = 'cornerRadius-topLeft';
+        handle.handleIndex = 0;
+        handle.handleMoved = Handle.moveRectangleCornerRadius;
+        handle.dragValue = [4, 4, 4, 4];
+        handle.region = new Region(11, 11, 6, 6);
+        jest.spyOn(controller, 'getElementHandles').mockReturnValue([handle]);
+
+        controller.onCanvasMouseDown({ button: 0, clientX: 14, clientY: 14, shiftKey: false, ctrlKey: false, metaKey: false });
+
+        expect(() => {
+            controller.onCanvasMouseMove({ button: 0, clientX: 20, clientY: 20, shiftKey: false, ctrlKey: false, metaKey: false });
+            controller.onCanvasMouseMove({ button: 0, clientX: 22, clientY: 22, shiftKey: false, ctrlKey: false, metaKey: false });
+        }).not.toThrow();
+
+        expect(rectangle.getSize()?.width).toBe(30);
+        expect(rectangle.getSize()?.height).toBe(20);
+        expect(rectangle.getLocation()?.x).toBe(10);
+        expect(rectangle.getLocation()?.y).toBe(10);
+        expect(rectangle.cornerRadii).toEqual([10, 10, 10, 10]);
+
+        fakeWindowScope.restore();
+    });
+
     test('dragging a rectangle radius handle with shift updates only the dragged corner', () => {
         const rectangle = RectangleElement.create(10, 10, 40, 30).setCornerRadii(4, 8, 12, 16);
         const handle = new Handle(42, 18, rectangle, {

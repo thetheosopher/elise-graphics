@@ -502,7 +502,6 @@ export class Handle {
             rectangle.setCornerRadius(nextRadius);
         }
 
-        rectangle.clearBounds();
         h.controller.invalidate();
     }
 
