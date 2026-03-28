@@ -38,6 +38,7 @@ import { ComponentRegistry } from './component/component-registry';
 import { DesignArrangementService, type DesignArrangementHost } from './design-arrangement-service';
 import { DesignClipboardService, type DesignClipboardData } from './design-clipboard-service';
 import { DesignContextMenuEventArgs } from './design-context-menu-event-args';
+import { DesignKeyboardInteractionService, type DesignKeyboardInteractionHost } from './design-keyboard-interaction-service';
 import { DesignMovementService, type DesignMovableSelectionEntry, type DesignSmartAlignmentGuides, type DesignMovementHost } from './design-movement-service';
 import { DesignRenderer } from './design-renderer';
 import { DesignTextEditingService, type DesignTextEditingHost } from './design-text-editing-service';
@@ -747,6 +748,7 @@ export class DesignController implements IController {
     private smartAlignmentGuides: DesignSmartAlignmentGuides = { vertical: [], horizontal: [] };
     private arrangementService: DesignArrangementService = new DesignArrangementService();
     private clipboardService: DesignClipboardService = new DesignClipboardService();
+    private keyboardInteractionService: DesignKeyboardInteractionService = new DesignKeyboardInteractionService();
     private movementService: DesignMovementService = new DesignMovementService();
     private textEditingService: DesignTextEditingService = new DesignTextEditingService();
     private touchInteractionService: DesignTouchInteractionService = new DesignTouchInteractionService();
@@ -2627,152 +2629,7 @@ export class DesignController implements IController {
      * @param e - DOM Keyboard event
      */
     public onCanvasKeyDown(e: KeyboardEvent): boolean {
-        if (!this.enabled) {
-            return false;
-        }
-
-        if (this.handleTextEditingKeyDown(e)) {
-            this.drawIfNeeded();
-            return true;
-        }
-
-        switch (e.keyCode) {
-            case 90: // 'Z' key
-                if (e.ctrlKey || e.metaKey) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (e.shiftKey) {
-                        return this.redo();
-                    }
-                    return this.undo();
-                }
-                return false;
-
-            case 89: // 'Y' key
-                if (e.ctrlKey || e.metaKey) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return this.redo();
-                }
-                return false;
-
-            case 67: // 'C' key
-                if (e.ctrlKey || e.metaKey) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return this.copySelectedToClipboard();
-                }
-                return false;
-
-            case 88: // 'X' key
-                if (e.ctrlKey || e.metaKey) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return this.cutSelectedToClipboard();
-                }
-                return false;
-
-            case 86: // 'V' key
-                if (e.ctrlKey || e.metaKey) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    void this.pasteFromClipboard();
-                    return true;
-                }
-                return false;
-
-            case 37: // Left Arrow
-                if ((e.ctrlKey || e.metaKey) && e.shiftKey) {
-                    this.nudgeSize(-this.largeJump, 0);
-                } else if (e.ctrlKey || e.metaKey) {
-                    this.nudgeSize(-1, 0);
-                } else if (e.shiftKey) {
-                    this.nudgeLocation(-this.largeJump, 0);
-                } else {
-                    this.nudgeLocation(-1, 0);
-                }
-                return true;
-
-            case 39: // Right Arrow
-                if ((e.ctrlKey || e.metaKey) && e.shiftKey) {
-                    this.nudgeSize(this.largeJump, 0);
-                } else if (e.ctrlKey || e.metaKey) {
-                    this.nudgeSize(1, 0);
-                } else if (e.shiftKey) {
-                    this.nudgeLocation(this.largeJump, 0);
-                } else {
-                    this.nudgeLocation(1, 0);
-                }
-                return true;
-
-            case 38: // Up Arrow
-                if ((e.ctrlKey || e.metaKey) && e.shiftKey) {
-                    this.nudgeSize(0, -this.largeJump);
-                } else if (e.ctrlKey || e.metaKey) {
-                    this.nudgeSize(0, -1);
-                } else if (e.shiftKey) {
-                    this.nudgeLocation(0, -this.largeJump);
-                } else {
-                    this.nudgeLocation(0, -1);
-                }
-                return true;
-
-            case 40: // Down Arrow
-                if ((e.ctrlKey || e.metaKey) && e.shiftKey) {
-                    this.nudgeSize(0, this.largeJump);
-                } else if (e.ctrlKey || e.metaKey) {
-                    this.nudgeSize(0, 1);
-                } else if (e.shiftKey) {
-                    this.nudgeLocation(0, this.largeJump);
-                } else {
-                    this.nudgeLocation(0, 1);
-                }
-                return true;
-
-            case 65: // 'A' key
-                if (e.ctrlKey || e.metaKey) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    this.selectAll();
-                    return true;
-                }
-                return false;
-
-            case 46: // Delete
-            case 8: // Backspace
-                e.preventDefault();
-                if (this.onDelete.hasListeners()) {
-                    this.onDelete.trigger(this, new ControllerEventArgs(e));
-                } else {
-                    this.removeSelected();
-                }
-                return true;
-
-            case 27: // ESC key
-                if (this.activeTool) {
-                    this.activeTool.cancel();
-                    this.finalizeToolHistorySession();
-                }
-                if (this.isMouseDown) {
-                    this.cancelAction = true;
-                    this.selecting = false;
-                    this.onCanvasMouseUp({
-                        button: 0,
-                        clientX: this.lastClientX,
-                        clientY: this.lastClientY,
-                    });
-                    return true;
-                }
-                if (this.selectedElementCount() > 0) {
-                    this.clearSelections();
-                    return true;
-                }
-                return false;
-
-            default:
-                // console.log('Key Down Code: ' + e.keyCode);
-                return false;
-        }
+        return this.keyboardInteractionService.handleKeyDown(this.createKeyboardInteractionHost(), e);
     }
 
     /**
@@ -5330,6 +5187,60 @@ export class DesignController implements IController {
             onCanvasMouseDown: (e: MouseEvent | IMouseEvent) => self.onCanvasMouseDown(e),
             onCanvasMouseMove: (e: MouseEvent | IMouseEvent) => self.onCanvasMouseMove(e),
             onCanvasMouseUp: (e: MouseEvent | IMouseEvent) => self.onCanvasMouseUp(e),
+        };
+    }
+
+    private createKeyboardInteractionHost(): DesignKeyboardInteractionHost {
+        const self = this;
+
+        return {
+            get enabled() {
+                return self.enabled;
+            },
+            get largeJump() {
+                return self.largeJump;
+            },
+            get lastClientX() {
+                return self.lastClientX;
+            },
+            get lastClientY() {
+                return self.lastClientY;
+            },
+            get isMouseDown() {
+                return self.isMouseDown;
+            },
+            get hasActiveTool() {
+                return !!self.activeTool;
+            },
+            handleTextEditingKeyDown: (e: KeyboardEvent) => self.handleTextEditingKeyDown(e),
+            drawIfNeeded: () => self.drawIfNeeded(),
+            undo: () => self.undo(),
+            redo: () => self.redo(),
+            copySelectedToClipboard: () => self.copySelectedToClipboard(),
+            cutSelectedToClipboard: () => self.cutSelectedToClipboard(),
+            pasteFromClipboard: () => self.pasteFromClipboard(),
+            nudgeSize: (offsetX: number, offsetY: number) => self.nudgeSize(offsetX, offsetY),
+            nudgeLocation: (offsetX: number, offsetY: number) => self.nudgeLocation(offsetX, offsetY),
+            selectAll: () => self.selectAll(),
+            deleteSelection: (e: KeyboardEvent) => {
+                if (self.onDelete.hasListeners()) {
+                    self.onDelete.trigger(self, new ControllerEventArgs(e));
+                }
+                else {
+                    self.removeSelected();
+                }
+            },
+            cancelActiveTool: () => self.activeTool?.cancel(),
+            finalizeToolHistorySession: () => self.finalizeToolHistorySession(),
+            setCancelAction: (value: boolean) => {
+                self.cancelAction = value;
+            },
+            setSelecting: (value: boolean) => {
+                self.selecting = value;
+            },
+            onCanvasMouseUp: (e: MouseEvent | IMouseEvent) => self.onCanvasMouseUp(e),
+            selectedElementCount: () => self.selectedElementCount(),
+            clearSelections: () => self.clearSelections(),
         };
     }
 }
