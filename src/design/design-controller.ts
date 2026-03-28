@@ -30,6 +30,7 @@ import { ElementSizeProps } from '../elements/element-size-props';
 import { MoveLocation } from '../elements/move-location';
 import { RectangleElement } from '../elements/rectangle-element';
 import { ResizeSize } from '../elements/resize-size';
+import { TextElement, type TextRunStyle } from '../elements/text-element';
 import { Component } from './component/component';
 import { ComponentElement } from './component/component-element';
 import { ComponentRegistry } from './component/component-registry';
@@ -517,6 +518,41 @@ export class DesignController implements IController {
      * Selected element array
      */
     public selectedElements: ElementBase[] = [];
+
+    /**
+     * Active text element being edited on the design surface.
+     */
+    public editingTextElement?: TextElement;
+
+    /**
+     * Current text selection anchor.
+     */
+    public textSelectionAnchor: number = 0;
+
+    /**
+     * Current text selection start.
+     */
+    public textSelectionStart: number = 0;
+
+    /**
+     * Current text selection end.
+     */
+    public textSelectionEnd: number = 0;
+
+    /**
+     * True while the user is dragging a text selection.
+     */
+    public isSelectingText: boolean = false;
+
+    /**
+     * Pending insertion style applied to newly typed text.
+     */
+    public pendingTextStyle: TextRunStyle = {};
+
+    /**
+     * Preferred x-coordinate preserved during vertical caret navigation.
+     */
+    public textCaretPreferredX?: number;
 
     /**
      * True when drag selecting
@@ -1457,6 +1493,55 @@ export class DesignController implements IController {
             this.mouseDownView.trigger(this, new PointEventParameters(e, new Point(p.x, p.y)));
         }
 
+        const selectedTextElement = this.editingTextElement || this.getSelectedTextElement();
+        if (selectedTextElement) {
+            const editingBounds = selectedTextElement.getBounds();
+            const clickCount = typeof (e as MouseEvent).detail === 'number' ? (e as MouseEvent).detail : 1;
+            if (editingBounds && editingBounds.containsCoordinate(p.x, p.y)) {
+                const caretIndex = selectedTextElement.getTextIndexAtPoint(
+                    context,
+                    editingBounds.location,
+                    editingBounds.size,
+                    new Point(p.x, p.y),
+                );
+                this.beginTextEdit(selectedTextElement, caretIndex);
+                this.textCaretPreferredX = undefined;
+                if (clickCount >= 2) {
+                    const [start, end] = selectedTextElement.getWordRangeAt(caretIndex);
+                    this.textSelectionAnchor = start;
+                    this.textSelectionStart = start;
+                    this.textSelectionEnd = end;
+                    this.isSelectingText = false;
+                }
+                else {
+                    this.textSelectionAnchor = caretIndex;
+                    this.textSelectionStart = caretIndex;
+                    this.textSelectionEnd = caretIndex;
+                    this.isSelectingText = true;
+                }
+                this.invalidate();
+                return;
+            }
+        }
+
+        if (this.editingTextElement && this.selectedElements.indexOf(this.editingTextElement) !== -1) {
+            const editingBounds = this.editingTextElement.getBounds();
+            if (editingBounds && editingBounds.containsCoordinate(p.x, p.y)) {
+                const caretIndex = this.editingTextElement.getTextIndexAtPoint(
+                    context,
+                    editingBounds.location,
+                    editingBounds.size,
+                    new Point(p.x, p.y),
+                );
+                this.textSelectionAnchor = caretIndex;
+                this.textSelectionStart = caretIndex;
+                this.textSelectionEnd = caretIndex;
+                this.isSelectingText = true;
+                this.invalidate();
+                return;
+            }
+        }
+
         // Set active element if any at location
         const activeElement = this.model.firstActiveElementAt(context, p.x, p.y);
         this.setMouseDownElement(activeElement);
@@ -1767,6 +1852,23 @@ export class DesignController implements IController {
         // Fire view mouse moved event
         if (this.mouseMovedView.hasListeners()) {
             this.mouseMovedView.trigger(this, new PointEventParameters(e, new Point(p.x, p.y)));
+        }
+
+        if (this.isSelectingText && this.editingTextElement) {
+            const editingBounds = this.editingTextElement.getBounds();
+            const canvasContext = this.canvas.getContext('2d');
+            if (editingBounds && canvasContext) {
+                const caretIndex = this.editingTextElement.getTextIndexAtPoint(
+                    canvasContext,
+                    editingBounds.location,
+                    editingBounds.size,
+                    new Point(p.x, p.y),
+                );
+                this.textSelectionStart = this.textSelectionAnchor;
+                this.textSelectionEnd = caretIndex;
+                this.invalidate();
+                return;
+            }
         }
 
         // If we have an active tool, then delegate and return
@@ -2132,6 +2234,12 @@ export class DesignController implements IController {
             if (!this.activeTool.isCreating) {
                 this.finalizeToolHistorySession();
             }
+            return;
+        }
+
+        if (this.isSelectingText) {
+            this.isSelectingText = false;
+            this.invalidate();
             return;
         }
 
@@ -2551,6 +2659,10 @@ export class DesignController implements IController {
             return false;
         }
 
+        if (this.handleTextEditingKeyDown(e)) {
+            return true;
+        }
+
         switch (e.keyCode) {
             case 90: // 'Z' key
                 if (e.ctrlKey || e.metaKey) {
@@ -2946,6 +3058,9 @@ export class DesignController implements IController {
         if (!self.model) {
             return;
         }
+        if (self.editingTextElement && self.selectedElements.indexOf(self.editingTextElement) === -1) {
+            self.endTextEdit();
+        }
         // Clear transient rotation state when selection changes
         self.rotationCenter = undefined;
         self.originalPivotCenter = undefined;
@@ -2967,6 +3082,319 @@ export class DesignController implements IController {
             self.updateUndoAvailability();
         }
         self.invalidate();
+    }
+
+    /**
+     * Begins editing the selected text element.
+     * @param element - Optional text element target
+     * @param index - Optional caret index
+     * @returns True when text editing is active
+     */
+    public beginTextEdit(element?: TextElement, index?: number): boolean {
+        const target = element || this.getSelectedTextElement();
+        if (!target) {
+            return false;
+        }
+
+        this.editingTextElement = target;
+        const caretIndex = Math.max(0, Math.min(index !== undefined ? index : target.getTextLength(), target.getTextLength()));
+        this.textSelectionAnchor = caretIndex;
+        this.textSelectionStart = caretIndex;
+        this.textSelectionEnd = caretIndex;
+        this.isSelectingText = false;
+        this.textCaretPreferredX = undefined;
+        this.pendingTextStyle = target.getTextStyleAt(Math.max(0, caretIndex - 1));
+        this.invalidate();
+        return true;
+    }
+
+    /**
+     * Ends active text editing.
+     */
+    public endTextEdit(): void {
+        this.editingTextElement = undefined;
+        this.isSelectingText = false;
+        this.textCaretPreferredX = undefined;
+        this.pendingTextStyle = {};
+        this.invalidate();
+    }
+
+    /**
+     * Applies text styling to the active selection or pending insertion style.
+     * @param style - Style updates
+     * @returns True when style was applied
+     */
+    public applySelectedTextStyle(style: TextRunStyle): boolean {
+        const textElement = this.ensureTextEditTarget();
+        if (!textElement) {
+            return false;
+        }
+
+        const start = Math.min(this.textSelectionStart, this.textSelectionEnd);
+        const end = Math.max(this.textSelectionStart, this.textSelectionEnd);
+        if (start === end) {
+            this.pendingTextStyle = {
+                ...this.pendingTextStyle,
+                ...style,
+            };
+            return true;
+        }
+
+        textElement.applyTextStyle(start, end, style);
+        this.pendingTextStyle = textElement.getTextStyleAt(Math.max(start, end - 1));
+        this.commitTextEditChange();
+        return true;
+    }
+
+    private getSelectedTextElement(): TextElement | undefined {
+        if (this.selectedElements.length !== 1) {
+            return undefined;
+        }
+        const selected = this.selectedElements[0];
+        return selected instanceof TextElement ? selected : undefined;
+    }
+
+    private ensureTextEditTarget(): TextElement | undefined {
+        if (this.editingTextElement && this.selectedElements.indexOf(this.editingTextElement) !== -1) {
+            return this.editingTextElement;
+        }
+        const selected = this.getSelectedTextElement();
+        if (!selected) {
+            return undefined;
+        }
+        this.beginTextEdit(selected, selected.getTextLength());
+        return this.editingTextElement;
+    }
+
+    private commitTextEditChange(): void {
+        this.onModelUpdated();
+        this.commitUndoSnapshot();
+        this.invalidate();
+    }
+
+    private replaceSelectedText(content: string): boolean {
+        const textElement = this.ensureTextEditTarget();
+        if (!textElement) {
+            return false;
+        }
+
+        const start = Math.min(this.textSelectionStart, this.textSelectionEnd);
+        const end = Math.max(this.textSelectionStart, this.textSelectionEnd);
+        const insertionStyle = start > 0 ? textElement.getTextStyleAt(start - 1) : this.pendingTextStyle;
+        textElement.replaceTextRange(start, end, content, {
+            ...insertionStyle,
+            ...this.pendingTextStyle,
+        });
+        const nextIndex = start + content.length;
+        this.textSelectionAnchor = nextIndex;
+        this.textSelectionStart = nextIndex;
+        this.textSelectionEnd = nextIndex;
+        this.pendingTextStyle = textElement.getTextStyleAt(Math.max(0, nextIndex - 1));
+        this.textCaretPreferredX = undefined;
+        this.commitTextEditChange();
+        return true;
+    }
+
+    private deleteSelectedText(backward: boolean): boolean {
+        const textElement = this.ensureTextEditTarget();
+        if (!textElement) {
+            return false;
+        }
+
+        let start = Math.min(this.textSelectionStart, this.textSelectionEnd);
+        let end = Math.max(this.textSelectionStart, this.textSelectionEnd);
+        if (start === end) {
+            if (backward && start > 0) {
+                start--;
+            }
+            else if (!backward && end < textElement.getTextLength()) {
+                end++;
+            }
+            else {
+                return true;
+            }
+        }
+
+        textElement.replaceTextRange(start, end, '', this.pendingTextStyle);
+        this.textSelectionAnchor = start;
+        this.textSelectionStart = start;
+        this.textSelectionEnd = start;
+        this.pendingTextStyle = textElement.getTextStyleAt(Math.max(0, start - 1));
+        this.textCaretPreferredX = undefined;
+        this.commitTextEditChange();
+        return true;
+    }
+
+    private moveTextCaret(nextIndex: number, extendSelection: boolean): boolean {
+        const textElement = this.ensureTextEditTarget();
+        if (!textElement) {
+            return false;
+        }
+
+        const clampedIndex = Math.max(0, Math.min(nextIndex, textElement.getTextLength()));
+        if (extendSelection) {
+            this.textSelectionEnd = clampedIndex;
+        }
+        else {
+            this.textSelectionAnchor = clampedIndex;
+            this.textSelectionStart = clampedIndex;
+            this.textSelectionEnd = clampedIndex;
+        }
+        this.textCaretPreferredX = undefined;
+        this.pendingTextStyle = textElement.getTextStyleAt(Math.max(0, clampedIndex - 1));
+        this.invalidate();
+        return true;
+    }
+
+    private moveTextCaretVertically(direction: -1 | 1, extendSelection: boolean): boolean {
+        const textElement = this.ensureTextEditTarget();
+        if (!textElement || !this.canvas) {
+            return false;
+        }
+
+        const context = this.canvas.getContext('2d');
+        const bounds = textElement.getBounds();
+        if (!context || !bounds) {
+            return false;
+        }
+
+        const currentIndex = direction < 0
+            ? Math.min(this.textSelectionStart, this.textSelectionEnd)
+            : Math.max(this.textSelectionStart, this.textSelectionEnd);
+        if (this.textCaretPreferredX === undefined) {
+            this.textCaretPreferredX = textElement.getCaretRegion(context, bounds.location, bounds.size, currentIndex).x;
+        }
+
+        const nextIndex = textElement.getVerticalTextIndex(
+            context,
+            bounds.location,
+            bounds.size,
+            currentIndex,
+            direction,
+            this.textCaretPreferredX,
+        );
+
+        if (extendSelection) {
+            this.textSelectionEnd = nextIndex;
+        }
+        else {
+            this.textSelectionAnchor = nextIndex;
+            this.textSelectionStart = nextIndex;
+            this.textSelectionEnd = nextIndex;
+        }
+        this.pendingTextStyle = textElement.getTextStyleAt(Math.max(0, nextIndex - 1));
+        this.invalidate();
+        return true;
+    }
+
+    private handleTextEditingKeyDown(e: KeyboardEvent): boolean {
+        const selectedText = this.getSelectedTextElement();
+        if (!selectedText && !this.editingTextElement) {
+            return false;
+        }
+
+        const isModifier = e.ctrlKey || e.metaKey;
+        if (isModifier) {
+            const lowerKey = e.key.toLowerCase();
+            if (lowerKey === 'b') {
+                e.preventDefault();
+                return this.applySelectedTextStyle({ typestyle: 'bold' });
+            }
+            if (lowerKey === 'i') {
+                e.preventDefault();
+                return this.applySelectedTextStyle({ typestyle: 'italic' });
+            }
+            if (lowerKey === 'u') {
+                e.preventDefault();
+                return this.applySelectedTextStyle({ decoration: 'underline' });
+            }
+            if (lowerKey === 'a' && this.ensureTextEditTarget()) {
+                e.preventDefault();
+                const textElement = this.editingTextElement!;
+                this.textSelectionAnchor = 0;
+                this.textSelectionStart = 0;
+                this.textSelectionEnd = textElement.getTextLength();
+                this.invalidate();
+                return true;
+            }
+        }
+
+        switch (e.key) {
+            case 'Escape':
+                this.endTextEdit();
+                return true;
+            case 'Backspace':
+                e.preventDefault();
+                return this.deleteSelectedText(true);
+            case 'Delete':
+                e.preventDefault();
+                return this.deleteSelectedText(false);
+            case 'Enter':
+                e.preventDefault();
+                return this.replaceSelectedText('\n');
+            case 'ArrowLeft':
+                e.preventDefault();
+                return this.moveTextCaret(Math.max(0, Math.min(this.textSelectionStart, this.textSelectionEnd) - 1), e.shiftKey);
+            case 'ArrowRight':
+                e.preventDefault();
+                return this.moveTextCaret(Math.max(this.textSelectionStart, this.textSelectionEnd) + 1, e.shiftKey);
+            case 'ArrowUp':
+                e.preventDefault();
+                return this.moveTextCaretVertically(-1, e.shiftKey);
+            case 'ArrowDown':
+                e.preventDefault();
+                return this.moveTextCaretVertically(1, e.shiftKey);
+            case 'Home':
+                e.preventDefault();
+                return this.moveTextCaret(0, e.shiftKey);
+            case 'End':
+                e.preventDefault();
+                return this.moveTextCaret(this.ensureTextEditTarget()?.getTextLength() || 0, e.shiftKey);
+            default:
+                break;
+        }
+
+        if (!isModifier && !e.altKey && e.key.length === 1) {
+            e.preventDefault();
+            return this.replaceSelectedText(e.key);
+        }
+
+        return false;
+    }
+
+    private drawTextEditingOverlay(c: CanvasRenderingContext2D): void {
+        const textElement = this.editingTextElement;
+        if (!textElement || this.selectedElements.indexOf(textElement) === -1) {
+            return;
+        }
+
+        const bounds = textElement.getBounds();
+        if (!bounds) {
+            return;
+        }
+
+        const start = Math.min(this.textSelectionStart, this.textSelectionEnd);
+        const end = Math.max(this.textSelectionStart, this.textSelectionEnd);
+        c.save();
+        c.fillStyle = 'rgba(80, 140, 255, 0.28)';
+        c.strokeStyle = 'rgba(0, 90, 255, 0.9)';
+        c.lineWidth = 1 / this.scale;
+
+        if (start !== end) {
+            const regions = textElement.getSelectionRegions(c, bounds.location, bounds.size, start, end);
+            for (const region of regions) {
+                c.fillRect(region.x, region.y, region.width, region.height);
+            }
+        }
+        else {
+            const caret = textElement.getCaretRegion(c, bounds.location, bounds.size, start);
+            c.beginPath();
+            c.moveTo(caret.x, caret.y);
+            c.lineTo(caret.x, caret.y + caret.height);
+            c.stroke();
+        }
+
+        c.restore();
     }
 
     /**
@@ -3557,6 +3985,7 @@ export class DesignController implements IController {
 
         // Render model (already scaled above)
         this.renderer.renderToContext(context, 1.0);
+        this.drawTextEditingOverlay(context);
 
         // Draw handles for selected elements
         for (const el of this.selectedElements) {

@@ -1,11 +1,13 @@
 import { Model } from '../core/model';
 import { Matrix2D } from '../core/matrix-2d';
 import { Point } from '../core/point';
+import { Size } from '../core/size';
 import { Color } from '../core/color';
 import { EllipseElement } from '../elements/ellipse-element';
 import { ElementBase, type ElementClipPath } from '../elements/element-base';
 import { ImageElement } from '../elements/image-element';
 import { LineElement } from '../elements/line-element';
+import { ModelElement } from '../elements/model-element';
 import { PathElement } from '../elements/path-element';
 import { PolygonElement } from '../elements/polygon-element';
 import { PolylineElement } from '../elements/polyline-element';
@@ -46,6 +48,7 @@ type SVGImportContext = {
     strokeLinejoin?: string;
     fillRule?: string;
     clipPath?: string;
+    filter?: string;
     opacity: number;
     visible: boolean;
     transform: Matrix2D;
@@ -70,6 +73,7 @@ type SVGImportState = {
     nextImageResourceId: number;
     gradients: Record<string, SVGGradientDefinition>;
     clipPaths: Record<string, ElementClipPath>;
+    namedElements: Record<string, Element>;
 };
 
 /**
@@ -131,6 +135,7 @@ export class SVGImporter {
             nextImageResourceId: 1,
             gradients: SVGImporter.collectGradientDefinitions(root),
             clipPaths: SVGImporter.collectClipPathDefinitions(root, viewBoxOffsetX, viewBoxOffsetY),
+            namedElements: SVGImporter.collectNamedElements(root),
         };
         const context: SVGImportContext = {
             opacity: 1,
@@ -154,12 +159,23 @@ export class SVGImporter {
         const tagName = element.nodeName.toLowerCase();
         const context = SVGImporter.mergeContext(element, parentContext);
 
-        if (tagName === 'g' || tagName === 'svg') {
-            SVGImporter.importChildren(element, model, context, state);
+        if (tagName === 'g' || tagName === 'svg' || tagName === 'symbol') {
+            const importedContainer = SVGImporter.importContainerElement(element, context, state);
+            if (importedContainer) {
+                model.add(importedContainer);
+            }
             return;
         }
 
         if (tagName === 'defs' || tagName === 'lineargradient' || tagName === 'radialgradient' || tagName === 'stop' || tagName === 'clippath') {
+            return;
+        }
+
+        if (tagName === 'use') {
+            const importedUse = SVGImporter.importUseElement(element, model, parentContext, state);
+            if (importedUse) {
+                model.add(importedUse);
+            }
             return;
         }
 
@@ -215,6 +231,146 @@ export class SVGImporter {
         }
 
         SVGImporter.applyCommonAttributes(imported, element, context, state);
+        return imported;
+    }
+
+    private static importContainerElement(
+        element: Element,
+        context: SVGImportContext,
+        state: SVGImportState,
+        sourceElement?: Element,
+    ): ModelElement | undefined {
+        const inheritedContext = SVGImporter.createContainerChildContext(context);
+        const innerModel = SVGImporter.createContainerModel(element, state, sourceElement);
+        SVGImporter.importChildren(element, innerModel, inheritedContext, state);
+        if (innerModel.elements.length === 0) {
+            return undefined;
+        }
+
+        const contentBounds = SVGImporter.computeContainerBounds(innerModel);
+        if (contentBounds) {
+            SVGImporter.normalizeContainerChildren(innerModel, contentBounds.location);
+            innerModel.setLocation(Point.Origin);
+            innerModel.setSize(new Size(contentBounds.width, contentBounds.height));
+        }
+
+        const location = contentBounds ? contentBounds.location : Point.Origin;
+        const size = contentBounds ? contentBounds.size : innerModel.getSize();
+        const modelElement = ModelElement.create(undefined, location.x, location.y, size?.width || 0, size?.height || 0);
+        modelElement.sourceModel = innerModel;
+        innerModel.parent = modelElement;
+        SVGImporter.applyCommonAttributes(modelElement, sourceElement || element, context, state);
+        return modelElement;
+    }
+
+    private static computeContainerBounds(model: Model): { location: Point; size: Size; width: number; height: number } | undefined {
+        let minX = Number.POSITIVE_INFINITY;
+        let minY = Number.POSITIVE_INFINITY;
+        let maxX = Number.NEGATIVE_INFINITY;
+        let maxY = Number.NEGATIVE_INFINITY;
+        let found = false;
+
+        for (const element of model.elements) {
+            const bounds = element.getBounds();
+            if (!bounds) {
+                continue;
+            }
+            found = true;
+            minX = Math.min(minX, bounds.x);
+            minY = Math.min(minY, bounds.y);
+            maxX = Math.max(maxX, bounds.x + bounds.width);
+            maxY = Math.max(maxY, bounds.y + bounds.height);
+        }
+
+        if (!found) {
+            return undefined;
+        }
+
+        const width = maxX - minX;
+        const height = maxY - minY;
+        return {
+            location: new Point(minX, minY),
+            size: new Size(width, height),
+            width,
+            height,
+        };
+    }
+
+    private static normalizeContainerChildren(model: Model, location: Point): void {
+        if (location.x === 0 && location.y === 0) {
+            return;
+        }
+
+        for (const element of model.elements) {
+            element.translate(-location.x, -location.y);
+            if (element.clipPath && element.clipPath.units !== 'objectBoundingBox') {
+                element.clipPath = {
+                    ...element.clipPath,
+                    commands: SVGImporter.translatePathCommands(element.clipPath.commands, -location.x, -location.y),
+                };
+            }
+        }
+    }
+
+    private static translatePathCommands(commands: string[], offsetX: number, offsetY: number): string[] {
+        const translatedCommands: string[] = [];
+        for (const command of commands) {
+            if (command.charAt(0) === 'm' || command.charAt(0) === 'l') {
+                translatedCommands.push(
+                    command.charAt(0) + Point.translate(Point.parse(command.substring(1)), offsetX, offsetY).toString(),
+                );
+            }
+            else if (command.charAt(0) === 'c') {
+                const parts = command.substring(1).split(',');
+                const cp1 = Point.translate(new Point(parseFloat(parts[0]), parseFloat(parts[1])), offsetX, offsetY);
+                const cp2 = Point.translate(new Point(parseFloat(parts[2]), parseFloat(parts[3])), offsetX, offsetY);
+                const endPoint = Point.translate(new Point(parseFloat(parts[4]), parseFloat(parts[5])), offsetX, offsetY);
+                translatedCommands.push('c' + cp1.toString() + ',' + cp2.toString() + ',' + endPoint.toString());
+            }
+            else if (command.charAt(0) === 'q' || command.charAt(0) === 'Q') {
+                const parts = command.substring(1).split(',');
+                const controlPoint = Point.translate(new Point(parseFloat(parts[0]), parseFloat(parts[1])), offsetX, offsetY);
+                const endPoint = Point.translate(new Point(parseFloat(parts[2]), parseFloat(parts[3])), offsetX, offsetY);
+                translatedCommands.push(command.charAt(0) + controlPoint.toString() + ',' + endPoint.toString());
+            }
+            else {
+                translatedCommands.push(command);
+            }
+        }
+        return translatedCommands;
+    }
+
+    private static importUseElement(
+        element: Element,
+        model: Model,
+        parentContext: SVGImportContext,
+        state: SVGImportState,
+    ): ElementBase | undefined {
+        const referenceId = SVGImporter.getPaintServerReferenceId(element);
+        if (!referenceId) {
+            return undefined;
+        }
+
+        const referencedElement = state.namedElements[referenceId];
+        if (!referencedElement) {
+            return undefined;
+        }
+
+        const useContext = SVGImporter.applyUseOffsets(SVGImporter.mergeContext(element, parentContext), element);
+        const referencedContext = SVGImporter.mergeContext(referencedElement, useContext);
+        const tagName = referencedElement.nodeName.toLowerCase();
+        const imported = tagName === 'g' || tagName === 'svg' || tagName === 'symbol'
+            ? SVGImporter.importContainerElement(referencedElement, referencedContext, state)
+            : SVGImporter.createElementFromNode(referencedElement, model, referencedContext, state);
+
+        if (!imported) {
+            return undefined;
+        }
+
+        if (element.getAttribute('id')) {
+            imported.id = element.getAttribute('id') || imported.id;
+        }
+
         return imported;
     }
 
@@ -354,6 +510,69 @@ export class SVGImporter {
         return ImageElement.create(resourceKey, x, y, width, height);
     }
 
+    private static createContainerChildContext(context: SVGImportContext): SVGImportContext {
+        return {
+            fill: context.fill,
+            stroke: context.stroke,
+            strokeWidth: context.strokeWidth,
+            strokeDasharray: context.strokeDasharray,
+            strokeLinecap: context.strokeLinecap,
+            strokeLinejoin: context.strokeLinejoin,
+            fillRule: context.fillRule,
+            clipPath: undefined,
+            filter: undefined,
+            opacity: 1,
+            visible: true,
+            transform: Matrix2D.IDENTITY,
+            fontFamily: context.fontFamily,
+            fontSize: context.fontSize,
+            fontStyle: context.fontStyle,
+            fontWeight: context.fontWeight,
+            letterSpacing: context.letterSpacing,
+            textDecoration: context.textDecoration,
+            textAnchor: context.textAnchor,
+            dominantBaseline: context.dominantBaseline,
+        };
+    }
+
+    private static createContainerModel(element: Element, state: SVGImportState, sourceElement?: Element): Model {
+        const sizingElement = sourceElement || element;
+        let width = SVGImporter.parseLength(sizingElement.getAttribute('width')) || 0;
+        let height = SVGImporter.parseLength(sizingElement.getAttribute('height')) || 0;
+        const viewBox = sizingElement.getAttribute('viewBox') || element.getAttribute('viewBox');
+        if (viewBox) {
+            const parts = viewBox
+                .trim()
+                .split(/[\s,]+/)
+                .map((part) => parseFloat(part));
+            if (parts.length === 4 && parts.every((part) => !isNaN(part))) {
+                if (width === 0) {
+                    width = parts[2];
+                }
+                if (height === 0) {
+                    height = parts[3];
+                }
+            }
+        }
+
+        const model = Model.create(width, height);
+        model.setLocation(Point.Origin);
+        return model;
+    }
+
+    private static applyUseOffsets(context: SVGImportContext, element: Element): SVGImportContext {
+        const x = SVGImporter.parseLength(element.getAttribute('x')) || 0;
+        const y = SVGImporter.parseLength(element.getAttribute('y')) || 0;
+        if (x === 0 && y === 0) {
+            return context;
+        }
+
+        return {
+            ...context,
+            transform: Matrix2D.multiply(new Matrix2D(1, 0, 0, 1, x, y), context.transform),
+        };
+    }
+
     private static mergeContext(element: Element, parentContext: SVGImportContext): SVGImportContext {
         const opacity = SVGImporter.parseOpacity(SVGImporter.getLocalStyleValue(element, 'opacity'));
         const localTransform = SVGImporter.parseSVGTransform(SVGImporter.getLocalStyleValue(element, 'transform'));
@@ -368,6 +587,7 @@ export class SVGImporter {
             strokeLinejoin: SVGImporter.getInheritedStyleValue(element, 'stroke-linejoin', parentContext.strokeLinejoin),
             fillRule: SVGImporter.getInheritedStyleValue(element, 'fill-rule', parentContext.fillRule),
             clipPath: SVGImporter.getInheritedStyleValue(element, 'clip-path', parentContext.clipPath),
+            filter: SVGImporter.getLocalStyleValue(element, 'filter') || undefined,
             opacity: parentContext.opacity * opacity,
             visible: parentContext.visible && display?.toLowerCase() !== 'none' && visibility?.toLowerCase() !== 'hidden',
             transform: Matrix2D.multiply(localTransform, parentContext.transform),
@@ -395,6 +615,9 @@ export class SVGImporter {
 
         SVGImporter.applyFill(element, context.fill, state);
         SVGImporter.applyStroke(element, context.stroke, context.strokeWidth, context.strokeDasharray, context.strokeLinecap, context.strokeLinejoin);
+        if (context.filter) {
+            element.setFilter(context.filter);
+        }
 
         if (context.fillRule && context.fillRule.toLowerCase() === 'evenodd') {
             if (element instanceof PathElement || element instanceof PolygonElement) {
@@ -761,6 +984,23 @@ export class SVGImporter {
 
         Object.keys(gradientElements).forEach((id) => resolveDefinition(id));
         return definitions;
+    }
+
+    private static collectNamedElements(root: Element): Record<string, Element> {
+        const namedElements: Record<string, Element> = {};
+
+        const visit = (element: Element): void => {
+            const id = element.getAttribute('id');
+            if (id && id.trim().length > 0) {
+                namedElements[id.trim()] = element;
+            }
+            for (let index = 0; index < element.children.length; index++) {
+                visit(element.children[index]);
+            }
+        };
+
+        visit(root);
+        return namedElements;
     }
 
     private static collectClipPathDefinitions(

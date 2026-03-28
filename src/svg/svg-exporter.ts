@@ -24,6 +24,8 @@ type SVGExportContext = {
     defs: string[];
     nextGradientId: number;
     nextClipPathId: number;
+    nextSymbolId: number;
+    symbols: Record<string, string>;
 };
 
 /**
@@ -45,6 +47,8 @@ export class SVGExporter {
             defs: [],
             nextGradientId: 1,
             nextClipPathId: 1,
+            nextSymbolId: 1,
+            symbols: {},
         };
 
         const body = SVGExporter.exportModelFragment(model, context);
@@ -389,11 +393,6 @@ export class SVGExporter {
             return '';
         }
 
-        const innerMarkup = SVGExporter.exportModelFragment(innerModel, context);
-        if (innerMarkup.length === 0) {
-            return '';
-        }
-
         const sourceSize = innerModel.getSize();
         const requestedSize = element.getSize();
         let scaleX = 1;
@@ -401,6 +400,16 @@ export class SVGExporter {
         if (sourceSize && requestedSize && !requestedSize.equals(sourceSize)) {
             scaleX = sourceSize.width === 0 ? 1 : requestedSize.width / sourceSize.width;
             scaleY = sourceSize.height === 0 ? 1 : requestedSize.height / sourceSize.height;
+        }
+
+        if (element.source) {
+            const symbolId = SVGExporter.registerModelSymbol(element.source, innerModel, context);
+            return SVGExporter.exportModelUseElement(element, context, symbolId, location, scaleX, scaleY);
+        }
+
+        const innerMarkup = SVGExporter.exportModelFragment(innerModel, context);
+        if (innerMarkup.length === 0) {
+            return '';
         }
 
         const innerTransformParts = [
@@ -417,6 +426,50 @@ export class SVGExporter {
             return nestedGroup;
         }
         return '<g ' + containerAttributes.join(' ') + '>' + nestedGroup + '</g>';
+    }
+
+    private static exportModelUseElement(
+        element: ModelElement,
+        context: SVGExportContext,
+        symbolId: string,
+        location: Point,
+        scaleX: number,
+        scaleY: number,
+    ): string {
+        const useAttributes = ['href="#' + SVGExporter.escapeAttribute(symbolId) + '"'];
+        const transformParts = ['translate(' + SVGExporter.formatNumber(location.x) + ' ' + SVGExporter.formatNumber(location.y) + ')'];
+        if (scaleX !== 1 || scaleY !== 1) {
+            transformParts.push('scale(' + SVGExporter.formatNumber(scaleX) + ' ' + SVGExporter.formatNumber(scaleY) + ')');
+        }
+        useAttributes.push('transform="' + transformParts.join(' ') + '"');
+
+        const useMarkup = '<use ' + useAttributes.join(' ') + ' />';
+        const containerAttributes: string[] = [];
+        SVGExporter.pushContainerAttributes(containerAttributes, element, location, context);
+        if (containerAttributes.length === 0) {
+            return useMarkup;
+        }
+        return '<g ' + containerAttributes.join(' ') + '>' + useMarkup + '</g>';
+    }
+
+    private static registerModelSymbol(sourceKey: string, model: Model, context: SVGExportContext): string {
+        const existingId = context.symbols[sourceKey];
+        if (existingId) {
+            return existingId;
+        }
+
+        const symbolId = 'elise-symbol-' + context.nextSymbolId++;
+        context.symbols[sourceKey] = symbolId;
+        const body = SVGExporter.exportModelFragment(model, context);
+        const size = model.getSize();
+        const attributes = ['id="' + symbolId + '"'];
+        if (size) {
+            attributes.push(
+                'viewBox="0 0 ' + SVGExporter.formatNumber(size.width) + ' ' + SVGExporter.formatNumber(size.height) + '"'
+            );
+        }
+        context.defs.push('<symbol ' + attributes.join(' ') + '>' + body + '</symbol>');
+        return symbolId;
     }
 
     private static exportTextElement(element: TextElement, context: SVGExportContext): string {
@@ -560,7 +613,7 @@ export class SVGExporter {
 
     private static pushContainerAttributes(
         attributes: string[],
-        element: { id?: string; opacity?: number; visible?: boolean; transform?: string; clipPath?: ElementClipPath },
+        element: { id?: string; opacity?: number; visible?: boolean; transform?: string; clipPath?: ElementClipPath; filter?: string },
         origin: Point | undefined,
         context: SVGExportContext,
     ): void {
@@ -574,6 +627,10 @@ export class SVGExporter {
 
         if (element.opacity !== undefined && element.opacity >= 0 && element.opacity < 1) {
             attributes.push('opacity="' + SVGExporter.formatNumber(element.opacity) + '"');
+        }
+
+        if (element.filter) {
+            attributes.push('filter="' + SVGExporter.escapeAttribute(element.filter) + '"');
         }
 
         if (element.transform && origin) {

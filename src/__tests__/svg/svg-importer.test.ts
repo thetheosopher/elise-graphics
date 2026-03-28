@@ -2,6 +2,7 @@ import { Model } from '../../core/model';
 import { EllipseElement } from '../../elements/ellipse-element';
 import { ImageElement } from '../../elements/image-element';
 import { LineElement } from '../../elements/line-element';
+import { ModelElement } from '../../elements/model-element';
 import { PathElement } from '../../elements/path-element';
 import { PolygonElement } from '../../elements/polygon-element';
 import { PolylineElement } from '../../elements/polyline-element';
@@ -80,7 +81,7 @@ test('SVGImporter.parseDocument maps SVG path elements to PathElement.fromSVGPat
     expect(path.getCommands()).toEqual(['m10,20', 'l40,20', 'l40,30', 'z']);
 });
 
-test('SVGImporter.parseDocument imports basic SVG shape elements with inherited styles and transforms', () => {
+test('SVGImporter.parseDocument imports grouped SVG shapes as a nested model element', () => {
     const document = createFakeDocument(
         createFakeElement('svg', { width: '200', height: '120' }, [
             createFakeElement(
@@ -99,39 +100,71 @@ test('SVGImporter.parseDocument imports basic SVG shape elements with inherited 
 
     const model = SVGImporter.parseDocument(document);
 
-    expect(model.elements).toHaveLength(5);
+    expect(model.elements).toHaveLength(1);
 
-    const rectangle = model.elements[0] as RectangleElement;
+    const group = model.elements[0] as ModelElement;
+    expect(group).toBeInstanceOf(ModelElement);
+    expect(group.visible).toBe(false);
+    expect(group.transform).toBe('matrix(1,0,0,1,5,6)');
+    expect(group.getLocation()!.x).toBe(0);
+    expect(group.getLocation()!.y).toBe(0);
+    expect(group.getSize()!.width).toBe(100);
+    expect(group.getSize()!.height).toBe(70);
+
+    const innerModel = group.sourceModel as Model;
+    expect(innerModel.elements).toHaveLength(5);
+
+    const rectangle = innerModel.elements[0] as RectangleElement;
     expect(rectangle).toBeInstanceOf(RectangleElement);
     expect(rectangle.id).toBe('rect-1');
     expect(rectangle.fill).toBe('#112233');
     expect(rectangle.stroke).toBe('#445566, 2');
-    expect(rectangle.visible).toBe(false);
     expect(rectangle.cornerRadii).toEqual([6, 6, 6, 6]);
-    expect(rectangle.transform).toBe('matrix(1,0,0,1,5,6)');
 
-    const ellipse = model.elements[1] as EllipseElement;
+    const ellipse = innerModel.elements[1] as EllipseElement;
     expect(ellipse).toBeInstanceOf(EllipseElement);
     expect(ellipse.fill).toBe('#112233');
     expect(ellipse.stroke).toBe('#445566, 2');
-    expect(ellipse.visible).toBe(false);
-    expect(ellipse.transform).toBe('matrix(1,0,0,1,5,6)');
 
-    const line = model.elements[2] as LineElement;
+    const line = innerModel.elements[2] as LineElement;
     expect(line).toBeInstanceOf(LineElement);
     expect(line.stroke).toBe('#445566, 2');
     expect(line.fill).toBeUndefined();
 
-    const polygon = model.elements[3] as PolygonElement;
+    const polygon = innerModel.elements[3] as PolygonElement;
     expect(polygon).toBeInstanceOf(PolygonElement);
     expect(polygon.fill).toBe('#112233');
     expect(polygon.stroke).toBe('#445566, 2');
     expect(polygon.getPoints()!.map((point) => point.toString())).toEqual(['0,0', '10,0', '5,5']);
 
-    const polyline = model.elements[4] as PolylineElement;
+    const polyline = innerModel.elements[4] as PolylineElement;
     expect(polyline).toBeInstanceOf(PolylineElement);
     expect(polyline.stroke).toBe('#445566, 2');
     expect(polyline.getPoints()!.map((point) => point.toString())).toEqual(['20,10', '30,20', '40,10']);
+});
+
+test('SVGImporter.parseDocument resolves use references to symbol content', () => {
+    const document = createFakeDocument(
+        createFakeElement('svg', { width: '120', height: '80' }, [
+            createFakeElement('defs', {}, [
+                createFakeElement('symbol', { id: 'badge', viewBox: '0 0 20 10' }, [
+                    createFakeElement('rect', { x: '0', y: '0', width: '20', height: '10', fill: '#112233' }),
+                ]),
+            ]),
+            createFakeElement('use', { id: 'badge-use', href: '#badge', x: '10', y: '15', opacity: '0.5' }),
+        ]),
+    );
+
+    const model = SVGImporter.parseDocument(document);
+    const symbolUse = model.elements[0] as ModelElement;
+    const innerModel = symbolUse.sourceModel as Model;
+
+    expect(symbolUse).toBeInstanceOf(ModelElement);
+    expect(symbolUse.id).toBe('badge-use');
+    expect(symbolUse.opacity).toBe(0.5);
+    expect(symbolUse.transform).toBe('matrix(1,0,0,1,10,15)');
+    expect(innerModel.elements).toHaveLength(1);
+    expect((innerModel.elements[0] as RectangleElement).fill).toBe('#112233');
 });
 
 test('SVGImporter.parseDocument imports stroke dash, line cap, and line join styles', () => {
@@ -192,9 +225,17 @@ test('SVGImporter.parseDocument imports text and image elements with inherited t
 
     const model = SVGImporter.parseDocument(document);
 
-    expect(model.elements).toHaveLength(2);
+    expect(model.elements).toHaveLength(1);
 
-    const text = model.elements[0] as TextElement;
+    const group = model.elements[0] as ModelElement;
+    expect(group).toBeInstanceOf(ModelElement);
+    expect(group.opacity).toBe(0.5);
+    expect(group.transform).toBe('matrix(1,0,0,1,10,5)');
+
+    const innerModel = group.sourceModel as Model;
+    expect(innerModel.elements).toHaveLength(2);
+
+    const text = innerModel.elements[0] as TextElement;
     expect(text).toBeInstanceOf(TextElement);
     expect(text.id).toBe('label');
     expect(text.text).toBe('Hello');
@@ -203,20 +244,41 @@ test('SVGImporter.parseDocument imports text and image elements with inherited t
     expect(text.typesize).toBe(16);
     expect(text.typestyle).toBe('bold,italic');
     expect(text.alignment).toBe('center,middle');
-    expect(text.opacity).toBe(0.5);
-    expect(text.transform).toBe('matrix(1,0,0,1,10,5)');
 
-    const image = model.elements[1] as ImageElement;
+    const image = innerModel.elements[1] as ImageElement;
     expect(image).toBeInstanceOf(ImageElement);
     expect(image.id).toBe('logo');
     expect(image.source).toBe('logo-image');
-    expect(image.opacity).toBe(0.5);
-    expect(image.transform).toBe('matrix(1,0,0,1,10,5)');
-    expect(model.resources).toHaveLength(1);
-    const resource = model.resources[0] as BitmapResource;
+    expect(innerModel.resources).toHaveLength(1);
+    const resource = innerModel.resources[0] as BitmapResource;
     expect(resource).toBeInstanceOf(BitmapResource);
     expect(resource.key).toBe('logo-image');
     expect(resource.uri).toBe('/images/logo.png');
+    expect(group.getLocation()!.x).toBe(20);
+    expect(group.getLocation()!.y).toBe(10);
+    expect(group.getSize()!.width).toBe(48);
+    expect(group.getSize()!.height).toBe(36);
+    expect(text.getLocation()!.x).toBe(0);
+    expect(text.getLocation()!.y).toBe(20);
+    expect(image.getLocation()!.x).toBe(20);
+    expect(image.getLocation()!.y).toBe(0);
+});
+
+test('SVGImporter.parseDocument imports element filter attributes without inheriting them to children', () => {
+    const document = createFakeDocument(
+        createFakeElement('svg', { width: '120', height: '80' }, [
+            createFakeElement('g', { id: 'group', filter: 'blur(2px)' }, [
+                createFakeElement('rect', { id: 'inner-rect', x: '10', y: '12', width: '20', height: '14', fill: '#ff0000' }),
+            ]),
+        ]),
+    );
+
+    const model = SVGImporter.parseDocument(document);
+    const group = model.elements[0] as ModelElement;
+    const innerRect = (group.sourceModel as Model).elements[0] as RectangleElement;
+
+    expect(group.filter).toBe('blur(2px)');
+    expect(innerRect.filter).toBeUndefined();
 });
 
 test('SVGImporter.parseDocument imports text letter spacing decoration and styled tspans', () => {

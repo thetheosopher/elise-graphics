@@ -42,6 +42,7 @@ test('rectangle serialize/parse round-trip', () => {
     rect.setFill('Red').setStroke('Black,2').setVisible(false).setCornerRadius(12);
     rect.setShadow({ color: 'rgba(0,0,0,0.3)', blur: 10, offsetX: 4, offsetY: 5 });
     rect.setBlendMode('multiply');
+    rect.setFilter('blur(2px) saturate(125%)');
     rect.id = 'rect1';
     const serialized = rect.serialize();
     expect(serialized.type).toBe('rectangle');
@@ -50,6 +51,7 @@ test('rectangle serialize/parse round-trip', () => {
     expect(serialized.stroke).toBe('Black,2');
     expect(serialized.shadow).toEqual({ color: 'rgba(0,0,0,0.3)', blur: 10, offsetX: 4, offsetY: 5 });
     expect(serialized.blendMode).toBe('multiply');
+    expect(serialized.filter).toBe('blur(2px) saturate(125%)');
     expect(serialized.visible).toBe(false);
     expect(serialized.cornerRadius).toBe(12);
 
@@ -60,6 +62,7 @@ test('rectangle serialize/parse round-trip', () => {
     expect(parsed.stroke).toBe('Black,2');
     expect(parsed.shadow).toEqual({ color: 'rgba(0,0,0,0.3)', blur: 10, offsetX: 4, offsetY: 5 });
     expect(parsed.blendMode).toBe('multiply');
+    expect(parsed.filter).toBe('blur(2px) saturate(125%)');
     expect(parsed.visible).toBe(false);
     expect(parsed.cornerRadii).toEqual([12, 12, 12, 12]);
     const loc = parsed.getLocation()!;
@@ -72,12 +75,14 @@ test('rectangle clone', () => {
     rect.setFill('Blue').setCornerRadii(10, 8, 6, 4).setVisible(false);
     rect.setShadow({ color: '#000000', blur: 6, offsetX: 2, offsetY: 3 });
     rect.setBlendMode('screen');
+    rect.setFilter('sepia(40%)');
     rect.setClipPath({ commands: ['m0,0', 'l1,0', 'l1,1', 'z'], units: 'objectBoundingBox' });
     const cloned = rect.clone() as RectangleElement;
     expect(cloned.fill).toBe('Blue');
     expect(cloned.visible).toBe(false);
     expect(cloned.shadow).toEqual({ color: '#000000', blur: 6, offsetX: 2, offsetY: 3 });
     expect(cloned.blendMode).toBe('screen');
+    expect(cloned.filter).toBe('sepia(40%)');
     expect(cloned.cornerRadii).toEqual([10, 8, 6, 4]);
     expect(cloned.clipPath).toBeDefined();
     expect(cloned.clipPath!.commands).toEqual(['m0,0', 'l1,0', 'l1,1', 'z']);
@@ -116,7 +121,7 @@ test('rectangle set location and size', () => {
 
 test('rectangle fluent setters', () => {
     const rect = RectangleElement.create(0, 0, 50, 50);
-    const result = rect.setFill('Green').setStroke('Red').setStrokeDash([4, 2]).setLineCap('round').setLineJoin('bevel').setShadow({ color: '#000000', blur: 8, offsetX: 2, offsetY: 1 }).setBlendMode('multiply').setInteractive(true);
+    const result = rect.setFill('Green').setStroke('Red').setStrokeDash([4, 2]).setLineCap('round').setLineJoin('bevel').setShadow({ color: '#000000', blur: 8, offsetX: 2, offsetY: 1 }).setBlendMode('multiply').setFilter('grayscale(80%)').setInteractive(true);
     expect(result).toBe(rect);
     expect(rect.fill).toBe('Green');
     expect(rect.stroke).toBe('Red');
@@ -125,24 +130,76 @@ test('rectangle fluent setters', () => {
     expect(rect.lineJoin).toBe('bevel');
     expect(rect.shadow).toEqual({ color: '#000000', blur: 8, offsetX: 2, offsetY: 1 });
     expect(rect.blendMode).toBe('multiply');
+    expect(rect.filter).toBe('grayscale(80%)');
     expect(rect.interactive).toBe(true);
 });
 
-test('applyRenderOpacity applies opacity, blend mode, and shadow together', () => {
+test('applyRenderOpacity applies opacity, blend mode, filter, and shadow together', () => {
     const rect = RectangleElement.create(0, 0, 50, 50);
     rect.setOpacity(0.5);
     rect.setShadow({ color: 'rgba(0,0,0,0.25)', blur: 12, offsetX: 3, offsetY: 4 });
     rect.setBlendMode('screen');
-    const context = { globalAlpha: 1, globalCompositeOperation: 'source-over' } as CanvasRenderingContext2D;
+    rect.setFilter('blur(4px)');
+    const context = { globalAlpha: 1, globalCompositeOperation: 'source-over', filter: 'none' } as CanvasRenderingContext2D;
 
     rect.applyRenderOpacity(context);
 
     expect(context.globalAlpha).toBe(0.5);
     expect(context.globalCompositeOperation).toBe('screen');
+    expect(context.filter).toBe('blur(4px)');
     expect(context.shadowColor).toBe('rgba(0,0,0,' + 64 / 255 + ')');
     expect(context.shadowBlur).toBe(12);
     expect(context.shadowOffsetX).toBe(3);
     expect(context.shadowOffsetY).toBe(4);
+});
+
+test('setFilter trims values and clears none-like filters', () => {
+    const rect = RectangleElement.create(0, 0, 50, 50);
+
+    rect.setFilter('  contrast(120%)  ');
+    expect(rect.filter).toBe('contrast(120%)');
+
+    rect.setFilter('none');
+    expect(rect.filter).toBeUndefined();
+});
+
+test('withClipPath restores drawing transform after objectBoundingBox clipping', () => {
+    const rect = RectangleElement.create(10, 20, 100, 200);
+    rect.setClipPath({ commands: ['m0.1,0.1', 'l0.9,0.1', 'l0.9,0.9', 'l0.1,0.9', 'z'], units: 'objectBoundingBox' });
+    rect.model = {
+        resourceManager: { get: jest.fn() },
+        add: jest.fn(),
+        getSize: jest.fn(),
+        getFillScale: jest.fn(),
+        setElementStroke: jest.fn(),
+        setRenderTransform: jest.fn(),
+    } as never;
+    const drawAction = jest.fn();
+    const context = {
+        save: jest.fn(),
+        restore: jest.fn(),
+        translate: jest.fn(),
+        scale: jest.fn(),
+        transform: jest.fn(),
+        beginPath: jest.fn(),
+        moveTo: jest.fn(),
+        lineTo: jest.fn(),
+        closePath: jest.fn(),
+        clip: jest.fn(),
+    } as unknown as CanvasRenderingContext2D;
+
+    (rect as any).withClipPath(context, drawAction);
+
+    expect(context.translate).toHaveBeenCalledWith(10, 20);
+    expect(context.scale).toHaveBeenCalledWith(100, 200);
+    const inverseArgs = (context.transform as jest.Mock).mock.calls[0];
+    expect(inverseArgs[0]).toBeCloseTo(0.01);
+    expect(inverseArgs[1]).toBeCloseTo(0);
+    expect(inverseArgs[2]).toBeCloseTo(0);
+    expect(inverseArgs[3]).toBeCloseTo(0.005);
+    expect(inverseArgs[4]).toBeCloseTo(-0.1);
+    expect(inverseArgs[5]).toBeCloseTo(-0.1);
+    expect((context.transform as jest.Mock).mock.invocationCallOrder[0]).toBeLessThan(drawAction.mock.invocationCallOrder[0]);
 });
 
 test('rectangle typed locationValue accessor', () => {
@@ -681,6 +738,29 @@ test('text content setters clear rich text', () => {
     expect(txt.source).toBe('resource-key');
 });
 
+test('text replaceTextRange applies inserted rich styles', () => {
+    const txt = TextElement.create('Hello', 0, 0, 200, 50);
+
+    txt.replaceTextRange(5, 5, ' World', { typestyle: 'italic', decoration: 'underline' });
+
+    expect(txt.getResolvedText()).toBe('Hello World');
+    expect(txt.richText).toEqual([
+        { text: 'Hello' },
+        { text: ' World', typestyle: 'italic', decoration: 'underline' },
+    ]);
+});
+
+test('text applyTextStyle updates only the selected character range', () => {
+    const txt = TextElement.create('Hello world', 0, 0, 200, 50);
+
+    txt.applyTextStyle(6, 11, { typestyle: 'bold', letterSpacing: 1.5 });
+
+    expect(txt.richText).toEqual([
+        { text: 'Hello ' },
+        { text: 'world', typestyle: 'bold', letterSpacing: 1.5 },
+    ]);
+});
+
 // --- ImageElement ---
 
 test('image create', () => {
@@ -742,6 +822,35 @@ test('model element serialize/parse round-trip', () => {
     parsed.parse(serialized);
     expect(parsed.source).toBe('my-model');
     expect(parsed.opacity).toBe(0.8);
+});
+
+test('model element draw skips scaling when embedded sourceModel has zero size', () => {
+    const mel = ModelElement.create(undefined, 10, 20, 0, 0);
+    const innerModel = {
+        getSize: jest.fn(() => new Size(0, 0)),
+        renderToContext: jest.fn(),
+    };
+    mel.sourceModel = innerModel;
+    mel.model = {
+        resourceManager: { get: jest.fn() },
+        add: jest.fn(),
+        getSize: jest.fn(),
+        getFillScale: jest.fn(),
+        setElementStroke: jest.fn(),
+        setRenderTransform: jest.fn(),
+    } as never;
+    const context = {
+        save: jest.fn(),
+        restore: jest.fn(),
+        translate: jest.fn(),
+        scale: jest.fn(),
+        globalAlpha: 1,
+    } as unknown as CanvasRenderingContext2D;
+
+    mel.draw(context);
+
+    expect(context.scale).not.toHaveBeenCalled();
+    expect(innerModel.renderToContext).toHaveBeenCalledWith(context);
 });
 
 // --- SpriteElement ---

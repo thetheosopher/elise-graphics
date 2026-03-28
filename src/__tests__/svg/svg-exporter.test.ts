@@ -11,6 +11,7 @@ import { RectangleElement } from '../../elements/rectangle-element';
 import { TextElement } from '../../elements/text-element';
 import { LinearGradientFill } from '../../fill/linear-gradient-fill';
 import { BitmapResource } from '../../resource/bitmap-resource';
+import { ModelResource } from '../../resource/model-resource';
 import { SVGExporter } from '../../svg/svg-exporter';
 
 test('SVGExporter.exportPathData preserves simple line commands where possible', () => {
@@ -154,6 +155,7 @@ test('Model.toSVG exports gradients and valid SVG transform matrices', () => {
     const rectangle = RectangleElement.create(10, 20, 30, 40).setFill(gradient);
     rectangle.setTransform('rotate(45(5,10))');
     rectangle.setOpacity(0.5);
+    rectangle.setFilter('blur(2px) saturate(120%)');
     model.add(rectangle);
 
     const svgMarkup = model.toSVG();
@@ -163,6 +165,7 @@ test('Model.toSVG exports gradients and valid SVG transform matrices', () => {
     expect(svgMarkup).toContain('<stop offset="0%" stop-color="#ff0000" stop-opacity="0.501961" />');
     expect(svgMarkup).toContain('fill="url(#elise-gradient-1)"');
     expect(svgMarkup).toContain('opacity="0.5"');
+    expect(svgMarkup).toContain('filter="blur(2px) saturate(120%)"');
     expect(svgMarkup).toContain('transform="matrix(0.707107 0.707107 -0.707107 0.707107 25.606602 -1.819805)"');
 });
 
@@ -199,6 +202,25 @@ test('Model.toSVG exports nested model elements with scaling', () => {
     expect(svgMarkup).toContain('<g transform="translate(10 20) scale(2 2)">');
     expect(svgMarkup).toContain('<rect x="0" y="0" width="20" height="10" fill="#ffeeaa" stroke="none" />');
     expect(svgMarkup).toContain('<rect x="1" y="2" width="3" height="4" fill="#112233" stroke="none" />');
+});
+
+test('Model.toSVG exports reusable model resources as symbol use references', () => {
+    const innerModel = Model.create(20, 10);
+    innerModel.add(RectangleElement.create(1, 2, 3, 4).setFill('#112233'));
+
+    const outerModel = Model.create(100, 80);
+    outerModel.resourceManager.add(ModelResource.create('badge', innerModel));
+
+    const first = ModelElement.create('badge', 10, 20, 40, 20);
+    const second = ModelElement.create('badge', 50, 20, 20, 10);
+    outerModel.add(first);
+    outerModel.add(second);
+
+    const svgMarkup = outerModel.toSVG();
+
+    expect(svgMarkup).toContain('<symbol id="elise-symbol-1" viewBox="0 0 20 10">');
+    expect(svgMarkup).toContain('<use href="#elise-symbol-1" transform="translate(10 20) scale(2 2)" />');
+    expect(svgMarkup).toContain('<use href="#elise-symbol-1" transform="translate(50 20)" />');
 });
 
 test('Model.toSVG exports model-level background fill and stroke', () => {

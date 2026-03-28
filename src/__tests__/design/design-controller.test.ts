@@ -2,6 +2,7 @@ import { DesignController } from '../../design/design-controller';
 import { EllipseElement } from '../../elements/ellipse-element';
 import { Model } from '../../core/model';
 import { RectangleElement } from '../../elements/rectangle-element';
+import { TextElement } from '../../elements/text-element';
 import { Size } from '../../core/size';
 import { Point } from '../../core/point';
 import { Region } from '../../core/region';
@@ -120,6 +121,12 @@ function installInteractiveCanvas(controller: DesignController, context?: Partia
         quadraticCurveTo: jest.fn(),
         rect: jest.fn(),
         closePath: jest.fn(),
+        fillText: jest.fn(),
+        strokeText: jest.fn(),
+        measureText: jest.fn((text: string) => ({ width: text.length * 10 })),
+        font: '',
+        textAlign: 'left',
+        textBaseline: 'top',
         isPointInPath: jest.fn(() => false),
         ...context,
     } as unknown as CanvasRenderingContext2D;
@@ -478,6 +485,117 @@ describe('design controller undo and redo', () => {
         expect(controller.onCanvasKeyDown(ctrlY)).toBe(true);
         expect(undoSpy).toHaveBeenCalledTimes(1);
         expect(redoSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test('typing into a selected text element enters text edit mode and supports inline formatting', () => {
+        const controller = new DesignController();
+        const model = Model.create(200, 100);
+        const text = TextElement.create('Hello', 10, 10, 120, 30).setInteractive(true) as TextElement;
+        model.add(text);
+        installCanvasOnly(controller);
+        controller.setModel(model);
+        controller.selectElement(text);
+
+        const typeEvent = {
+            key: '!',
+            keyCode: 49,
+            ctrlKey: false,
+            metaKey: false,
+            altKey: false,
+            shiftKey: true,
+            preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+        } as unknown as KeyboardEvent;
+
+        expect(controller.onCanvasKeyDown(typeEvent)).toBe(true);
+        expect(text.getResolvedText()).toBe('Hello!');
+        expect(controller.editingTextElement).toBe(text);
+
+        controller.textSelectionStart = 0;
+        controller.textSelectionEnd = 5;
+        const boldEvent = {
+            key: 'b',
+            keyCode: 66,
+            ctrlKey: true,
+            metaKey: false,
+            altKey: false,
+            shiftKey: false,
+            preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+        } as unknown as KeyboardEvent;
+
+        expect(controller.onCanvasKeyDown(boldEvent)).toBe(true);
+        expect(text.richText).toEqual([
+            { text: 'Hello', typestyle: 'bold' },
+            { text: '!' },
+        ]);
+    });
+
+    test('arrow up and down move the caret between visual text lines', () => {
+        const controller = new DesignController();
+        const model = Model.create(200, 100);
+        const text = TextElement.create('ab\ncd', 10, 10, 120, 40).setInteractive(true) as TextElement;
+        model.add(text);
+        installInteractiveCanvas(controller);
+        controller.setModel(model);
+        controller.selectElement(text);
+        controller.beginTextEdit(text, 1);
+
+        const arrowDown = {
+            key: 'ArrowDown',
+            keyCode: 40,
+            ctrlKey: false,
+            metaKey: false,
+            altKey: false,
+            shiftKey: false,
+            preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+        } as unknown as KeyboardEvent;
+        const arrowUp = {
+            key: 'ArrowUp',
+            keyCode: 38,
+            ctrlKey: false,
+            metaKey: false,
+            altKey: false,
+            shiftKey: false,
+            preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+        } as unknown as KeyboardEvent;
+
+        expect(controller.onCanvasKeyDown(arrowDown)).toBe(true);
+        expect(controller.textSelectionStart).toBe(3);
+        expect(controller.textSelectionEnd).toBe(3);
+
+        expect(controller.onCanvasKeyDown(arrowUp)).toBe(true);
+        expect(controller.textSelectionStart).toBe(1);
+        expect(controller.textSelectionEnd).toBe(1);
+    });
+
+    test('double-clicking a selected text element enters edit mode and selects the clicked word', () => {
+        const controller = new DesignController();
+        const model = Model.create(200, 100);
+        const text = TextElement.create('Hello world', 10, 10, 140, 30).setInteractive(true) as TextElement;
+        const fakeWindowScope = installFakeWindow();
+        model.add(text);
+        installInteractiveCanvas(controller);
+        controller.setModel(model);
+        controller.selectElement(text);
+
+        controller.onCanvasMouseDown({
+            button: 0,
+            clientX: 75,
+            clientY: 20,
+            detail: 2,
+            preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+        } as unknown as MouseEvent);
+
+        expect(controller.editingTextElement).toBe(text);
+        expect(controller.textSelectionStart).toBe(6);
+        expect(controller.textSelectionEnd).toBe(11);
+        expect(controller.isSelectingText).toBe(false);
+
+        fakeWindowScope.restore();
     });
 
     test('setSelectedRectangleCornerRadius updates selected rectangles and supports undo', () => {

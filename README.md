@@ -17,7 +17,9 @@ from simpler elements.
 * Shared resource library for indirect referenced to bitmap, model, and text resources with support for localization.
 * Support for element interactivity, property tweening, touch interaction, and animation.
 * Support for sprite and image transitions.
-* Design surface and component library for interactive model creation and editing.
+* SVG import and export with hierarchy-preserving container support, `<symbol>`/`<use>` handling, and gradient/clip-path interop.
+* Event bubbling through nested model hierarchies for composable interactive content.
+* Design surface and component library for interactive model creation and editing, including inline rich-text editing with formatting shortcuts.
 * Higher level surface library for creation of graphical applications with integration of video and other HTML content.
 * Sketcher class to gradually draw and fill complex polygonal models for visual effect.
 
@@ -169,6 +171,50 @@ For design surfaces, two-finger gestures are also supported:
 * Two-finger pan the nearest scroll container around the design surface.
 
 Touch listeners are registered with `touchAction = 'none'` so the canvas can capture gesture intent directly instead of competing with browser scrolling.
+
+## SVG Import and Export
+
+Elise supports importing SVG content into a model and exporting models back to SVG markup.
+
+### SVG Import
+
+```javascript
+var model = elise.Model.create(400, 300);
+elise.SVGImporter.import(svgString, model);
+```
+
+The importer handles `<path>`, `<rect>`, `<ellipse>`, `<circle>`, `<line>`, `<polygon>`, `<polyline>`, `<text>`, `<image>`, `<g>`, `<symbol>`, and `<use>` elements. Container elements (`<g>`, nested `<svg>`, `<symbol>`) are preserved as nested `ModelElement` hierarchies rather than flattened, and `<use>` references are resolved against named elements. Inherited styles, gradients, clip paths, and transforms are imported.
+
+### SVG Export
+
+```javascript
+var svgMarkup = model.toSVG();
+```
+
+All major element types export to their SVG equivalents. Reusable model-resource-backed elements export as `<symbol>` + `<use>` pairs, and embedded source models export as nested `<g>` groups.
+
+## Event Bubbling
+
+Events propagate through the model hierarchy from the deepest nested element outward through `ModelElement` containers. The `ViewController` exposes `mouseOverPath` and `pressedPath` arrays that contain the ordered element ancestry from deepest child to outermost container. Mouse enter/leave, down/up, and click events are dispatched to every element in the path.
+
+```javascript
+controller.elementClicked.add(function(source, element) {
+    // Fires for each element in the ancestry path, deepest first
+    console.log('Clicked:', element.id);
+});
+```
+
+## Rich Text Editing
+
+The design surface supports inline text editing with rich formatting. Double-click or type into a selected text element to enter edit mode:
+
+* Keyboard entry, backspace, delete, and enter for newline
+* Arrow key caret navigation (left, right, up, down across visual lines)
+* Shift+arrow for selection extension
+* Home/End for line/text boundary navigation
+* Double-click to select a word
+* **Ctrl+B** for bold, **Ctrl+I** for italic, **Ctrl+U** for underline
+* Escape to exit text edit mode
 
 ## Example Projects
 

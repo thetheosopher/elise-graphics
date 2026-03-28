@@ -189,17 +189,11 @@ export class DesignRenderer {
         if (image.transform) {
             model.setRenderTransform(c, image.transform, location);
         }
-        if (image.opacity !== undefined && image.opacity > 0 && image.opacity < 1.0) {
-            const o = c.globalAlpha;
-            c.globalAlpha = image.opacity;
+        image.applyRenderOpacity(c);
+        try {
             c.drawImage(resource.image, location.x, location.y, size.width, size.height);
-            c.globalAlpha = o;
-        } else if (resource.image) {
-            try {
-                c.drawImage(resource.image, location.x, location.y, size.width, size.height);
-            } catch (ignore) {
-                throw new Error(ErrorMessages.CanvasDrawImageError + ':' + ignore);
-            }
+        } catch (ignore) {
+            throw new Error(ErrorMessages.CanvasDrawImageError + ':' + ignore);
         }
         if (model.setElementStroke(c, image)) {
             c.strokeRect(location.x, location.y, size.width, size.height);
@@ -241,9 +235,9 @@ export class DesignRenderer {
         if (sprite.transform) {
             model.setRenderTransform(c, sprite.transform, location);
         }
+        sprite.applyRenderOpacity(c);
         if (frame.opacity !== undefined && frame.opacity > 0 && frame.opacity < 1.0) {
-            const o = c.globalAlpha;
-            c.globalAlpha = frame.opacity;
+            c.globalAlpha *= frame.opacity;
             c.drawImage(
                 resource.image,
                 frame.x,
@@ -255,7 +249,6 @@ export class DesignRenderer {
                 size.width,
                 size.height,
             );
-            c.globalAlpha = o;
         } else {
             c.drawImage(
                 resource.image,
@@ -870,11 +863,16 @@ export class DesignRenderer {
             size = this.controller.getElementResizeSize(modelElement);
         }
 
-        if (!modelElement.source) {
-            throw new Error(ErrorMessages.SourceUndefined);
+        let innerModel;
+        if (modelElement.sourceModel) {
+            innerModel = modelElement.sourceModel;
+        } else {
+            if (!modelElement.source) {
+                throw new Error(ErrorMessages.SourceUndefined);
+            }
+            const resource = model.resourceManager.get(modelElement.source) as ModelResource;
+            innerModel = resource.model;
         }
-        const resource = model.resourceManager.get(modelElement.source) as ModelResource;
-        const innerModel = resource.model;
         if (!innerModel) {
             throw new Error(ErrorMessages.ModelUndefined);
         }
@@ -885,22 +883,17 @@ export class DesignRenderer {
         let h = 0;
         let rx = 1;
         let ry = 1;
+        const innerModelSize = innerModel.getSize();
         if (size && size !== Size.Empty) {
             w = size.width;
             h = size.height;
-        } else if (innerModel.size) {
-            size = innerModel.getSize();
-            if (size) {
-                w = size.width;
-                h = size.height;
-            }
+        } else if (innerModelSize) {
+            w = innerModelSize.width;
+            h = innerModelSize.height;
         }
-        if (innerModel.size) {
-            size = innerModel.getSize();
-            if (size) {
-                rx = w / size.width;
-                ry = h / size.height;
-            }
+        if (innerModelSize && innerModelSize.width > 0 && innerModelSize.height > 0) {
+            rx = w / innerModelSize.width;
+            ry = h / innerModelSize.height;
         }
 
         // Clip to bounds

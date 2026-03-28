@@ -20,6 +20,7 @@ function installFakeWindow() {
 
 function installInteractiveSurface(controller: ViewController, activeElement: unknown) {
     const context = {};
+    const activePath = Array.isArray(activeElement) ? activeElement : [activeElement];
     controller.canvas = {
         width: 100,
         height: 100,
@@ -30,7 +31,8 @@ function installInteractiveSurface(controller: ViewController, activeElement: un
 
     controller.model = {
         getSize: () => ({ width: 100, height: 100 }),
-        firstActiveElementAt: jest.fn(() => activeElement)
+        firstActiveElementAt: jest.fn(() => activePath[0]),
+        activeElementPathAt: jest.fn(() => activePath),
     } as unknown as any;
 }
 
@@ -258,6 +260,42 @@ test('view controller touch events route through mouse handlers', () => {
     expect(controller.activeTouchId).toBeUndefined();
     expect(controller.isMouseDown).toBe(false);
     expect(touchEnd.preventDefault).toHaveBeenCalled();
+
+    fakeWindowScope.restore();
+});
+
+test('view controller bubbles element events through active element path', () => {
+    const controller = new ViewController();
+    const fakeWindowScope = installFakeWindow();
+    const child = { id: 'child' } as any;
+    const parent = { id: 'parent' } as any;
+
+    installInteractiveSurface(controller, [child, parent]);
+
+    const mouseDownElement = jest.fn();
+    const mouseUpElement = jest.fn();
+    const elementClicked = jest.fn();
+
+    controller.mouseDownElement.add(mouseDownElement);
+    controller.mouseUpElement.add(mouseUpElement);
+    controller.elementClicked.add(elementClicked);
+
+    controller.onCanvasMouseDown({ clientX: 10, clientY: 12 } as any);
+    controller.onCanvasMouseMove({ clientX: 10, clientY: 12 } as any);
+    controller.onCanvasMouseUp({ clientX: 10, clientY: 12 } as any);
+
+    expect(mouseDownElement.mock.calls).toEqual([
+        [controller, child],
+        [controller, parent],
+    ]);
+    expect(mouseUpElement.mock.calls).toEqual([
+        [controller, child],
+        [controller, parent],
+    ]);
+    expect(elementClicked.mock.calls).toEqual([
+        [controller, child],
+        [controller, parent],
+    ]);
 
     fakeWindowScope.restore();
 });

@@ -43,12 +43,12 @@ export class ModelElement extends ElementBase {
             else {
                 e.source = source.key;
             }
-            if (x !== undefined && y !== undefined) {
-                e._location = new Point(x, y);
-            }
-            if (width !== undefined && height !== undefined) {
-                e._size = new Size(width, height);
-            }
+        }
+        if (x !== undefined && y !== undefined) {
+            e._location = new Point(x, y);
+        }
+        if (width !== undefined && height !== undefined) {
+            e._size = new Size(width, height);
         }
         return e;
     }
@@ -154,6 +154,8 @@ export class ModelElement extends ElementBase {
             throw new Error(`Model resource ${this.source} could not be loaded.`);
         }
 
+        (innerModel as unknown as ElementBase).parent = this;
+
         const x = this._location.x;
         const y = this._location.y;
         let w = 0;
@@ -169,7 +171,7 @@ export class ModelElement extends ElementBase {
             w = size.width;
             h = size.height;
         }
-        if (size) {
+        if (size && size.width > 0 && size.height > 0) {
             rx = w / size.width;
             ry = h / size.height;
         }

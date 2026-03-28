@@ -1,11 +1,14 @@
 import { IController } from '../controller/controller';
 import { ElementBase } from '../elements/element-base';
 import { ElementFactory } from '../elements/element-factory';
+import { ModelElement } from '../elements/model-element';
 import { FillFactory } from '../fill/fill-factory';
+import { Matrix2D } from './matrix-2d';
 import { Resource } from '../resource/resource';
 import { ResourceFactory } from '../resource/resource-factory';
 import { ResourceManager } from '../resource/resource-manager';
 import { ResourceState } from '../resource/resource-state';
+import { ModelResource } from '../resource/model-resource';
 import { Color } from './color';
 import { ErrorMessages } from './error-messages';
 import { Logging } from './logging';
@@ -208,6 +211,7 @@ export class Model extends ElementBase {
         this.setRenderTransform = this.setRenderTransform.bind(this);
         this.getFillScale = this.getFillScale.bind(this);
         this.firstActiveElementAt = this.firstActiveElementAt.bind(this);
+        this.activeElementPathAt = this.activeElementPathAt.bind(this);
         this.elementsAt = this.elementsAt.bind(this);
         this.elementWithId = this.elementWithId.bind(this);
         this.renderToContext = this.renderToContext.bind(this);
@@ -268,6 +272,7 @@ export class Model extends ElementBase {
             throw new Error(ErrorMessages.ElementAlreadyExists);
         }
         el.model = this;
+        el.parent = this;
         this.elements.push(el);
         return this.elements.length - 1;
     }
@@ -282,6 +287,7 @@ export class Model extends ElementBase {
             throw new Error(ErrorMessages.ElementAlreadyExists);
         }
         el.model = this;
+        el.parent = this;
         this.elements.unshift(el);
         return 0;
     }
@@ -295,6 +301,7 @@ export class Model extends ElementBase {
         const index = this.elements.indexOf(el);
         if (index !== -1) {
             el.model = undefined;
+            el.parent = undefined;
             this.elements.splice(index, 1);
         }
         return index;
@@ -799,14 +806,39 @@ export class Model extends ElementBase {
      * @returns Topmost element at coordinate or null if none found
      */
     public firstActiveElementAt(c: CanvasRenderingContext2D, tx: number, ty: number) {
+        const path = this.activeElementPathAt(c, tx, ty);
+        if (path.length > 0) {
+            return path[0];
+        }
+        return undefined;
+    }
+
+    /**
+     * Returns the active element path at the provided coordinate, ordered from
+     * deepest interactive descendant to outermost container.
+     * @param c - Rendering context
+     * @param tx - X coordinate
+     * @param ty - Y coordinate
+     * @returns Active element path or empty array
+     */
+    public activeElementPathAt(c: CanvasRenderingContext2D, tx: number, ty: number): ElementBase[] {
         const count = this.elements.length;
         for (let i = count - 1; i >= 0; i--) {
             const el = this.elements[i];
-            if (el.visible !== false && el.interactive && el.hitTest(c, tx, ty)) {
-                return el;
+            if (el.visible === false) {
+                continue;
+            }
+            if (el instanceof ModelElement) {
+                const nestedPath = this.getActivePathForModelElement(el, c, tx, ty);
+                if (nestedPath.length > 0) {
+                    return nestedPath;
+                }
+            }
+            if (el.interactive && el.hitTest(c, tx, ty)) {
+                return [el];
             }
         }
-        return undefined;
+        return [];
     }
 
     /**
@@ -824,6 +856,80 @@ export class Model extends ElementBase {
             }
         });
         return els;
+    }
+
+    private getActivePathForModelElement(
+        element: ModelElement,
+        c: CanvasRenderingContext2D,
+        tx: number,
+        ty: number,
+    ): ElementBase[] {
+        if (!element.hitTest(c, tx, ty)) {
+            return [];
+        }
+
+        const innerModel = this.resolveModelElementModel(element);
+        if (!innerModel) {
+            return element.interactive ? [element] : [];
+        }
+
+        innerModel.parent = element;
+        const localPoint = this.mapPointToModelElement(element, innerModel, tx, ty);
+        if (!localPoint) {
+            return element.interactive ? [element] : [];
+        }
+
+        const nestedPath = innerModel.activeElementPathAt(c, localPoint.x, localPoint.y);
+        if (nestedPath.length > 0) {
+            return nestedPath.concat(element);
+        }
+
+        return element.interactive ? [element] : [];
+    }
+
+    private resolveModelElementModel(element: ModelElement): Model | undefined {
+        if (element.sourceModel) {
+            const sourceModel = element.sourceModel as Model;
+            sourceModel.parent = element;
+            return sourceModel;
+        }
+
+        if (element.source) {
+            const resource = this.resourceManager.get(element.source) as ModelResource | undefined;
+            if (resource && resource.model) {
+                resource.model.parent = element;
+                return resource.model;
+            }
+        }
+
+        return undefined;
+    }
+
+    private mapPointToModelElement(element: ModelElement, innerModel: Model, tx: number, ty: number): Point | undefined {
+        const location = element.getLocation();
+        if (!location) {
+            return undefined;
+        }
+
+        let point = new Point(tx, ty);
+        if (element.transform) {
+            const inverse = Matrix2D.fromTransformString(element.transform, location).inverse();
+            point = inverse.transformPoint(point);
+        }
+
+        point = new Point(point.x - location.x, point.y - location.y);
+
+        const sourceSize = innerModel.getSize();
+        const requestedSize = element.getSize();
+        if (sourceSize && requestedSize && requestedSize.width !== 0 && requestedSize.height !== 0) {
+            const scaleX = requestedSize.width / sourceSize.width;
+            const scaleY = requestedSize.height / sourceSize.height;
+            if (scaleX !== 0 && scaleY !== 0) {
+                point = new Point(point.x / scaleX, point.y / scaleY);
+            }
+        }
+
+        return point;
     }
 
     /**
@@ -950,6 +1056,7 @@ export class Model extends ElementBase {
             this.elements.forEach(e => {
                 const clone = e.clone();
                 clone.model = m;
+                clone.parent = m;
                 m.elements.push(clone);
             });
         }

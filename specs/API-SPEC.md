@@ -277,6 +277,7 @@ class Model extends ElementBase {
 
   // Hit Testing
   firstActiveElementAt(c: CanvasRenderingContext2D, tx: number, ty: number): ElementBase | undefined;
+  activeElementPathAt(c: CanvasRenderingContext2D, tx: number, ty: number): ElementBase[];
   elementsAt(c: CanvasRenderingContext2D, tx: number, ty: number): ElementBase[];
   elementWithId(id: string): ElementBase | undefined;
 
@@ -499,6 +500,9 @@ class TextElement extends ElementBase {
   typesize?: number;                                       // Font size in pixels
   typestyle?: string;                                      // "bold", "italic", "bold,italic"
   alignment?: string;                                      // "center,middle", "left,top", etc.
+  letterSpacing: number;                                   // Extra spacing between characters (px)
+  textDecoration?: string;                                 // "underline", "line-through", "overline"
+  richText?: TextRun[];                                    // Run-based rich text content
 
   static create(text?: string | TextResource, x?: number, y?: number,
                 width?: number, height?: number): TextElement;
@@ -509,9 +513,65 @@ class TextElement extends ElementBase {
   setTypesize(typesize: number): TextElement;
   setTypestyle(typestyle: string): TextElement;
   setAlignment(alignment: string): TextElement;
+  setLetterSpacing(letterSpacing: number): TextElement;
+  setTextDecoration(decoration: string): TextElement;
+
+  // Rich text helpers
+  getResolvedText(): string;                               // Flattened text from richText or text/source
+  getTextLength(): number;                                 // Total editable character count
+  getTextStyleAt(index: number): TextRunStyle;             // Style at character position
+  replaceTextRange(start: number, end: number,
+                   text: string | TextRun[],
+                   style?: TextRunStyle): void;            // Replace range with styled content
+  applyTextStyle(start: number, end: number,
+                 style: TextRunStyle): void;               // Apply style to existing range
+
+  // Layout geometry helpers (require canvas context and element bounds)
+  getTextIndexAtPoint(c: CanvasRenderingContext2D,
+                      location: Point, size: Size,
+                      point: Point): number;               // Character index at canvas point
+  getCaretRegion(c: CanvasRenderingContext2D,
+                 location: Point, size: Size,
+                 index: number): Region;                   // Caret rectangle at index
+  getSelectionRegions(c: CanvasRenderingContext2D,
+                      location: Point, size: Size,
+                      start: number, end: number): Region[];  // Selection rectangles
+  getVerticalTextIndex(c: CanvasRenderingContext2D,
+                       location: Point, size: Size,
+                       index: number, direction: number,
+                       preferredX?: number): number;       // Index on adjacent visual line
+  getWordRangeAt(index: number): [number, number];         // Word boundaries [start, end)
+
+  getLines(c: CanvasRenderingContext2D,
+           text: string, lineWidth: number): string[];     // Word-wrapped lines
 
   // Capabilities: canStroke=true, canFill=true
   // Auto word-wraps within bounds
+}
+```
+
+#### TextRun
+
+```typescript
+interface TextRun {
+  text: string;
+  typeface?: string;
+  typesize?: number;
+  typestyle?: string;
+  letterSpacing?: number;
+  decoration?: string;
+}
+```
+
+#### TextRunStyle
+
+```typescript
+interface TextRunStyle {
+  typeface?: string;
+  typesize?: number;
+  typestyle?: string;
+  letterSpacing?: number;
+  decoration?: string;
 }
 ```
 
@@ -823,6 +883,8 @@ class ViewController implements IController {
   isMouseDown: boolean;
   mouseOverElement?: ElementBase;
   pressedElement?: ElementBase;
+  mouseOverPath: ElementBase[];                            // Deepest-to-outermost hover path
+  pressedPath: ElementBase[];                              // Deepest-to-outermost pressed path
 
   // Events
   modelUpdated: ControllerEvent<Model>;
@@ -956,6 +1018,36 @@ class DesignController implements IController {
   moveToBack(el: ElementBase): void;
   moveForward(el: ElementBase): void;
   moveBackward(el: ElementBase): void;
+
+  // Undo/Redo
+  undo(): boolean;
+  redo(): boolean;
+  canUndo: boolean;
+  canRedo: boolean;
+  undoChanged: ControllerEvent<boolean>;
+
+  // Z-Order
+  bringToFront(el?: ElementBase): void;
+  sendToBack(el?: ElementBase): void;
+  bringForward(el?: ElementBase): void;
+  sendBackward(el?: ElementBase): void;
+
+  // Corner Radius
+  setSelectedRectangleCornerRadius(radius: number): void;
+  setSelectedRectangleCornerRadii(tl: number, tr: number, br: number, bl: number): void;
+
+  // Text Editing
+  editingTextElement?: TextElement;                        // Currently edited text element
+  textSelectionStart: number;                              // Selection start index
+  textSelectionEnd: number;                                // Selection end index
+  isSelectingText: boolean;                                // True during selection drag
+  beginTextEdit(textElement?: TextElement, caretIndex?: number): void;
+  endTextEdit(): void;
+  applySelectedTextStyle(style: TextRunStyle): void;       // Apply style to selection or set pending
+  replaceSelectedText(text: string): boolean;              // Replace selection with text
+  deleteSelectedText(backward?: boolean): boolean;         // Delete selection or adjacent character
+  moveTextCaret(direction: number, extendSelection?: boolean): void;
+  moveTextCaretVertically(direction: number, extendSelection?: boolean): void;
 
   // Tool Management
   setActiveTool(tool: DesignTool): void;
@@ -1170,6 +1262,37 @@ class SurfacePane extends SurfaceLayer {
                  transition?: string, duration?: number): void;
 }
 ```
+
+---
+
+## SVG Interop
+
+### SVGImporter
+
+```typescript
+class SVGImporter {
+  static import(svgContent: string, model: Model): void;  // Parse SVG string into model
+}
+```
+
+**Supported import elements:** `path`, `rect`, `ellipse`, `circle`, `line`, `polygon`, `polyline`, `text`, `image`, `g`, `symbol`, `use`.
+
+**Preserved hierarchy:** Container elements (`<g>`, nested `<svg>`, `<symbol>`) are imported as nested `ModelElement` instances with inner `Model`s, preserving the source document's grouping structure. `<use>` references are resolved against named elements collected during import.
+
+**Inherited attributes:** fill, stroke, opacity, transforms, text properties, gradients from `<defs>`, clip-path references.
+
+### SVGExporter
+
+SVG export is accessed through `Model.toSVG()`:
+
+```typescript
+// On Model:
+toSVG(): string;                                           // Returns complete SVG markup string
+```
+
+**Exported element types:** `RectangleElement`, `EllipseElement`, `LineElement`, `PathElement`, `PolygonElement`, `PolylineElement`, `TextElement`, `ImageElement`, `ModelElement`.
+
+**ModelElement export:** Resource-backed `ModelElement`s are exported as `<symbol>` + `<use>` pairs with deduplication. Embedded source models are exported as nested `<g>` groups.
 
 ---
 

@@ -193,14 +193,29 @@ export class ViewController implements IController {
     public mouseOverElement?: ElementBase;
 
     /**
+     * Current hovered element path ordered from deepest to outermost.
+     */
+    public mouseOverPath: ElementBase[] = [];
+
+    /**
      * Pressed element
      */
     public pressedElement?: ElementBase;
 
     /**
+     * Current pressed element path ordered from deepest to outermost.
+     */
+    public pressedPath: ElementBase[] = [];
+
+    /**
      * Touch delayed pending mouse down element
      */
     public pendingMouseDownElement?: ElementBase;
+
+    /**
+     * Delayed pending mouse down element path.
+     */
+    public pendingMouseDownPath: ElementBase[] = [];
 
     /**
      * Active touch identifier while touch interaction is in progress
@@ -318,7 +333,11 @@ export class ViewController implements IController {
         this.onCanvasTouchEnd = this.onCanvasTouchEnd.bind(this);
         this.onCanvasTouchCancel = this.onCanvasTouchCancel.bind(this);
         this.setMouseDownElement = this.setMouseDownElement.bind(this);
+        this.setMouseDownPath = this.setMouseDownPath.bind(this);
         this.setMouseOverElement = this.setMouseOverElement.bind(this);
+        this.setMouseOverPath = this.setMouseOverPath.bind(this);
+        this.getActiveElementPath = this.getActiveElementPath.bind(this);
+        this.dispatchPathEvent = this.dispatchPathEvent.bind(this);
         this.setScale = this.setScale.bind(this);
         this.onModelUpdated = this.onModelUpdated.bind(this);
         this.draw = this.draw.bind(this);
@@ -738,22 +757,24 @@ export class ViewController implements IController {
         self.mouseDownPosition = Point.create(p.x, p.y);
         self.isMouseDown = true;
         self.mouseDownView.trigger(self, new PointEventParameters(e, self.mouseDownPosition));
-        const activeElement = self.model.firstActiveElementAt(context, p.x, p.y);
+        const activePath = self.getActiveElementPath(context, p.x, p.y);
+        const activeElement = activePath.length > 0 ? activePath[0] : undefined;
         self.clickCancelled = false;
         if (self.eventDelay > 0) {
             self.pendingMouseDownElement = activeElement;
+            self.pendingMouseDownPath = activePath;
             if (self.eventTimer) {
                 clearTimeout(self.eventTimer);
                 self.eventTimer = undefined;
             }
             self.eventTimer = setTimeout(() => {
                 if (!self.clickCancelled) {
-                    self.setMouseDownElement(self.pendingMouseDownElement);
+                    self.setMouseDownPath(self.pendingMouseDownPath);
                 }
             }, self.eventDelay);
         }
         else {
-            self.setMouseDownElement(activeElement);
+            self.setMouseDownPath(activePath);
         }
         self.drawIfNeeded();
     }
@@ -791,8 +812,8 @@ export class ViewController implements IController {
         if (!context) {
             throw new Error(ErrorMessages.CanvasContextIsNull);
         }
-        const activeElement = this.model.firstActiveElementAt(context, p.x, p.y);
-        this.setMouseOverElement(activeElement);
+        const activePath = this.getActiveElementPath(context, p.x, p.y);
+        this.setMouseOverPath(activePath);
     }
 
     /**
@@ -817,22 +838,24 @@ export class ViewController implements IController {
         this.currentY = p.y;
         this.isMouseDown = false;
         this.mouseUpView.trigger(this, new PointEventParameters(e, p));
-        if (this.pressedElement) {
-            const el = this.pressedElement;
-            this.mouseUpElement.trigger(this, el);
+        if (this.pressedPath.length > 0) {
+            const target = this.pressedPath[0];
+            this.dispatchPathEvent(this.mouseUpElement, this.pressedPath);
             if (!this.clickCancelled) {
-                if (el === this.mouseOverElement) {
-                    this.elementClicked.trigger(this, el);
+                if (target === this.mouseOverElement) {
+                    this.dispatchPathEvent(this.elementClicked, this.pressedPath);
                 }
             }
+            this.pressedPath = [];
             this.pressedElement = undefined;
         }
-        else if (this.pendingMouseDownElement && !this.clickCancelled) {
-            this.setMouseOverElement(this.pendingMouseDownElement);
-            this.setMouseDownElement(this.pendingMouseDownElement);
-            this.mouseUpElement.trigger(this, this.pendingMouseDownElement);
-            this.elementClicked.trigger(this, this.pendingMouseDownElement);
+        else if (this.pendingMouseDownPath.length > 0 && !this.clickCancelled) {
+            this.setMouseOverPath(this.pendingMouseDownPath);
+            this.setMouseDownPath(this.pendingMouseDownPath);
+            this.dispatchPathEvent(this.mouseUpElement, this.pendingMouseDownPath);
+            this.dispatchPathEvent(this.elementClicked, this.pendingMouseDownPath);
             this.pendingMouseDownElement = undefined;
+            this.pendingMouseDownPath = [];
         }
         this.drawIfNeeded();
     }
@@ -909,17 +932,27 @@ export class ViewController implements IController {
      * @param el - Mouse down element
      */
     public setMouseDownElement(el: ElementBase | undefined) {
-        if (el) {
-            this.setMouseOverElement(el);
+        this.setMouseDownPath(el ? [el] : []);
+    }
+
+    /**
+     * Sets current mouse down element path.
+     * @param path - Mouse down path ordered from deepest to outermost
+     */
+    public setMouseDownPath(path: ElementBase[]) {
+        if (path.length > 0) {
+            this.setMouseOverPath(path);
         }
-        if (el !== this.pressedElement) {
-            if (this.pressedElement) {
-                this.mouseUpElement.trigger(this, this.pressedElement);
-            }
-            this.pressedElement = el;
-            if (el) {
-                this.mouseDownElement.trigger(this, el);
-            }
+        if (path.length === this.pressedPath.length && path.every((element, index) => element === this.pressedPath[index])) {
+            return;
+        }
+        if (this.pressedPath.length > 0) {
+            this.dispatchPathEvent(this.mouseUpElement, this.pressedPath);
+        }
+        this.pressedPath = path.slice();
+        this.pressedElement = this.pressedPath.length > 0 ? this.pressedPath[0] : undefined;
+        if (this.pressedPath.length > 0) {
+            this.dispatchPathEvent(this.mouseDownElement, this.pressedPath);
         }
     }
 
@@ -928,15 +961,33 @@ export class ViewController implements IController {
      * @param el -Mouse over element
      */
     public setMouseOverElement(el: ElementBase | undefined) {
-        if (el !== this.mouseOverElement) {
-            if (this.mouseOverElement) {
-                this.mouseLeftElement.trigger(this, this.mouseOverElement);
-            }
-            this.mouseOverElement = el;
-            if (el) {
-                this.mouseEnteredElement.trigger(this, el);
+        this.setMouseOverPath(el ? [el] : []);
+    }
+
+    /**
+     * Sets current hovered element path.
+     * @param path - Hovered path ordered from deepest to outermost
+     */
+    public setMouseOverPath(path: ElementBase[]) {
+        if (path.length === this.mouseOverPath.length && path.every((element, index) => element === this.mouseOverPath[index])) {
+            return;
+        }
+
+        for (const existing of this.mouseOverPath) {
+            if (path.indexOf(existing) === -1) {
+                this.mouseLeftElement.trigger(this, existing);
             }
         }
+
+        for (let index = path.length - 1; index >= 0; index--) {
+            const next = path[index];
+            if (this.mouseOverPath.indexOf(next) === -1) {
+                this.mouseEnteredElement.trigger(this, next);
+            }
+        }
+
+        this.mouseOverPath = path.slice();
+        this.mouseOverElement = this.mouseOverPath.length > 0 ? this.mouseOverPath[0] : undefined;
         if (this.canvas) {
             if (this.mouseOverElement) {
                 this.canvas.style.cursor = 'pointer';
@@ -944,6 +995,24 @@ export class ViewController implements IController {
             else {
                 this.canvas.style.cursor = 'default';
             }
+        }
+    }
+
+    private getActiveElementPath(context: CanvasRenderingContext2D, x: number, y: number): ElementBase[] {
+        const modelWithPath = this.model as Model & {
+            activeElementPathAt?: (c: CanvasRenderingContext2D, tx: number, ty: number) => ElementBase[];
+        };
+        if (modelWithPath.activeElementPathAt) {
+            return modelWithPath.activeElementPathAt(context, x, y);
+        }
+
+        const activeElement = this.model?.firstActiveElementAt(context, x, y);
+        return activeElement ? [activeElement] : [];
+    }
+
+    private dispatchPathEvent(event: ControllerEvent<ElementBase>, path: ElementBase[]): void {
+        for (const element of path) {
+            event.trigger(this, element);
         }
     }
 

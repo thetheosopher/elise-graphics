@@ -1,6 +1,7 @@
 import { ErrorMessages } from '../core/error-messages';
 import type { SerializedData } from '../core/serialization';
 import { Point } from '../core/point';
+import { Region } from '../core/region';
 import { Size } from '../core/size';
 import { FillFactory } from '../fill/fill-factory';
 import { ResourceManager } from '../resource/resource-manager';
@@ -9,6 +10,14 @@ import { ElementBase } from './element-base';
 
 export interface TextRun {
     text: string;
+    typeface?: string;
+    typesize?: number;
+    typestyle?: string;
+    letterSpacing?: number;
+    decoration?: string;
+}
+
+export interface TextRunStyle {
     typeface?: string;
     typesize?: number;
     typestyle?: string;
@@ -34,6 +43,13 @@ interface TextLayoutLine {
     segments: TextLayoutSegment[];
     width: number;
     height: number;
+}
+
+interface TextCharacterLayout {
+    index: number;
+    character: string;
+    region: Region;
+    lineIndex: number;
 }
 
 /**
@@ -359,6 +375,256 @@ export class TextElement extends ElementBase {
     public setAlignment(alignment: string) {
         this.alignment = alignment;
         return this;
+    }
+
+    /**
+     * Returns the editable text length for this element.
+     * @returns Text length
+     */
+    public getTextLength(): number {
+        return (this.getResolvedText() || '').length;
+    }
+
+    /**
+     * Returns the effective text style at a given character index.
+     * @param index - Character index
+     * @returns Effective text style
+     */
+    public getTextStyleAt(index: number): TextRunStyle {
+        const characters = this.toStyledCharacters();
+        if (characters.length === 0) {
+            return TextElement.styleFromRun(this.getResolvedTextRuns()[0]);
+        }
+
+        const clampedIndex = Math.max(0, Math.min(index, characters.length - 1));
+        return { ...characters[clampedIndex].style };
+    }
+
+    /**
+     * Replaces a text range with plain text or rich runs.
+     * @param start - Start index
+     * @param end - End index
+     * @param content - Replacement text or runs
+     * @param style - Optional style applied when inserting plain text
+     * @returns This text element
+     */
+    public replaceTextRange(start: number, end: number, content: string | TextRun[], style?: TextRunStyle): TextElement {
+        const characters = this.toStyledCharacters();
+        const normalizedStart = Math.max(0, Math.min(start, characters.length));
+        const normalizedEnd = Math.max(normalizedStart, Math.min(end, characters.length));
+        const replacement = typeof content === 'string'
+            ? TextElement.charactersFromText(content, style)
+            : TextElement.charactersFromRuns(content);
+        characters.splice(normalizedStart, normalizedEnd - normalizedStart, ...replacement);
+        this.applyStyledCharacters(characters);
+        return this;
+    }
+
+    /**
+     * Applies style updates to a text range.
+     * @param start - Start index
+     * @param end - End index
+     * @param style - Style updates
+     * @returns This text element
+     */
+    public applyTextStyle(start: number, end: number, style: TextRunStyle): TextElement {
+        const characters = this.toStyledCharacters();
+        const normalizedStart = Math.max(0, Math.min(start, characters.length));
+        const normalizedEnd = Math.max(normalizedStart, Math.min(end, characters.length));
+        for (let index = normalizedStart; index < normalizedEnd; index++) {
+            characters[index].style = TextElement.mergeStyles(characters[index].style, style);
+        }
+        this.applyStyledCharacters(characters);
+        return this;
+    }
+
+    /**
+     * Resolves the text index nearest a rendered point.
+     * @param c - Rendering context
+     * @param location - Render origin
+     * @param size - Render size
+     * @param point - Local point to resolve
+     * @returns Text index
+     */
+    public getTextIndexAtPoint(c: CanvasRenderingContext2D, location: Point, size: Size, point: Point): number {
+        const characters = this.getCharacterLayout(c, location, size);
+        if (characters.length === 0) {
+            return 0;
+        }
+
+        let nearest = characters.length;
+        let bestDistance = Number.POSITIVE_INFINITY;
+        for (const character of characters) {
+            const region = character.region;
+            const centerX = region.x + region.width / 2;
+            const centerY = region.y + region.height / 2;
+            const distance = Math.abs(point.y - centerY) * 1000 + Math.abs(point.x - centerX);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                nearest = point.x <= centerX ? character.index : character.index + 1;
+            }
+        }
+
+        if (point.y > characters[characters.length - 1].region.y + characters[characters.length - 1].region.height) {
+            return this.getTextLength();
+        }
+
+        return Math.max(0, Math.min(nearest, this.getTextLength()));
+    }
+
+    /**
+     * Returns the caret line for a given text index.
+     * @param c - Rendering context
+     * @param location - Render origin
+     * @param size - Render size
+     * @param index - Text index
+     * @returns Caret region
+     */
+    public getCaretRegion(c: CanvasRenderingContext2D, location: Point, size: Size, index: number): Region {
+        const characters = this.getCharacterLayout(c, location, size);
+        if (characters.length === 0) {
+            const lineHeight = this.typesize || 10;
+            return new Region(location.x, location.y, 1, lineHeight);
+        }
+
+        const normalizedIndex = Math.max(0, Math.min(index, this.getTextLength()));
+        if (normalizedIndex === 0) {
+            const first = characters[0].region;
+            return new Region(first.x, first.y, 1, first.height);
+        }
+        if (normalizedIndex >= this.getTextLength()) {
+            const last = characters[characters.length - 1].region;
+            return new Region(last.x + last.width, last.y, 1, last.height);
+        }
+
+        const character = characters.find((item) => item.index === normalizedIndex);
+        if (character) {
+            return new Region(character.region.x, character.region.y, 1, character.region.height);
+        }
+
+        const previous = characters.find((item) => item.index + 1 === normalizedIndex) || characters[characters.length - 1];
+        return new Region(previous.region.x + previous.region.width, previous.region.y, 1, previous.region.height);
+    }
+
+    /**
+     * Returns selection rectangles for a text range.
+     * @param c - Rendering context
+     * @param location - Render origin
+     * @param size - Render size
+     * @param start - Range start
+     * @param end - Range end
+     * @returns Selection rectangles
+     */
+    public getSelectionRegions(
+        c: CanvasRenderingContext2D,
+        location: Point,
+        size: Size,
+        start: number,
+        end: number,
+    ): Region[] {
+        const characters = this.getCharacterLayout(c, location, size);
+        const normalizedStart = Math.max(0, Math.min(start, end));
+        const normalizedEnd = Math.max(normalizedStart, Math.max(start, end));
+        const selected = characters.filter((character) => character.index >= normalizedStart && character.index < normalizedEnd);
+        if (selected.length === 0) {
+            return [];
+        }
+
+        const regions: Region[] = [];
+        let current: Region | undefined;
+        let currentLine = -1;
+        for (const character of selected) {
+            if (!current || character.lineIndex !== currentLine) {
+                current = new Region(character.region.x, character.region.y, character.region.width, character.region.height);
+                regions.push(current);
+                currentLine = character.lineIndex;
+            }
+            else {
+                const nextRight = character.region.x + character.region.width;
+                current = new Region(
+                    current.x,
+                    current.y,
+                    nextRight - current.x,
+                    Math.max(current.height, character.region.height),
+                );
+                regions[regions.length - 1] = current;
+            }
+        }
+        return regions;
+    }
+
+    /**
+     * Resolves a caret index one visual line above or below the supplied index.
+     * @param c - Rendering context
+     * @param location - Render origin
+     * @param size - Render size
+     * @param index - Current caret index
+     * @param direction - -1 for up, 1 for down
+     * @param preferredX - Optional preferred horizontal caret coordinate
+     * @returns Adjacent line caret index
+     */
+    public getVerticalTextIndex(
+        c: CanvasRenderingContext2D,
+        location: Point,
+        size: Size,
+        index: number,
+        direction: -1 | 1,
+        preferredX?: number,
+    ): number {
+        const characters = this.getCharacterLayout(c, location, size);
+        if (characters.length === 0) {
+            return 0;
+        }
+
+        const normalizedIndex = Math.max(0, Math.min(index, this.getTextLength()));
+        const currentCharacter = this.resolveCharacterForIndex(characters, normalizedIndex);
+        const currentLine = currentCharacter.lineIndex;
+        const targetLine = currentLine + direction;
+        if (targetLine < 0) {
+            return 0;
+        }
+
+        const targetCharacters = characters.filter((character) => character.lineIndex === targetLine);
+        if (targetCharacters.length === 0) {
+            return this.getTextLength();
+        }
+
+        const targetX = preferredX !== undefined
+            ? preferredX
+            : this.getCaretRegion(c, location, size, normalizedIndex).x;
+        return this.resolveInsertionIndexForLine(targetCharacters, targetX);
+    }
+
+    /**
+     * Returns the text range for the word or whitespace run at the given index.
+     * @param index - Character index
+     * @returns Range tuple [start, end)
+     */
+    public getWordRangeAt(index: number): [number, number] {
+        const text = this.getResolvedText() || '';
+        if (text.length === 0) {
+            return [0, 0];
+        }
+
+        let targetIndex = Math.max(0, Math.min(index, text.length - 1));
+        if (targetIndex === text.length && text.length > 0) {
+            targetIndex = text.length - 1;
+        }
+
+        const targetCharacter = text.charAt(targetIndex);
+        const isWordCharacter = TextElement.isWordCharacter(targetCharacter);
+
+        let start = targetIndex;
+        while (start > 0 && TextElement.isWordCharacter(text.charAt(start - 1)) === isWordCharacter) {
+            start--;
+        }
+
+        let end = targetIndex + 1;
+        while (end < text.length && TextElement.isWordCharacter(text.charAt(end)) === isWordCharacter) {
+            end++;
+        }
+
+        return [start, end];
     }
 
     /**
@@ -722,6 +988,92 @@ export class TextElement extends ElementBase {
         };
     }
 
+    private getCharacterLayout(c: CanvasRenderingContext2D, location: Point, size: Size): TextCharacterLayout[] {
+        const runs = this.getResolvedTextRuns();
+        if (runs.length === 0) {
+            return [];
+        }
+
+        const layout = this.layoutRuns(c, runs, size.width);
+        if (layout.length === 0) {
+            return [];
+        }
+
+        const alignment = this.resolveAlignment();
+        const totalHeight = layout.reduce((sum, line) => sum + line.height, 0);
+        let startY = location.y;
+        if (alignment.vertical === 'middle') {
+            startY = location.y + size.height / 2 - totalHeight / 2;
+        }
+        else if (alignment.vertical === 'bottom') {
+            startY = location.y + size.height - totalHeight;
+        }
+
+        const characters: TextCharacterLayout[] = [];
+        let y = startY;
+        let textIndex = 0;
+        for (let lineIndex = 0; lineIndex < layout.length; lineIndex++) {
+            const line = layout[lineIndex];
+            let x = location.x;
+            if (alignment.horizontal === 'center') {
+                x += size.width / 2 - line.width / 2;
+            }
+            else if (alignment.horizontal === 'right') {
+                x += size.width - line.width;
+            }
+
+            for (const segment of line.segments) {
+                c.font = this.buildFontString(segment.style);
+                for (let index = 0; index < segment.text.length; index++) {
+                    const character = segment.text.charAt(index);
+                    const characterWidth = c.measureText(character).width;
+                    const advanceWidth = characterWidth + (index < segment.text.length - 1 ? segment.style.letterSpacing : 0);
+                    characters.push({
+                        index: textIndex,
+                        character,
+                        region: new Region(x, y, Math.max(advanceWidth, 1), line.height),
+                        lineIndex,
+                    });
+                    x += advanceWidth;
+                    textIndex++;
+                }
+            }
+            y += line.height;
+        }
+
+        return characters;
+    }
+
+    private resolveCharacterForIndex(characters: TextCharacterLayout[], index: number): TextCharacterLayout {
+        const exact = characters.find((character) => character.index === index);
+        if (exact) {
+            return exact;
+        }
+
+        const previous = characters.filter((character) => character.index < index);
+        if (previous.length > 0) {
+            return previous[previous.length - 1];
+        }
+
+        return characters[0];
+    }
+
+    private resolveInsertionIndexForLine(characters: TextCharacterLayout[], x: number): number {
+        if (characters.length === 0) {
+            return 0;
+        }
+
+        for (const character of characters) {
+            const centerX = character.region.x + character.region.width / 2;
+            if (x <= centerX) {
+                return character.index;
+            }
+        }
+
+        const last = characters[characters.length - 1];
+        return last.index + 1;
+    }
+
     private static tokenize(text: string): string[] {
         const matches = text.match(/(\n|[^\S\n]+|[^\s\n]+)/g);
         return matches ? matches : [''];
@@ -736,6 +1088,109 @@ export class TextElement extends ElementBase {
             letterSpacing: run.letterSpacing,
             decoration: TextElement.normalizeTextDecoration(run.decoration),
         }));
+    }
+
+    private toStyledCharacters(): Array<{ character: string; style: TextRunStyle }> {
+        return TextElement.charactersFromRuns(this.getResolvedTextRuns());
+    }
+
+    private applyStyledCharacters(characters: Array<{ character: string; style: TextRunStyle }>): void {
+        const runs = TextElement.runsFromCharacters(characters);
+        if (runs.length === 0) {
+            this.setText('');
+            return;
+        }
+
+        if (runs.length === 1 && !TextElement.runHasStyle(runs[0])) {
+            this.setText(runs[0].text);
+            return;
+        }
+
+        this.setRichText(runs);
+    }
+
+    private static charactersFromRuns(runs: TextRun[]): Array<{ character: string; style: TextRunStyle }> {
+        const characters: Array<{ character: string; style: TextRunStyle }> = [];
+        for (const run of runs) {
+            const style = TextElement.styleFromRun(run);
+            for (const character of run.text.split('')) {
+                characters.push({ character, style: { ...style } });
+            }
+        }
+        return characters;
+    }
+
+    private static charactersFromText(text: string, style?: TextRunStyle): Array<{ character: string; style: TextRunStyle }> {
+        return text.split('').map((character) => ({ character, style: { ...(style || {}) } }));
+    }
+
+    private static runsFromCharacters(characters: Array<{ character: string; style: TextRunStyle }>): TextRun[] {
+        const runs: TextRun[] = [];
+        let current: TextRun | undefined;
+        for (const item of characters) {
+            if (!current || !TextElement.stylesEqual(TextElement.styleFromRun(current), item.style)) {
+                current = {
+                    text: item.character,
+                    typeface: item.style.typeface,
+                    typesize: item.style.typesize,
+                    typestyle: item.style.typestyle,
+                    letterSpacing: item.style.letterSpacing,
+                    decoration: TextElement.normalizeTextDecoration(item.style.decoration),
+                };
+                runs.push(current);
+            }
+            else {
+                current.text += item.character;
+            }
+        }
+        return runs;
+    }
+
+    private static styleFromRun(run?: TextRun): TextRunStyle {
+        if (!run) {
+            return {};
+        }
+        return {
+            typeface: run.typeface,
+            typesize: run.typesize,
+            typestyle: run.typestyle,
+            letterSpacing: run.letterSpacing,
+            decoration: TextElement.normalizeTextDecoration(run.decoration),
+        };
+    }
+
+    private static mergeStyles(base: TextRunStyle, updates: TextRunStyle): TextRunStyle {
+        return {
+            typeface: updates.typeface !== undefined ? updates.typeface : base.typeface,
+            typesize: updates.typesize !== undefined ? updates.typesize : base.typesize,
+            typestyle: updates.typestyle !== undefined ? updates.typestyle : base.typestyle,
+            letterSpacing: updates.letterSpacing !== undefined ? updates.letterSpacing : base.letterSpacing,
+            decoration: updates.decoration !== undefined ? TextElement.normalizeTextDecoration(updates.decoration) : base.decoration,
+        };
+    }
+
+    private static stylesEqual(a: TextRunStyle, b: TextRunStyle): boolean {
+        return (
+            (a.typeface || undefined) === (b.typeface || undefined) &&
+            a.typesize === b.typesize &&
+            (a.typestyle || undefined) === (b.typestyle || undefined) &&
+            a.letterSpacing === b.letterSpacing &&
+            (TextElement.normalizeTextDecoration(a.decoration) || undefined) === (TextElement.normalizeTextDecoration(b.decoration) || undefined)
+        );
+    }
+
+    private static runHasStyle(run: TextRun): boolean {
+        return Boolean(
+            run.typeface !== undefined ||
+            run.typesize !== undefined ||
+            run.typestyle !== undefined ||
+            run.letterSpacing !== undefined ||
+            run.decoration !== undefined
+        );
+    }
+
+    private static isWordCharacter(character: string): boolean {
+        return !/\s/.test(character);
     }
 
     private static normalizeTextDecoration(decoration?: string): string | undefined {

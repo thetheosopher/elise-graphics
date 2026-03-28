@@ -1,5 +1,6 @@
 import { Color } from '../core/color';
 import { ErrorMessages } from '../core/error-messages';
+import { Matrix2D } from '../core/matrix-2d';
 import { Point } from '../core/point';
 import { IPointContainer } from '../core/point-container';
 import { PointDepth } from '../core/point-depth';
@@ -42,6 +43,7 @@ export interface ElementShadow {
 }
 
 export type ElementBlendMode = GlobalCompositeOperation;
+export type ElementFilter = string;
 
 /**
  * Base class for renderable model elements
@@ -126,6 +128,11 @@ export class ElementBase implements IPointContainer {
      * Optional canvas compositing mode applied during rendering.
      */
     public blendMode?: ElementBlendMode;
+
+    /**
+     * Optional canvas filter string applied during rendering.
+     */
+    public filter?: ElementFilter;
 
     /**
      * Should element be rendered and participate in hit testing
@@ -461,6 +468,9 @@ export class ElementBase implements IPointContainer {
         if (o.blendMode !== undefined && o.blendMode !== null) {
             this.blendMode = String(o.blendMode) as ElementBlendMode;
         }
+        if (o.filter !== undefined && o.filter !== null) {
+            this.filter = ElementBase.normalizeFilterValue(String(o.filter));
+        }
         if (o.visible !== undefined) {
             this.visible = Boolean(o.visible);
         }
@@ -571,6 +581,9 @@ export class ElementBase implements IPointContainer {
         if (this.blendMode) {
             o.blendMode = this.blendMode;
         }
+        if (this.filter) {
+            o.filter = this.filter;
+        }
         if (!this.visible) {
             o.visible = false;
         }
@@ -666,6 +679,7 @@ export class ElementBase implements IPointContainer {
             };
         }
         e.blendMode = this.blendMode;
+        e.filter = this.filter;
         e.visible = this.visible;
         if (this.transform) {
             e.transform = this.transform;
@@ -1196,6 +1210,16 @@ export class ElementBase implements IPointContainer {
     }
 
     /**
+     * Sets canvas filter string used during rendering.
+     * @param filter - CanvasRenderingContext2D.filter value or undefined to clear
+     * @returns This element
+     */
+    public setFilter(filter: ElementFilter | undefined | null) {
+        this.filter = ElementBase.normalizeFilterValue(filter);
+        return this;
+    }
+
+    /**
      * Sets affine transform used for rendering element
      * @param transform - Transform definition
      * @returns This element
@@ -1216,11 +1240,12 @@ export class ElementBase implements IPointContainer {
     }
 
     /**
-     * Applies this element's opacity to the current canvas state.
+     * Applies this element's render state to the current canvas state.
      * @param c - Rendering context
      */
     public applyRenderOpacity(c: CanvasRenderingContext2D): void {
         this.applyRenderBlendMode(c);
+        this.applyRenderFilter(c);
         if (this.opacity >= 0 && this.opacity < 1) {
             c.globalAlpha *= this.opacity;
         }
@@ -1243,6 +1268,18 @@ export class ElementBase implements IPointContainer {
     }
 
     /**
+     * Applies this element's canvas filter string to the current canvas state.
+     * @param c - Rendering context
+     */
+    public applyRenderFilter(c: CanvasRenderingContext2D): void {
+        if (!this.filter) {
+            return;
+        }
+
+        c.filter = this.filter;
+    }
+
+    /**
      * Applies this element's drop shadow to the current canvas state.
      * @param c - Rendering context
      */
@@ -1255,6 +1292,19 @@ export class ElementBase implements IPointContainer {
         c.shadowBlur = Math.max(0, this.shadow.blur || 0);
         c.shadowOffsetX = this.shadow.offsetX || 0;
         c.shadowOffsetY = this.shadow.offsetY || 0;
+    }
+
+    private static normalizeFilterValue(filter: string | undefined | null): string | undefined {
+        if (!filter) {
+            return undefined;
+        }
+
+        const normalized = String(filter).trim();
+        if (normalized.length === 0 || normalized.toLowerCase() === 'none') {
+            return undefined;
+        }
+
+        return normalized;
     }
 
     /**
@@ -1275,13 +1325,7 @@ export class ElementBase implements IPointContainer {
         }
 
         c.save();
-        if (this.clipPath.units === 'objectBoundingBox') {
-            c.translate(bounds.x, bounds.y);
-            c.scale(bounds.width, bounds.height);
-        }
-        if (this.clipPath.transform) {
-            this.model.setRenderTransform(c, this.clipPath.transform, bounds.location);
-        }
+        const clipTransform = this.applyClipPathTransform(c, bounds);
         c.beginPath();
         ElementBase.tracePathCommands(c, this.clipPath.commands);
         if (this.clipPath.winding === WindingMode.EvenOdd) {
@@ -1289,6 +1333,9 @@ export class ElementBase implements IPointContainer {
         }
         else {
             c.clip('nonzero');
+        }
+        if (clipTransform) {
+            ElementBase.applyMatrixToContext(c, clipTransform.inverse());
         }
         drawAction();
         c.restore();
@@ -1329,6 +1376,33 @@ export class ElementBase implements IPointContainer {
             : c.isPointInPath(tx, ty, 'nonzero');
         c.restore();
         return hit;
+    }
+
+    private applyClipPathTransform(c: CanvasRenderingContext2D, bounds: Region): Matrix2D | undefined {
+        if (!this.clipPath) {
+            return undefined;
+        }
+
+        let clipTransform: Matrix2D | undefined;
+        if (this.clipPath.units === 'objectBoundingBox') {
+            c.translate(bounds.x, bounds.y);
+            c.scale(bounds.width, bounds.height);
+            clipTransform = Matrix2D.create(bounds.width, 0, 0, bounds.height, bounds.x, bounds.y);
+        }
+
+        if (this.clipPath.transform) {
+            this.model?.setRenderTransform(c, this.clipPath.transform, bounds.location);
+            const transformMatrix = Matrix2D.fromTransformString(this.clipPath.transform, bounds.location);
+            clipTransform = clipTransform
+                ? Matrix2D.multiply(transformMatrix, clipTransform)
+                : transformMatrix;
+        }
+
+        return clipTransform;
+    }
+
+    private static applyMatrixToContext(c: CanvasRenderingContext2D, matrix: Matrix2D): void {
+        c.transform(matrix.m11, matrix.m12, matrix.m21, matrix.m22, matrix.offsetX, matrix.offsetY);
     }
 
     private static tracePathCommands(c: CanvasRenderingContext2D, commands: string[]): void {

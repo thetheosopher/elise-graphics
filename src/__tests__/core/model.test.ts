@@ -1,6 +1,7 @@
 import { ErrorMessages } from '../../core/error-messages';
 import { Model } from '../../core/model';
 import { Utility } from '../../core/utility';
+import { ModelElement } from '../../elements/model-element';
 import { RectangleElement } from '../../elements/rectangle-element';
 
 function installFakeDocument(elements: { [index: string]: any }) {
@@ -55,6 +56,43 @@ test('add model elements', () => {
     expect(index2).toBe(2);
     index3 = model.elements.indexOf(rect2);
     expect(index3).toBe(-1);
+    expect(rect1.parent).toBe(model);
+    expect(rect2.parent).toBeUndefined();
+});
+
+test('ModelElement.create preserves geometry without a source key', () => {
+    const container = ModelElement.create(undefined, 12, 34, 56, 78);
+
+    expect(container.getLocation()!.x).toBe(12);
+    expect(container.getLocation()!.y).toBe(34);
+    expect(container.getSize()!.width).toBe(56);
+    expect(container.getSize()!.height).toBe(78);
+});
+
+test('activeElementPathAt returns nested model element ancestry', () => {
+    const model = Model.create(100, 100);
+    const innerModel = Model.create(50, 50);
+    const child = RectangleElement.create(10, 10, 20, 20).setInteractive(true);
+    innerModel.add(child);
+
+    const container = ModelElement.create().setInteractive(true) as ModelElement;
+    container.setLocation('0,0');
+    container.setSize('50x50');
+    container.sourceModel = innerModel;
+    model.add(container);
+
+    const context = {
+        save: jest.fn(),
+        restore: jest.fn(),
+        beginPath: jest.fn(),
+        rect: jest.fn(),
+        closePath: jest.fn(),
+        isPointInPath: jest.fn(() => true),
+    } as unknown as CanvasRenderingContext2D;
+    const path = model.activeElementPathAt(context, 15, 15);
+
+    expect(path).toEqual([child, container]);
+    expect(model.firstActiveElementAt(context, 15, 15)).toBe(child);
 });
 
 test('model loadAsync resolves model when json is returned', async () => {

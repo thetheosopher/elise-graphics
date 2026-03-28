@@ -53,6 +53,7 @@ function createContext(): CanvasRenderingContext2D {
         strokeText: jest.fn(),
         drawImage: jest.fn(),
         globalAlpha: 1,
+        filter: 'none',
         textAlign: 'left',
         textBaseline: 'top',
         font: '',
@@ -290,6 +291,7 @@ describe('design renderer', () => {
                 location: new Point(4, 5),
                 size: new Size(20, 30),
             })),
+            applyRenderOpacity: jest.fn(),
             setRenderTransform: jest.fn(),
             setElementStroke: jest.fn(() => true),
         };
@@ -306,7 +308,7 @@ describe('design renderer', () => {
         expect(c.strokeRect).toHaveBeenCalledWith(0, 0, 20, 30);
     });
 
-    test('renderImageElement uses moving/resizing selection coordinates and opacity branch', () => {
+    test('renderImageElement applies shared render state and moving/resizing selection coordinates', () => {
         const controller = createController();
         controller.isMoving = true;
         (controller.isSelected as jest.Mock).mockReturnValue(true);
@@ -324,15 +326,20 @@ describe('design renderer', () => {
         const image = {
             model,
             source: 'hero',
-            opacity: 0.4,
+            applyRenderOpacity: jest.fn((context: CanvasRenderingContext2D) => {
+                context.globalAlpha *= 0.4;
+                context.filter = 'blur(3px)';
+            }),
             getLocation: jest.fn(() => new Point(1, 2)),
             getSize: jest.fn(() => new Size(3, 4)),
         };
 
         renderer.renderImageElement(c, image as never);
 
+        expect(image.applyRenderOpacity).toHaveBeenCalledWith(c);
         expect(c.drawImage).toHaveBeenCalledWith(bitmap.image, 100, 200, 40, 50);
-        expect(c.globalAlpha).toBe(1);
+        expect(c.globalAlpha).toBe(0.4);
+        expect(c.filter).toBe('blur(3px)');
         expect(c.strokeRect).toHaveBeenCalledWith(100, 200, 40, 50);
     });
 
@@ -367,7 +374,7 @@ describe('design renderer', () => {
         expect(c.drawImage).not.toHaveBeenCalled();
     });
 
-    test('renderSpriteElement uses frame opacity branch drawImage signature', () => {
+    test('renderSpriteElement combines element render state with frame opacity', () => {
         const renderer = new DesignRenderer(createController());
         const c = createContext();
         const bitmap = { image: {} };
@@ -377,6 +384,10 @@ describe('design renderer', () => {
                 resourceManager: { get: jest.fn(() => bitmap) },
                 setRenderTransform: jest.fn(),
             },
+            applyRenderOpacity: jest.fn((context: CanvasRenderingContext2D) => {
+                context.globalAlpha *= 0.8;
+                context.filter = 'grayscale(60%)';
+            }),
             frameIndex: 0,
             frames: [{ source: 'sheet', x: 1, y: 2, width: 10, height: 11, opacity: 0.5 }],
             getLocation: jest.fn(() => new Point(7, 8)),
@@ -385,8 +396,10 @@ describe('design renderer', () => {
 
         renderer.renderSpriteElement(c, sprite as never);
 
+        expect(sprite.applyRenderOpacity).toHaveBeenCalledWith(c);
         expect(c.drawImage).toHaveBeenCalledWith(bitmap.image, 1, 2, 10, 11, 7, 8, 20, 21);
-        expect(c.globalAlpha).toBe(1);
+        expect(c.globalAlpha).toBe(0.4);
+        expect(c.filter).toBe('grayscale(60%)');
     });
 
     test('renderModelElement scales to inner model and renders non-opacity path', () => {
@@ -412,6 +425,57 @@ describe('design renderer', () => {
 
         expect(c.translate).toHaveBeenCalledWith(10, 30);
         expect(c.scale).toHaveBeenCalledWith(2, 2);
+        expect(innerModel.renderToContext).toHaveBeenCalledWith(c);
+    });
+
+    test('renderModelElement renders embedded sourceModel containers without a source key', () => {
+        const renderer = new DesignRenderer(createController());
+        const c = createContext();
+
+        const innerModel = {
+            size: '20x10',
+            getSize: jest.fn(() => new Size(20, 10)),
+            renderToContext: jest.fn(),
+        };
+        const modelElement = {
+            model: {
+                resourceManager: { get: jest.fn() },
+                setRenderTransform: jest.fn(),
+            },
+            sourceModel: innerModel,
+            getLocation: jest.fn(() => new Point(4, 6)),
+            getSize: jest.fn(() => new Size(40, 20)),
+        };
+
+        renderer.renderModelElement(c, modelElement as never);
+
+        expect(c.translate).toHaveBeenCalledWith(4, 6);
+        expect(c.scale).toHaveBeenCalledWith(2, 2);
+        expect(innerModel.renderToContext).toHaveBeenCalledWith(c);
+        expect(modelElement.model.resourceManager.get).not.toHaveBeenCalled();
+    });
+
+    test('renderModelElement skips scaling for embedded sourceModel containers with zero inner size', () => {
+        const renderer = new DesignRenderer(createController());
+        const c = createContext();
+
+        const innerModel = {
+            getSize: jest.fn(() => new Size(0, 0)),
+            renderToContext: jest.fn(),
+        };
+        const modelElement = {
+            model: {
+                resourceManager: { get: jest.fn() },
+                setRenderTransform: jest.fn(),
+            },
+            sourceModel: innerModel,
+            getLocation: jest.fn(() => new Point(4, 6)),
+            getSize: jest.fn(() => new Size(0, 0)),
+        };
+
+        renderer.renderModelElement(c, modelElement as never);
+
+        expect(c.scale).not.toHaveBeenCalled();
         expect(innerModel.renderToContext).toHaveBeenCalledWith(c);
     });
 });
