@@ -4,6 +4,7 @@ import { PointDepth } from '../core/point-depth';
 import { Size } from '../core/size';
 import { ElementBase } from '../elements/element-base';
 import { PathElement } from '../elements/path-element';
+import { iteratePathCommands } from '../elements/path-command-utils';
 import { RectangleElement } from '../elements/rectangle-element';
 import { Handle } from './handle';
 import type { IDesignController } from './design-controller-interface';
@@ -408,29 +409,22 @@ export class HandleFactory {
         let previous: Handle | undefined;
         const commands = el.getCommands();
         if (commands) {
-            for (const command of commands) {
+            iteratePathCommands(commands, (command) => {
                 let createHandle = true;
                 const connectToPrevious = true;
-                if (command.charAt(0) === 'm') {
+                if (command.type === 'm' || command.type === 'l' || command.type === 'H' || command.type === 'V' || command.type === 'T' || command.type === 'A') {
                     handleIndex++;
-                    handlePoint = Point.parse(command.substring(1, command.length));
-                } else if (command.charAt(0) === 'l') {
+                    handlePoint = command.end;
+                }
+                else if (command.type === 'c') {
                     handleIndex++;
-                    handlePoint = Point.parse(command.substring(1, command.length));
-                } else if (command.charAt(0) === 'c') {
-                    const parts = command.substring(1, command.length).split(',');
-                    const cp1 = new Point(parseFloat(parts[0]), parseFloat(parts[1]));
-                    const cp2 = new Point(parseFloat(parts[2]), parseFloat(parts[3]));
-                    const endPoint = new Point(parseFloat(parts[4]), parseFloat(parts[5]));
-                    handleIndex++;
-                    handlePoint = endPoint;
+                    handlePoint = command.end;
 
                     if (depth === PointDepth.Full) {
                         if (handleIndex === movingPointIndex && c.movingPointLocation) {
                             handlePoint = c.movingPointLocation;
                         }
 
-                        // End point
                         const hend = new Handle(handlePoint.x + offsetX, handlePoint.y + offsetY, el, c);
                         hend.scale = scale;
                         hend.handleIndex = handleIndex;
@@ -445,9 +439,8 @@ export class HandleFactory {
                         }
                         previous = hend;
 
-                        // Control point 1
                         handleIndex++;
-                        handlePoint = cp1;
+                        handlePoint = command.cp1;
                         if (handleIndex === movingPointIndex && c.movingPointLocation) {
                             handlePoint = c.movingPointLocation;
                         }
@@ -464,9 +457,8 @@ export class HandleFactory {
                         handles.push(hcp1);
                         hcp1.connectedHandles = [previous];
 
-                        // Control point2
                         handleIndex++;
-                        handlePoint = cp2;
+                        handlePoint = command.cp2;
                         if (handleIndex === movingPointIndex && c.movingPointLocation) {
                             handlePoint = c.movingPointLocation;
                         }
@@ -485,12 +477,10 @@ export class HandleFactory {
 
                         createHandle = false;
                     }
-                } else if (command.charAt(0) === 'q' || command.charAt(0) === 'Q') {
-                    const parts = command.substring(1, command.length).split(',');
-                    const controlPoint = new Point(parseFloat(parts[0]), parseFloat(parts[1]));
-                    const endPoint = new Point(parseFloat(parts[2]), parseFloat(parts[3]));
+                }
+                else if (command.type === 'Q' || command.type === 'S') {
                     handleIndex++;
-                    handlePoint = endPoint;
+                    handlePoint = command.end;
 
                     if (depth === PointDepth.Full) {
                         if (handleIndex === movingPointIndex && c.movingPointLocation) {
@@ -512,7 +502,7 @@ export class HandleFactory {
                         previous = hend;
 
                         handleIndex++;
-                        handlePoint = controlPoint;
+                        handlePoint = command.type === 'Q' ? command.controlPoint : command.cp2;
                         if (handleIndex === movingPointIndex && c.movingPointLocation) {
                             handlePoint = c.movingPointLocation;
                         }
@@ -531,7 +521,8 @@ export class HandleFactory {
 
                         createHandle = false;
                     }
-                } else {
+                }
+                else {
                     createHandle = false;
                     previous = undefined;
                 }
@@ -555,7 +546,7 @@ export class HandleFactory {
                     }
                     previous = h;
                 }
-            }
+            });
         }
 
         return handles;

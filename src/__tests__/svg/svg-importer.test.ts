@@ -78,7 +78,7 @@ test('SVGImporter.parseDocument maps SVG path elements to PathElement.fromSVGPat
     expect(path.fill).toBe('#112233');
     expect(path.stroke).toBe('#445566, 2');
     expect(path.winding).toBe(WindingMode.EvenOdd);
-    expect(path.getCommands()).toEqual(['m10,20', 'l40,20', 'l40,30', 'z']);
+    expect(path.getCommands()).toEqual(['m10,20', 'H40', 'V30', 'z']);
 });
 
 test('SVGImporter.parseDocument imports grouped SVG shapes as a nested model element', () => {

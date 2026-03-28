@@ -9,6 +9,14 @@ import { WindingMode } from '../core/winding-mode';
 import { FillFactory } from '../fill/fill-factory';
 import { ElementBase } from './element-base';
 import { InvalidIndexException } from './invalid-index-exception';
+import {
+    iteratePathCommands,
+    normalizePathCommands,
+    parsePathCommandString,
+    scalePathCommands,
+    tracePathCommands,
+    translatePathCommands,
+} from './path-command-utils';
 
 /**
  * Renders series of stroked and/or filled drawing commands
@@ -32,7 +40,7 @@ export class PathElement extends ElementBase implements IPointContainer {
      */
     public static fromSVGPath(pathData: string): PathElement {
         const e = new PathElement();
-        e._commands = PathElement.parseCommandString(pathData, false);
+        e._commands = parsePathCommandString(pathData, false);
         return e;
     }
 
@@ -83,7 +91,7 @@ export class PathElement extends ElementBase implements IPointContainer {
      */
     set commands(commandString: string | undefined) {
         if (commandString && commandString.trim().length > 0) {
-            this._commands = PathElement.parseCommandString(commandString, true);
+            this._commands = parsePathCommandString(commandString, true);
         }
         else {
             this._commands = undefined;
@@ -118,7 +126,7 @@ export class PathElement extends ElementBase implements IPointContainer {
         super.parse(o);
         if (o.commands) {
             const commandString: string = o.commands as string;
-            this._commands = PathElement.parseCommandString(commandString, true);
+            this._commands = parsePathCommandString(commandString, true);
         }
         if (o.winding) {
             this.winding = o.winding as WindingMode;
@@ -181,39 +189,7 @@ export class PathElement extends ElementBase implements IPointContainer {
         this.applyRenderOpacity(c);
         this.withClipPath(c, () => {
             c.beginPath();
-            for (const command of commands) {
-                if (command.charAt(0) === 'm') {
-                    const point = Point.parse(command.substring(1, command.length));
-                    c.moveTo(point.x, point.y);
-                }
-                else if (command.charAt(0) === 'l') {
-                    const point = Point.parse(command.substring(1, command.length));
-                    c.lineTo(point.x, point.y);
-                }
-                else if (command.charAt(0) === 'c') {
-                    const parts = command.substring(1, command.length).split(',');
-                    c.bezierCurveTo(
-                        parseFloat(parts[0]),
-                        parseFloat(parts[1]),
-                        parseFloat(parts[2]),
-                        parseFloat(parts[3]),
-                        parseFloat(parts[4]),
-                        parseFloat(parts[5])
-                    );
-                }
-                else if (command.charAt(0) === 'q' || command.charAt(0) === 'Q') {
-                    const parts = command.substring(1, command.length).split(',');
-                    c.quadraticCurveTo(
-                        parseFloat(parts[0]),
-                        parseFloat(parts[1]),
-                        parseFloat(parts[2]),
-                        parseFloat(parts[3])
-                    );
-                }
-                else if (command.charAt(0) === 'z') {
-                    c.closePath();
-                }
-            }
+            tracePathCommands(c, commands);
             if (FillFactory.setElementFill(c, this)) {
                 const loc = bounds.location;
                 if (this.fillOffsetX || this.fillOffsetY) {
@@ -270,39 +246,7 @@ export class PathElement extends ElementBase implements IPointContainer {
             model.setRenderTransform(c, this.transform, bounds.location);
         }
         c.beginPath();
-        for (const command of this._commands) {
-            if (command.charAt(0) === 'm') {
-                const point = Point.parse(command.substring(1, command.length));
-                c.moveTo(point.x, point.y);
-            }
-            else if (command.charAt(0) === 'l') {
-                const point = Point.parse(command.substring(1, command.length));
-                c.lineTo(point.x, point.y);
-            }
-            else if (command.charAt(0) === 'c') {
-                const parts = command.substring(1, command.length).split(',');
-                c.bezierCurveTo(
-                    parseFloat(parts[0]),
-                    parseFloat(parts[1]),
-                    parseFloat(parts[2]),
-                    parseFloat(parts[3]),
-                    parseFloat(parts[4]),
-                    parseFloat(parts[5])
-                );
-            }
-            else if (command.charAt(0) === 'q' || command.charAt(0) === 'Q') {
-                const parts = command.substring(1, command.length).split(',');
-                c.quadraticCurveTo(
-                    parseFloat(parts[0]),
-                    parseFloat(parts[1]),
-                    parseFloat(parts[2]),
-                    parseFloat(parts[3])
-                );
-            }
-            else if (command.charAt(0) === 'z') {
-                c.closePath();
-            }
-        }
+        tracePathCommands(c, this._commands);
         let hit: boolean;
         if (this._winding && this._winding === WindingMode.EvenOdd) {
             hit = c.isPointInPath(tx, ty, 'evenodd');
@@ -445,80 +389,7 @@ export class PathElement extends ElementBase implements IPointContainer {
         if (!location) {
             throw new Error(ErrorMessages.LocationUndefined);
         }
-        const newCommands: string[] = [];
-        for (const command of this._commands) {
-            if (command.charAt(0) === 'm') {
-                newCommands.push(
-                    'm' +
-                        Point.scale(
-                            Point.parse(command.substring(1, command.length)),
-                            scaleX,
-                            scaleY,
-                            location.x,
-                            location.y
-                        ).toString()
-                );
-            }
-            else if (command.charAt(0) === 'l') {
-                newCommands.push(
-                    'l' +
-                        Point.scale(
-                            Point.parse(command.substring(1, command.length)),
-                            scaleX,
-                            scaleY,
-                            location.x,
-                            location.y
-                        ).toString()
-                );
-            }
-            else if (command.charAt(0) === 'c') {
-                const parts = command.substring(1, command.length).split(',');
-                const cp1 = Point.scale(
-                    new Point(parseFloat(parts[0]), parseFloat(parts[1])),
-                    scaleX,
-                    scaleY,
-                    location.x,
-                    location.y
-                );
-                const cp2 = Point.scale(
-                    new Point(parseFloat(parts[2]), parseFloat(parts[3])),
-                    scaleX,
-                    scaleY,
-                    location.x,
-                    location.y
-                );
-                const endPoint = Point.scale(
-                    new Point(parseFloat(parts[4]), parseFloat(parts[5])),
-                    scaleX,
-                    scaleY,
-                    location.x,
-                    location.y
-                );
-                newCommands.push('c' + cp1.toString() + ',' + cp2.toString() + ',' + endPoint.toString());
-            }
-            else if (command.charAt(0) === 'q' || command.charAt(0) === 'Q') {
-                const parts = command.substring(1, command.length).split(',');
-                const controlPoint = Point.scale(
-                    new Point(parseFloat(parts[0]), parseFloat(parts[1])),
-                    scaleX,
-                    scaleY,
-                    location.x,
-                    location.y
-                );
-                const endPoint = Point.scale(
-                    new Point(parseFloat(parts[2]), parseFloat(parts[3])),
-                    scaleX,
-                    scaleY,
-                    location.x,
-                    location.y
-                );
-                newCommands.push('Q' + controlPoint.toString() + ',' + endPoint.toString());
-            }
-            else {
-                newCommands.push(command);
-            }
-        }
-        this._commands = newCommands;
+        this._commands = scalePathCommands(this._commands, scaleX, scaleY, location.x, location.y);
         this.bounds = undefined;
         return this;
     }
@@ -533,46 +404,7 @@ export class PathElement extends ElementBase implements IPointContainer {
         if (!this._commands) {
             return this;
         }
-        const newCommands: string[] = [];
-        for (const command of this._commands) {
-            if (command.charAt(0) === 'm') {
-                newCommands.push(
-                    'm' +
-                        Point.translate(Point.parse(command.substring(1, command.length)), offsetX, offsetY).toString()
-                );
-            }
-            else if (command.charAt(0) === 'l') {
-                newCommands.push(
-                    'l' +
-                        Point.translate(Point.parse(command.substring(1, command.length)), offsetX, offsetY).toString()
-                );
-            }
-            else if (command.charAt(0) === 'c') {
-                const parts = command.substring(1, command.length).split(',');
-                const cp1 = Point.translate(new Point(parseFloat(parts[0]), parseFloat(parts[1])), offsetX, offsetY);
-                const cp2 = Point.translate(new Point(parseFloat(parts[2]), parseFloat(parts[3])), offsetX, offsetY);
-                const endPoint = Point.translate(
-                    new Point(parseFloat(parts[4]), parseFloat(parts[5])),
-                    offsetX,
-                    offsetY
-                );
-                newCommands.push('c' + cp1.toString() + ',' + cp2.toString() + ',' + endPoint.toString());
-            }
-            else if (command.charAt(0) === 'q' || command.charAt(0) === 'Q') {
-                const parts = command.substring(1, command.length).split(',');
-                const controlPoint = Point.translate(new Point(parseFloat(parts[0]), parseFloat(parts[1])), offsetX, offsetY);
-                const endPoint = Point.translate(
-                    new Point(parseFloat(parts[2]), parseFloat(parts[3])),
-                    offsetX,
-                    offsetY
-                );
-                newCommands.push('Q' + controlPoint.toString() + ',' + endPoint.toString());
-            }
-            else {
-                newCommands.push(command);
-            }
-        }
-        this._commands = newCommands;
+        this._commands = translatePathCommands(this._commands, offsetX, offsetY);
         this.bounds = undefined;
         return this;
     }
@@ -592,7 +424,7 @@ export class PathElement extends ElementBase implements IPointContainer {
         let minY: number | undefined;
         let maxX: number | undefined;
         let maxY: number | undefined;
-        for (const command of this._commands) {
+        for (const command of normalizePathCommands(this._commands)) {
             let p: Point | undefined;
             if (command.charAt(0) === 'm') {
                 p = Point.parse(command.substring(1, command.length));
@@ -696,20 +528,17 @@ export class PathElement extends ElementBase implements IPointContainer {
     public pointCount(): number {
         let pointCount = 0;
         if (this._commands) {
-            for (const command of this._commands) {
-                if (command.charAt(0) === 'm') {
+            iteratePathCommands(this._commands, (command) => {
+                if (command.type === 'm' || command.type === 'l' || command.type === 'H' || command.type === 'V' || command.type === 'T' || command.type === 'A') {
                     pointCount++;
                 }
-                else if (command.charAt(0) === 'l') {
-                    pointCount++;
-                }
-                else if (command.charAt(0) === 'c') {
-                    pointCount += 3;
-                }
-                else if (command.charAt(0) === 'q' || command.charAt(0) === 'Q') {
+                else if (command.type === 'c' || command.type === 'Q' || command.type === 'S') {
                     pointCount += 2;
+                    if (command.type === 'c') {
+                        pointCount++;
+                    }
                 }
-            }
+            });
         }
         return pointCount;
     }
@@ -725,54 +554,50 @@ export class PathElement extends ElementBase implements IPointContainer {
         if (!this._commands) {
             throw new InvalidIndexException(index);
         }
-        for (const command of this._commands) {
-            if (command.charAt(0) === 'm') {
-                current++;
-                if (current === index) {
-                    return Point.parse(command.substring(1, command.length));
-                }
+        let foundPoint: Point | undefined;
+        iteratePathCommands(this._commands, (command) => {
+            if (foundPoint) {
+                return;
             }
-            else if (command.charAt(0) === 'l') {
+            if (command.type === 'm' || command.type === 'l' || command.type === 'H' || command.type === 'V' || command.type === 'T' || command.type === 'A') {
                 current++;
                 if (current === index) {
-                    return Point.parse(command.substring(1, command.length));
+                    foundPoint = command.end;
                 }
+                return;
             }
-            else if (command.charAt(0) === 'c') {
-                const parts = command.substring(1, command.length).split(',');
-                const cp1 = new Point(parseFloat(parts[0]), parseFloat(parts[1]));
-                const cp2 = new Point(parseFloat(parts[2]), parseFloat(parts[3]));
-                const endPoint = new Point(parseFloat(parts[4]), parseFloat(parts[5]));
+            if (command.type === 'c') {
                 current++;
                 if (current === index) {
-                    return endPoint;
+                    foundPoint = command.end;
                 }
                 if (depth === PointDepth.Full) {
                     current++;
                     if (current === index) {
-                        return cp1;
+                        foundPoint = command.cp1;
                     }
                     current++;
                     if (current === index) {
-                        return cp2;
+                        foundPoint = command.cp2;
                     }
                 }
+                return;
             }
-            else if (command.charAt(0) === 'q' || command.charAt(0) === 'Q') {
-                const parts = command.substring(1, command.length).split(',');
-                const controlPoint = new Point(parseFloat(parts[0]), parseFloat(parts[1]));
-                const endPoint = new Point(parseFloat(parts[2]), parseFloat(parts[3]));
+            if (command.type === 'Q' || command.type === 'S') {
                 current++;
                 if (current === index) {
-                    return endPoint;
+                    foundPoint = command.end;
                 }
                 if (depth === PointDepth.Full) {
                     current++;
                     if (current === index) {
-                        return controlPoint;
+                        foundPoint = command.type === 'Q' ? command.controlPoint : command.cp2;
                     }
                 }
             }
+        });
+        if (foundPoint) {
+            return foundPoint;
         }
         throw new InvalidIndexException(index);
     }
@@ -789,6 +614,7 @@ export class PathElement extends ElementBase implements IPointContainer {
             throw new Error(ErrorMessages.NoCommandsAreDefined);
         }
         const cl = this._commands.length;
+        let currentPoint = Point.Origin;
         for (let i = 0; i < cl; i++) {
             const command = this._commands[i];
             if (command.charAt(0) === 'm') {
@@ -798,6 +624,7 @@ export class PathElement extends ElementBase implements IPointContainer {
                     this.bounds = undefined;
                     return this;
                 }
+                currentPoint = Point.parse(command.substring(1, command.length));
             }
             else if (command.charAt(0) === 'l') {
                 current++;
@@ -806,6 +633,25 @@ export class PathElement extends ElementBase implements IPointContainer {
                     this.bounds = undefined;
                     return this;
                 }
+                currentPoint = Point.parse(command.substring(1, command.length));
+            }
+            else if (command.charAt(0) === 'H') {
+                current++;
+                if (current === index) {
+                    this._commands[i] = value.y === currentPoint.y ? 'H' + value.x : 'l' + value.toString();
+                    this.bounds = undefined;
+                    return this;
+                }
+                currentPoint = new Point(parseFloat(command.substring(1, command.length)), currentPoint.y);
+            }
+            else if (command.charAt(0) === 'V') {
+                current++;
+                if (current === index) {
+                    this._commands[i] = value.x === currentPoint.x ? 'V' + value.y : 'l' + value.toString();
+                    this.bounds = undefined;
+                    return this;
+                }
+                currentPoint = new Point(currentPoint.x, parseFloat(command.substring(1, command.length)));
             }
             else if (command.charAt(0) === 'c') {
                 const parts = command.substring(1, command.length).split(',');
@@ -835,6 +681,29 @@ export class PathElement extends ElementBase implements IPointContainer {
                         return this;
                     }
                 }
+                currentPoint = endPoint;
+            }
+            else if (command.charAt(0) === 'S') {
+                const parts = command.substring(1, command.length).split(',');
+                let cp2 = new Point(parseFloat(parts[0]), parseFloat(parts[1]));
+                let endPoint = new Point(parseFloat(parts[2]), parseFloat(parts[3]));
+                current++;
+                if (current === index) {
+                    endPoint = value;
+                    this._commands[i] = 'S' + cp2.toString() + ',' + endPoint.toString();
+                    this.bounds = undefined;
+                    return this;
+                }
+                if (depth === PointDepth.Full) {
+                    current++;
+                    if (current === index) {
+                        cp2 = value;
+                        this._commands[i] = 'S' + cp2.toString() + ',' + endPoint.toString();
+                        this.bounds = undefined;
+                        return this;
+                    }
+                }
+                currentPoint = endPoint;
             }
             else if (command.charAt(0) === 'q' || command.charAt(0) === 'Q') {
                 const parts = command.substring(1, command.length).split(',');
@@ -856,6 +725,39 @@ export class PathElement extends ElementBase implements IPointContainer {
                         return this;
                     }
                 }
+                currentPoint = endPoint;
+            }
+            else if (command.charAt(0) === 'T') {
+                const endPoint = Point.parse(command.substring(1, command.length));
+                current++;
+                if (current === index) {
+                    this._commands[i] = 'T' + value.toString();
+                    this.bounds = undefined;
+                    return this;
+                }
+                currentPoint = endPoint;
+            }
+            else if (command.charAt(0) === 'A') {
+                const parts = command.substring(1, command.length).split(',');
+                const params = parts.slice(0, 5);
+                const endPoint = new Point(parseFloat(parts[5]), parseFloat(parts[6]));
+                current++;
+                if (current === index) {
+                    this._commands[i] = 'A' + params.join(',') + ',' + value.toString();
+                    this.bounds = undefined;
+                    return this;
+                }
+                currentPoint = endPoint;
+            }
+            else if (command.charAt(0) === 'z') {
+                const normalized = normalizePathCommands(this._commands.slice(0, i + 1));
+                const lastMove = normalized
+                    .slice()
+                    .reverse()
+                    .find((entry) => entry.charAt(0) === 'm');
+                if (lastMove) {
+                    currentPoint = Point.parse(lastMove.substring(1));
+                }
             }
         }
         throw new InvalidIndexException(index);
@@ -869,327 +771,13 @@ export class PathElement extends ElementBase implements IPointContainer {
     public add(command: string) {
         const existingCommands = this.commands;
         if (existingCommands) {
-            this._commands = PathElement.parseCommandString(existingCommands + ' ' + command, true);
+            this._commands = parsePathCommandString(existingCommands + ' ' + command, true);
         }
         else {
-            this._commands = PathElement.parseCommandString(command, true);
+            this._commands = parsePathCommandString(command, true);
         }
         this.bounds = undefined;
         return this;
-    }
-
-    private static parseCommandString(commandString: string, legacyLowercaseAbsolute: boolean): string[] {
-        const trimmed = commandString.trim();
-        if (trimmed.length === 0) {
-            return [];
-        }
-
-        const tokens = trimmed.match(/[AaCcHhLlMmQqSsTtVvZz]|[-+]?(?:\d*\.\d+|\d+\.?)(?:[eE][-+]?\d+)?/g);
-        if (!tokens || tokens.length === 0) {
-            throw new Error('Path string is invalid.');
-        }
-
-        const commands: string[] = [];
-        let index = 0;
-        let command = '';
-        let current = Point.Origin;
-        let subpathStart = Point.Origin;
-        let lastCubicControl: Point | undefined;
-        let lastQuadraticControl: Point | undefined;
-        let previousCommand = '';
-
-        const isCommandToken = (value: string): boolean => /^[AaCcHhLlMmQqSsTtVvZz]$/.test(value);
-        const hasNextNumber = (): boolean => index < tokens.length && !isCommandToken(tokens[index]);
-        const readNumber = (): number => {
-            if (index >= tokens.length) {
-                throw new Error('Path string is invalid.');
-            }
-            const token = tokens[index++];
-            if (isCommandToken(token)) {
-                throw new Error('Path string is invalid.');
-            }
-            const value = parseFloat(token);
-            if (isNaN(value)) {
-                throw new Error('Path string is invalid.');
-            }
-            return value;
-        };
-        const readPoint = (relative: boolean): Point => {
-            const x = readNumber();
-            const y = readNumber();
-            if (relative) {
-                return new Point(current.x + x, current.y + y);
-            }
-            return new Point(x, y);
-        };
-        const pushMove = (point: Point): void => {
-            commands.push('m' + point.toString());
-            current = point;
-            subpathStart = point;
-            lastCubicControl = undefined;
-            lastQuadraticControl = undefined;
-        };
-        const pushLine = (point: Point): void => {
-            commands.push('l' + point.toString());
-            current = point;
-            lastCubicControl = undefined;
-            lastQuadraticControl = undefined;
-        };
-        const pushCubic = (cp1: Point, cp2: Point, endPoint: Point): void => {
-            commands.push('c' + cp1.toString() + ',' + cp2.toString() + ',' + endPoint.toString());
-            current = endPoint;
-            lastCubicControl = cp2;
-            lastQuadraticControl = undefined;
-        };
-        const reflectControl = (control: Point | undefined): Point => {
-            if (!control) {
-                return current;
-            }
-            return new Point(current.x * 2 - control.x, current.y * 2 - control.y);
-        };
-        const vectorAngle = (ux: number, uy: number, vx: number, vy: number): number => {
-            return Math.atan2(ux * vy - uy * vx, ux * vx + uy * vy);
-        };
-        const arcToCubics = (
-            startPoint: Point,
-            radiusX: number,
-            radiusY: number,
-            xAxisRotation: number,
-            largeArc: boolean,
-            sweep: boolean,
-            endPoint: Point,
-        ): Array<[Point, Point, Point]> => {
-            let rx = Math.abs(radiusX);
-            let ry = Math.abs(radiusY);
-            if ((startPoint.x === endPoint.x && startPoint.y === endPoint.y) || rx === 0 || ry === 0) {
-                return [];
-            }
-
-            const phi = (xAxisRotation * Math.PI) / 180;
-            const cosPhi = Math.cos(phi);
-            const sinPhi = Math.sin(phi);
-            const dx = (startPoint.x - endPoint.x) / 2;
-            const dy = (startPoint.y - endPoint.y) / 2;
-            const x1p = cosPhi * dx + sinPhi * dy;
-            const y1p = -sinPhi * dx + cosPhi * dy;
-            const lambda = (x1p * x1p) / (rx * rx) + (y1p * y1p) / (ry * ry);
-
-            if (lambda > 1) {
-                const scale = Math.sqrt(lambda);
-                rx *= scale;
-                ry *= scale;
-            }
-
-            const rx2 = rx * rx;
-            const ry2 = ry * ry;
-            const x1p2 = x1p * x1p;
-            const y1p2 = y1p * y1p;
-            const numerator = rx2 * ry2 - rx2 * y1p2 - ry2 * x1p2;
-            const denominator = rx2 * y1p2 + ry2 * x1p2;
-            const factor = denominator === 0 ? 0 : Math.sqrt(Math.max(0, numerator / denominator));
-            const sign = largeArc === sweep ? -1 : 1;
-            const cxp = sign * factor * ((rx * y1p) / ry);
-            const cyp = sign * factor * ((-ry * x1p) / rx);
-            const centerX = cosPhi * cxp - sinPhi * cyp + (startPoint.x + endPoint.x) / 2;
-            const centerY = sinPhi * cxp + cosPhi * cyp + (startPoint.y + endPoint.y) / 2;
-            const startVectorX = (x1p - cxp) / rx;
-            const startVectorY = (y1p - cyp) / ry;
-            const endVectorX = (-x1p - cxp) / rx;
-            const endVectorY = (-y1p - cyp) / ry;
-            let startAngle = vectorAngle(1, 0, startVectorX, startVectorY);
-            let sweepAngle = vectorAngle(startVectorX, startVectorY, endVectorX, endVectorY);
-
-            if (!sweep && sweepAngle > 0) {
-                sweepAngle -= Math.PI * 2;
-            }
-            else if (sweep && sweepAngle < 0) {
-                sweepAngle += Math.PI * 2;
-            }
-
-            const segmentCount = Math.ceil(Math.abs(sweepAngle) / (Math.PI / 2));
-            const segmentAngle = sweepAngle / segmentCount;
-            const curves: Array<[Point, Point, Point]> = [];
-
-            for (let segment = 0; segment < segmentCount; segment++) {
-                const theta1 = startAngle;
-                const theta2 = theta1 + segmentAngle;
-                const delta = theta2 - theta1;
-                const alpha = (4 / 3) * Math.tan(delta / 4);
-                const cosTheta1 = Math.cos(theta1);
-                const sinTheta1 = Math.sin(theta1);
-                const cosTheta2 = Math.cos(theta2);
-                const sinTheta2 = Math.sin(theta2);
-
-                const p1 = new Point(
-                    centerX + rx * cosPhi * cosTheta1 - ry * sinPhi * sinTheta1,
-                    centerY + rx * sinPhi * cosTheta1 + ry * cosPhi * sinTheta1,
-                );
-                const p2 = new Point(
-                    centerX + rx * cosPhi * cosTheta2 - ry * sinPhi * sinTheta2,
-                    centerY + rx * sinPhi * cosTheta2 + ry * cosPhi * sinTheta2,
-                );
-                const d1 = new Point(
-                    -rx * cosPhi * sinTheta1 - ry * sinPhi * cosTheta1,
-                    -rx * sinPhi * sinTheta1 + ry * cosPhi * cosTheta1,
-                );
-                const d2 = new Point(
-                    -rx * cosPhi * sinTheta2 - ry * sinPhi * cosTheta2,
-                    -rx * sinPhi * sinTheta2 + ry * cosPhi * cosTheta2,
-                );
-                const cp1 = new Point(p1.x + alpha * d1.x, p1.y + alpha * d1.y);
-                const cp2 = new Point(p2.x - alpha * d2.x, p2.y - alpha * d2.y);
-                curves.push([cp1, cp2, p2]);
-                startAngle = theta2;
-            }
-
-            return curves;
-        };
-
-        while (index < tokens.length) {
-            if (isCommandToken(tokens[index])) {
-                command = tokens[index++];
-            }
-            else if (!command) {
-                throw new Error('Path string is invalid.');
-            }
-
-            switch (command) {
-                case 'M':
-                case 'm': {
-                    const relative = command === 'm' && !legacyLowercaseAbsolute;
-                    let isFirstMove = true;
-                    while (hasNextNumber()) {
-                        const point = readPoint(relative);
-                        if (isFirstMove) {
-                            pushMove(point);
-                            isFirstMove = false;
-                        }
-                        else {
-                            pushLine(point);
-                        }
-                    }
-                    break;
-                }
-                case 'L':
-                case 'l': {
-                    const relative = command === 'l' && !legacyLowercaseAbsolute;
-                    while (hasNextNumber()) {
-                        pushLine(readPoint(relative));
-                    }
-                    break;
-                }
-                case 'H':
-                case 'h': {
-                    const relative = command === 'h';
-                    while (hasNextNumber()) {
-                        const x = readNumber();
-                        pushLine(new Point(relative ? current.x + x : x, current.y));
-                    }
-                    break;
-                }
-                case 'V':
-                case 'v': {
-                    const relative = command === 'v';
-                    while (hasNextNumber()) {
-                        const y = readNumber();
-                        pushLine(new Point(current.x, relative ? current.y + y : y));
-                    }
-                    break;
-                }
-                case 'C':
-                case 'c': {
-                    const relative = command === 'c' && !legacyLowercaseAbsolute;
-                    while (hasNextNumber()) {
-                        const cp1 = readPoint(relative);
-                        const cp2 = readPoint(relative);
-                        const endPoint = readPoint(relative);
-                        pushCubic(cp1, cp2, endPoint);
-                    }
-                    break;
-                }
-                case 'S':
-                case 's': {
-                    const relative = command === 's' && !legacyLowercaseAbsolute;
-                    while (hasNextNumber()) {
-                        const cp1 = previousCommand.match(/[CcSs]/) ? reflectControl(lastCubicControl) : current;
-                        const cp2 = readPoint(relative);
-                        const endPoint = readPoint(relative);
-                        pushCubic(cp1, cp2, endPoint);
-                    }
-                    break;
-                }
-                case 'Q':
-                case 'q': {
-                    const relative = command === 'q' && !legacyLowercaseAbsolute;
-                    while (hasNextNumber()) {
-                        const controlPoint = readPoint(relative);
-                        const endPoint = readPoint(relative);
-                        commands.push('Q' + controlPoint.toString() + ',' + endPoint.toString());
-                        current = endPoint;
-                        lastQuadraticControl = controlPoint;
-                        lastCubicControl = undefined;
-                    }
-                    break;
-                }
-                case 'T':
-                case 't': {
-                    const relative = command === 't' && !legacyLowercaseAbsolute;
-                    while (hasNextNumber()) {
-                        const controlPoint = previousCommand.match(/[QqTt]/) ? reflectControl(lastQuadraticControl) : current;
-                        const endPoint = readPoint(relative);
-                        commands.push('Q' + controlPoint.toString() + ',' + endPoint.toString());
-                        current = endPoint;
-                        lastQuadraticControl = controlPoint;
-                        lastCubicControl = undefined;
-                    }
-                    break;
-                }
-                case 'A':
-                case 'a': {
-                    const relative = command === 'a';
-                    while (hasNextNumber()) {
-                        const rx = readNumber();
-                        const ry = readNumber();
-                        const rotation = readNumber();
-                        const largeArc = readNumber() !== 0;
-                        const sweep = readNumber() !== 0;
-                        const endPoint = readPoint(relative);
-                        if (rx === 0 || ry === 0) {
-                            pushLine(endPoint);
-                        }
-                        else {
-                            const startPoint = current;
-                            const segments = arcToCubics(startPoint, rx, ry, rotation, largeArc, sweep, endPoint);
-                            if (segments.length === 0) {
-                                current = endPoint;
-                                lastCubicControl = undefined;
-                                lastQuadraticControl = undefined;
-                            }
-                            else {
-                                for (const [cp1, cp2, segmentEnd] of segments) {
-                                    pushCubic(cp1, cp2, segmentEnd);
-                                }
-                            }
-                        }
-                    }
-                    break;
-                }
-                case 'Z':
-                case 'z': {
-                    commands.push('z');
-                    current = subpathStart;
-                    lastCubicControl = undefined;
-                    lastQuadraticControl = undefined;
-                    break;
-                }
-                default:
-                    throw new Error('Path string is invalid.');
-            }
-
-            previousCommand = command;
-        }
-
-        return commands;
     }
 
     /**

@@ -12,6 +12,7 @@ import { WindingMode } from '../core/winding-mode';
 import { ElementAnimator, ElementTween, type TweenOptions, type TweenPropertyName, type TweenTargetValues } from '../animation/element-tween';
 import { LinearGradientFill } from '../fill/linear-gradient-fill';
 import { RadialGradientFill } from '../fill/radial-gradient-fill';
+import { tracePathCommands } from './path-command-utils';
 
 export interface ElementModel {
     resourceManager: {
@@ -1406,30 +1407,7 @@ export class ElementBase implements IPointContainer {
     }
 
     private static tracePathCommands(c: CanvasRenderingContext2D, commands: string[]): void {
-        for (const command of commands) {
-            if (command.charAt(0) === 'm') {
-                const point = Point.parse(command.substring(1));
-                c.moveTo(point.x, point.y);
-            }
-            else if (command.charAt(0) === 'l') {
-                const point = Point.parse(command.substring(1));
-                c.lineTo(point.x, point.y);
-            }
-            else if (command.charAt(0) === 'c') {
-                const parts = command.substring(1).split(',');
-                c.bezierCurveTo(
-                    parseFloat(parts[0]),
-                    parseFloat(parts[1]),
-                    parseFloat(parts[2]),
-                    parseFloat(parts[3]),
-                    parseFloat(parts[4]),
-                    parseFloat(parts[5])
-                );
-            }
-            else if (command.charAt(0) === 'z') {
-                c.closePath();
-            }
-        }
+        tracePathCommands(c, commands);
     }
 
     /**

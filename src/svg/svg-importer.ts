@@ -9,6 +9,7 @@ import { ImageElement } from '../elements/image-element';
 import { LineElement } from '../elements/line-element';
 import { ModelElement } from '../elements/model-element';
 import { PathElement } from '../elements/path-element';
+import { transformPathCommands, translatePathCommands } from '../elements/path-command-utils';
 import { PolygonElement } from '../elements/polygon-element';
 import { PolylineElement } from '../elements/polyline-element';
 import { RectangleElement } from '../elements/rectangle-element';
@@ -313,31 +314,7 @@ export class SVGImporter {
     }
 
     private static translatePathCommands(commands: string[], offsetX: number, offsetY: number): string[] {
-        const translatedCommands: string[] = [];
-        for (const command of commands) {
-            if (command.charAt(0) === 'm' || command.charAt(0) === 'l') {
-                translatedCommands.push(
-                    command.charAt(0) + Point.translate(Point.parse(command.substring(1)), offsetX, offsetY).toString(),
-                );
-            }
-            else if (command.charAt(0) === 'c') {
-                const parts = command.substring(1).split(',');
-                const cp1 = Point.translate(new Point(parseFloat(parts[0]), parseFloat(parts[1])), offsetX, offsetY);
-                const cp2 = Point.translate(new Point(parseFloat(parts[2]), parseFloat(parts[3])), offsetX, offsetY);
-                const endPoint = Point.translate(new Point(parseFloat(parts[4]), parseFloat(parts[5])), offsetX, offsetY);
-                translatedCommands.push('c' + cp1.toString() + ',' + cp2.toString() + ',' + endPoint.toString());
-            }
-            else if (command.charAt(0) === 'q' || command.charAt(0) === 'Q') {
-                const parts = command.substring(1).split(',');
-                const controlPoint = Point.translate(new Point(parseFloat(parts[0]), parseFloat(parts[1])), offsetX, offsetY);
-                const endPoint = Point.translate(new Point(parseFloat(parts[2]), parseFloat(parts[3])), offsetX, offsetY);
-                translatedCommands.push(command.charAt(0) + controlPoint.toString() + ',' + endPoint.toString());
-            }
-            else {
-                translatedCommands.push(command);
-            }
-        }
-        return translatedCommands;
+        return translatePathCommands(commands, offsetX, offsetY);
     }
 
     private static importUseElement(
@@ -1232,20 +1209,7 @@ export class SVGImporter {
     }
 
     private static transformCommands(commands: string[], matrix: Matrix2D): string[] {
-        return commands.map((command) => {
-            if (command.charAt(0) === 'm' || command.charAt(0) === 'l') {
-                const point = matrix.transformPoint(Point.parse(command.substring(1)));
-                return command.charAt(0) + point.toString();
-            }
-            if (command.charAt(0) === 'c') {
-                const parts = command.substring(1).split(',').map((part) => parseFloat(part));
-                const c1 = matrix.transformPoint(new Point(parts[0], parts[1]));
-                const c2 = matrix.transformPoint(new Point(parts[2], parts[3]));
-                const end = matrix.transformPoint(new Point(parts[4], parts[5]));
-                return 'c' + [c1.x, c1.y, c2.x, c2.y, end.x, end.y].join(',');
-            }
-            return command;
-        });
+        return transformPathCommands(commands, matrix);
     }
 
     private static parseGradientDefinition(

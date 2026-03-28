@@ -14,6 +14,7 @@ import { PolylineElement } from '../elements/polyline-element';
 import { RectangleElement } from '../elements/rectangle-element';
 import { SpriteElement } from '../elements/sprite-element';
 import { TextElement } from '../elements/text-element';
+import { tracePathCommands } from '../elements/path-command-utils';
 import { FillFactory } from '../fill/fill-factory';
 import { BitmapResource } from '../resource/bitmap-resource';
 import { ModelResource } from '../resource/model-resource';
@@ -598,8 +599,6 @@ export class DesignRenderer {
         }
         let movingPointIndex;
         let movingPointLocation;
-        let depth;
-        let current = -1;
         let offsetX = 0;
         let offsetY = 0;
         let scaleX = 1;
@@ -626,11 +625,6 @@ export class DesignRenderer {
         if (this.controller.isMovingPoint && this.controller.isSelected(pathElement)) {
             movingPointIndex = this.controller.movingPointIndex;
             movingPointLocation = this.controller.movingPointLocation;
-            if (this.controller.selectedElementCount() === 1) {
-                depth = PointDepth.Full;
-            } else {
-                depth = PointDepth.Simple;
-            }
         }
         c.save();
         if (pathElement.transform) {
@@ -639,80 +633,22 @@ export class DesignRenderer {
         c.beginPath();
         const commands = pathElement.getCommands();
         if (commands) {
-            for (const command of commands) {
-                if (command.charAt(0) === 'm') {
-                    current++;
-                    if (current === movingPointIndex && movingPointLocation) {
-                        c.moveTo(movingPointLocation.x + offsetX, movingPointLocation.y + offsetY);
-                    } else {
-                        let point = Point.parse(command.substring(1, command.length));
-                        point = Point.scale(point, scaleX, scaleY, b.x, b.y);
-                        point = Point.translate(point, offsetX, offsetY);
-                        c.moveTo(point.x, point.y);
-                    }
-                } else if (command.charAt(0) === 'l') {
-                    current++;
-                    if (current === movingPointIndex && movingPointLocation) {
-                        c.lineTo(movingPointLocation.x + offsetX, movingPointLocation.y + offsetY);
-                    } else {
-                        let point = Point.parse(command.substring(1, command.length));
-                        point = Point.scale(point, scaleX, scaleY, b.x, b.y);
-                        point = Point.translate(point, offsetX, offsetY);
-                        c.lineTo(point.x, point.y);
-                    }
-                } else if (command.charAt(0) === 'c') {
-                    const parts = command.substring(1, command.length).split(',');
-                    let cp1x = (parseFloat(parts[0]) - b.x) * scaleX + b.x + offsetX;
-                    let cp1y = (parseFloat(parts[1]) - b.y) * scaleY + b.y + offsetY;
-                    let cp2x = (parseFloat(parts[2]) - b.x) * scaleX + b.x + offsetX;
-                    let cp2y = (parseFloat(parts[3]) - b.y) * scaleY + b.y + offsetY;
-                    let endX = (parseFloat(parts[4]) - b.x) * scaleX + b.x + offsetX;
-                    let endY = (parseFloat(parts[5]) - b.y) * scaleY + b.y + offsetY;
-                    current++;
-                    if (movingPointLocation) {
-                        if (current === movingPointIndex) {
-                            endX = movingPointLocation.x;
-                            endY = movingPointLocation.y;
-                        }
-                        if (depth === PointDepth.Full) {
-                            current++;
-                            if (current === movingPointIndex) {
-                                cp1x = movingPointLocation.x;
-                                cp1y = movingPointLocation.y;
-                            }
-                            current++;
-                            if (current === movingPointIndex) {
-                                cp2x = movingPointLocation.x;
-                                cp2y = movingPointLocation.y;
-                            }
-                        }
-                    }
-                    c.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endX, endY);
-                } else if (command.charAt(0) === 'q' || command.charAt(0) === 'Q') {
-                    const parts = command.substring(1, command.length).split(',');
-                    let cpx = (parseFloat(parts[0]) - b.x) * scaleX + b.x + offsetX;
-                    let cpy = (parseFloat(parts[1]) - b.y) * scaleY + b.y + offsetY;
-                    let endX = (parseFloat(parts[2]) - b.x) * scaleX + b.x + offsetX;
-                    let endY = (parseFloat(parts[3]) - b.y) * scaleY + b.y + offsetY;
-                    current++;
-                    if (movingPointLocation) {
-                        if (current === movingPointIndex) {
-                            endX = movingPointLocation.x;
-                            endY = movingPointLocation.y;
-                        }
-                        if (depth === PointDepth.Full) {
-                            current++;
-                            if (current === movingPointIndex) {
-                                cpx = movingPointLocation.x;
-                                cpy = movingPointLocation.y;
-                            }
-                        }
-                    }
-                    c.quadraticCurveTo(cpx, cpy, endX, endY);
-                } else if (command.charAt(0) === 'z') {
-                    c.closePath();
-                }
+            const previewPath = PathElement.create();
+            previewPath.setCommands(commands.join(' '));
+            if (scaleX !== 1 || scaleY !== 1) {
+                previewPath.scale(scaleX, scaleY);
             }
+            if (offsetX !== 0 || offsetY !== 0) {
+                previewPath.translate(offsetX, offsetY);
+            }
+            if (movingPointIndex !== undefined && movingPointLocation) {
+                previewPath.setPointAt(
+                    movingPointIndex,
+                    new Point(movingPointLocation.x + offsetX, movingPointLocation.y + offsetY),
+                    this.controller.selectedElementCount() === 1 ? PointDepth.Full : PointDepth.Simple,
+                );
+            }
+            tracePathCommands(c, previewPath.getCommands());
         }
 
         if (FillFactory.setElementFill(c, pathElement)) {

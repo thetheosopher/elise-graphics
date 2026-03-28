@@ -9,6 +9,7 @@ import { ImageElement } from '../elements/image-element';
 import { LineElement } from '../elements/line-element';
 import { ModelElement } from '../elements/model-element';
 import { PathElement } from '../elements/path-element';
+import { iteratePathCommands } from '../elements/path-command-utils';
 import { PolygonElement } from '../elements/polygon-element';
 import { PolylineElement } from '../elements/polyline-element';
 import { RectangleElement } from '../elements/rectangle-element';
@@ -91,66 +92,68 @@ export class SVGExporter {
         }
 
         const svgCommands: string[] = [];
-        let current = Point.Origin;
-        let subpathStart = Point.Origin;
-
-        for (const command of commands) {
-            if (command.charAt(0) === 'm') {
-                const point = Point.parse(command.substring(1));
-                svgCommands.push('M ' + SVGExporter.pointToString(point));
-                current = point;
-                subpathStart = point;
+        iteratePathCommands(commands, (command) => {
+            switch (command.type) {
+                case 'm':
+                    svgCommands.push('M ' + SVGExporter.pointToString(command.point));
+                    break;
+                case 'l':
+                    if (command.end.y === command.start.y) {
+                        svgCommands.push('H ' + SVGExporter.formatNumber(command.end.x));
+                    }
+                    else if (command.end.x === command.start.x) {
+                        svgCommands.push('V ' + SVGExporter.formatNumber(command.end.y));
+                    }
+                    else {
+                        svgCommands.push('L ' + SVGExporter.pointToString(command.point));
+                    }
+                    break;
+                case 'H':
+                    svgCommands.push('H ' + SVGExporter.formatNumber(command.x));
+                    break;
+                case 'V':
+                    svgCommands.push('V ' + SVGExporter.formatNumber(command.y));
+                    break;
+                case 'c':
+                    svgCommands.push(
+                        'C ' +
+                            SVGExporter.pointToString(command.cp1) +
+                            ' ' +
+                            SVGExporter.pointToString(command.cp2) +
+                            ' ' +
+                            SVGExporter.pointToString(command.end)
+                    );
+                    break;
+                case 'S':
+                    svgCommands.push('S ' + SVGExporter.pointToString(command.cp2) + ' ' + SVGExporter.pointToString(command.end));
+                    break;
+                case 'Q':
+                    svgCommands.push('Q ' + SVGExporter.pointToString(command.controlPoint) + ' ' + SVGExporter.pointToString(command.end));
+                    break;
+                case 'T':
+                    svgCommands.push('T ' + SVGExporter.pointToString(command.end));
+                    break;
+                case 'A':
+                    svgCommands.push(
+                        'A ' +
+                            SVGExporter.formatNumber(command.radiusX) +
+                            ' ' +
+                            SVGExporter.formatNumber(command.radiusY) +
+                            ' ' +
+                            SVGExporter.formatNumber(command.xAxisRotation) +
+                            ' ' +
+                            (command.largeArc ? '1' : '0') +
+                            ' ' +
+                            (command.sweep ? '1' : '0') +
+                            ' ' +
+                            SVGExporter.pointToString(command.end)
+                    );
+                    break;
+                case 'z':
+                    svgCommands.push('Z');
+                    break;
             }
-            else if (command.charAt(0) === 'l') {
-                const point = Point.parse(command.substring(1));
-                if (point.y === current.y) {
-                    svgCommands.push('H ' + SVGExporter.formatNumber(point.x));
-                }
-                else if (point.x === current.x) {
-                    svgCommands.push('V ' + SVGExporter.formatNumber(point.y));
-                }
-                else {
-                    svgCommands.push('L ' + SVGExporter.pointToString(point));
-                }
-                current = point;
-            }
-            else if (command.charAt(0) === 'c') {
-                const parts = command.substring(1).split(',');
-                svgCommands.push(
-                    'C ' +
-                        SVGExporter.formatNumber(parseFloat(parts[0])) +
-                        ' ' +
-                        SVGExporter.formatNumber(parseFloat(parts[1])) +
-                        ' ' +
-                        SVGExporter.formatNumber(parseFloat(parts[2])) +
-                        ' ' +
-                        SVGExporter.formatNumber(parseFloat(parts[3])) +
-                        ' ' +
-                        SVGExporter.formatNumber(parseFloat(parts[4])) +
-                        ' ' +
-                        SVGExporter.formatNumber(parseFloat(parts[5]))
-                );
-                current = new Point(parseFloat(parts[4]), parseFloat(parts[5]));
-            }
-            else if (command.charAt(0) === 'q' || command.charAt(0) === 'Q') {
-                const parts = command.substring(1).split(',');
-                svgCommands.push(
-                    'Q ' +
-                        SVGExporter.formatNumber(parseFloat(parts[0])) +
-                        ' ' +
-                        SVGExporter.formatNumber(parseFloat(parts[1])) +
-                        ' ' +
-                        SVGExporter.formatNumber(parseFloat(parts[2])) +
-                        ' ' +
-                        SVGExporter.formatNumber(parseFloat(parts[3]))
-                );
-                current = new Point(parseFloat(parts[2]), parseFloat(parts[3]));
-            }
-            else if (command.charAt(0) === 'z') {
-                svgCommands.push('Z');
-                current = subpathStart;
-            }
-        }
+        });
 
         return svgCommands.join(' ');
     }

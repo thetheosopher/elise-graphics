@@ -434,7 +434,7 @@ class PathElement extends ElementBase {
   setCommands(commands: string): PathElement;              // Set commands from a space-separated string
 
   // Capabilities: canStroke=true, canFill=true, canEditPoints=true
-  // Commands: mX,Y lX,Y cCX1,CY1,CX2,CY2,X,Y z
+  // Commands: mX,Y lX,Y HX VY cCX1,CY1,CX2,CY2,X,Y SCP2X,CP2Y,X,Y QCX,CY,X,Y TX,Y ARX,RY,ROT,LARGE,SWEEP,X,Y z
 }
 ```
 
@@ -442,13 +442,19 @@ Command string format (space-separated tokens):
 
 - `mX,Y`: move to point
 - `lX,Y`: line to point
+- `HX`: horizontal line to absolute `X`
+- `VY`: vertical line to absolute `Y`
 - `cCX1,CY1,CX2,CY2,X,Y`: cubic bezier to end point `X,Y`
+- `SCP2X,CP2Y,X,Y`: smooth cubic bezier using reflected previous control point
+- `QCX,CY,X,Y`: quadratic bezier to end point `X,Y`
+- `TX,Y`: smooth quadratic bezier using reflected previous control point
+- `ARX,RY,ROT,LARGE,SWEEP,X,Y`: elliptical arc to end point `X,Y`
 - `z`: close current subpath
 
 Example using all command types:
 
 ```text
-m10,10 l50,10 c60,10,70,30,50,50 z
+m10,10 H50 V30 c60,30,70,50,50,70 S40,90,20,70 T10,50 A10,10,0,0,1,30,30 z
 ```
 
 ### PolygonElement

@@ -125,11 +125,11 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Line to (`L`) | ✅ | ✅ | ✅ | ✅ |
 | Cubic Bézier (`C`) | ✅ | ✅ | ✅ | ✅ |
 | Quadratic Bézier (`Q`) | ✅ | ✅ | ✅ | ✅ |
-| Arc (`A`) | ⚠️ (normalized import/export) | ✅ | ✅ | ✅ |
-| Smooth cubic (`S`) | ⚠️ (normalized import/export) | ✅ | ✅ | ❌ |
-| Smooth quadratic (`T`) | ⚠️ (normalized import/export) | ✅ | ✅ | ❌ |
-| Horizontal line (`H`) | ⚠️ (normalized import/export) | ✅ | ✅ | ❌ |
-| Vertical line (`V`) | ⚠️ (normalized import/export) | ✅ | ✅ | ❌ |
+| Arc (`A`) | ✅ | ✅ | ✅ | ✅ |
+| Smooth cubic (`S`) | ✅ | ✅ | ✅ | ❌ |
+| Smooth quadratic (`T`) | ✅ | ✅ | ✅ | ❌ |
+| Horizontal line (`H`) | ✅ | ✅ | ✅ | ❌ |
+| Vertical line (`V`) | ✅ | ✅ | ✅ | ❌ |
 | Close (`Z`) | ✅ | ✅ | ✅ | ✅ |
 | SVG path string parsing | ✅ | ✅ | ✅ | ✅ |
 | Boolean operations (union/intersect) | ❌ | ❌ | ✅ | ❌ |
@@ -137,7 +137,7 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Path offsetting | ❌ | ❌ | ✅ | ❌ |
 | Winding rules | ✅ | ✅ | ✅ | ✅ |
 
-**Analysis:** Elise now supports standard SVG path parsing with persisted quadratic commands, which closes a significant portion of the earlier path gap. The main remaining weaknesses are native persisted arc semantics, exact preservation of shorthand SVG command structure, and higher-level path tooling such as Boolean operations, simplification, and offsetting. Paper.js is still the clear leader with full Boolean path operations and first-class path manipulation.
+**Analysis:** Elise now supports standard SVG path parsing with native persisted support for arc, shorthand, and axis-aligned commands alongside cubic and quadratic segments. The main remaining weaknesses are higher-level path tooling such as Boolean operations, simplification, and offsetting. Paper.js is still the clear leader with full Boolean path operations and first-class path manipulation.
 
 ### 3.4 Transform System
 
@@ -323,7 +323,7 @@ Elise now has **substantial SVG capability**:
 - ❌ No SVG rendering backend (canvas-only)
 - ✅ SVG import covers `<path>`, `<rect>`, `<ellipse>`, `<circle>`, `<line>`, `<polygon>`, `<polyline>`, `<text>`, `<image>`, `<g>`, `<symbol>`, and `<use>`, including hierarchy-preserving container import, `use` reference resolution, inherited basic styles, gradient fills and clip paths from `<defs>`, `viewBox` origin offset handling, and SVG transform import via normalized matrix transforms
 - ✅ SVG export supports the base `Model`, `PathElement`, `RectangleElement`, `EllipseElement`, `LineElement`, `PolygonElement`, `PolylineElement`, `TextElement`, `ImageElement`, and `ModelElement`, with nested group export for embedded models and `<symbol>`/`<use>` export for reusable `ModelResource`-backed elements
-- ⚠️ Standard SVG path strings are supported at import time with persisted quadratic segments, while arc, shorthand, and axis-aligned commands are still normalized during import/export rather than preserved exactly as authored
+- ✅ Standard SVG path strings are supported with native persisted arc, shorthand, axis-aligned, cubic, and quadratic commands, while runtime rendering still expands those commands internally where canvas requires explicit segments
 - ⚠️ Elise transform strings are converted to valid SVG matrix transforms during export, but Elise still does not use native SVG transform syntax as its internal authoring format
 
 ### Why SVG Support Matters
@@ -344,7 +344,7 @@ Elise now has **substantial SVG capability**:
 
 - Status: Completed
 - Elise now parses standard SVG path `d` attribute strings, including quadratic, arc, shorthand, horizontal/vertical, relative, and absolute commands
-- Parsed SVG commands preserve quadratic segments where possible, while arc, shorthand, and axis-aligned commands are normalized into Elise's editable internal command representation so design-time editing continues to operate on explicit segments rather than native SVG shorthand or arc command storage
+- Parsed SVG commands now persist native absolute `A`, `S`, `T`, `H`, and `V` command forms alongside Elise's existing move, line, cubic, quadratic, and close commands
 
 #### Phase 2 — SVG Export
 
@@ -362,7 +362,7 @@ Elise now has **substantial SVG capability**:
   - `ModelElement` → `<g>` (nested group), or `<symbol>` + `<use>` (reusable resource-backed models)
 - Export maps fills/strokes to SVG `fill`/`stroke` and emits `<linearGradient>`/`<radialGradient>` defs for supported gradient fills
 - Export maps transforms to SVG `transform` attributes using matrix output
-- Export prefers human-readable path output by preserving simpler SVG commands such as `L`, `H`, `V`, and `Z` where normalized geometry allows, while falling back to `C` for exported curve segments
+- Export preserves persisted native `A`, `S`, `T`, `H`, `V`, `Q`, and `Z` commands, while still emitting readable `H` and `V` output for stored straight line segments when possible
 - Reusable `ModelResource`-backed `ModelElement`s are exported as deduplicated `<symbol>` definitions with `<use>` references; embedded source models export as nested `<g>` groups
 - Remaining work is richer SVG features such as patterns, masks, and filters
 
@@ -415,8 +415,8 @@ Elise now has **substantial SVG capability**:
 | No miter limit | Minor stroke property gap | Low |
 | No schema versioning | Forward/backward compatibility risk | Low |
 | No boolean path operations | Cannot union/intersect/subtract paths | High |
-| No first-class arc path editing | Imported arcs still normalized to cubics | Medium |
-| No exact SVG path round-trip fidelity | Shorthand/arc semantics normalized during import | Medium |
+| Limited first-class arc editing controls | Arcs are persisted natively but point editing still exposes endpoint-only control for arc segments | Medium |
+| Partial SVG path editing fidelity under non-uniform transforms | Native arc commands may be expanded to cubics during affine edits that cannot preserve exact SVG arc parameters | Medium |
 | Advanced SVG features (patterns, masks, filters) | SVG import/export incomplete for advanced constructs | Medium-High |
 | No WebGL/WebGPU renderer | Performance ceiling for complex scenes | High |
 | No motion path animation | Cannot animate elements along path geometries | Medium |

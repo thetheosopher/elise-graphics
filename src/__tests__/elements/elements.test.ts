@@ -397,54 +397,54 @@ test('path setCommands', () => {
     expect(path.pointCount()).toBe(3);
 });
 
-test('path fromSVGPath normalizes horizontal, vertical, and close commands', () => {
+test('path fromSVGPath preserves horizontal, vertical, and close commands', () => {
     const path = PathElement.fromSVGPath('M 10 20 H 30 V 40 z');
 
-    expect(path.getCommands()).toEqual(['m10,20', 'l30,20', 'l30,40', 'z']);
+    expect(path.getCommands()).toEqual(['m10,20', 'H30', 'V40', 'z']);
     expect(path.pointCount()).toBe(3);
 });
 
-test('path fromSVGPath preserves quadratic commands and expands smooth quadratic commands into explicit quadratics', () => {
+test('path fromSVGPath preserves quadratic and smooth quadratic commands', () => {
     const path = PathElement.fromSVGPath('M 0 0 Q 10 10 20 0 T 40 0');
     const commands = path.getCommands();
 
     expect(commands).toBeDefined();
     expect(commands![0]).toBe('m0,0');
     expect(commands![1]).toBe('Q10,10,20,0');
-    expect(commands![2]).toBe('Q30,-10,40,0');
-    expect(path.pointCount()).toBe(5);
+    expect(commands![2]).toBe('T40,0');
+    expect(path.pointCount()).toBe(4);
 });
 
-test('path fromSVGPath normalizes smooth cubic commands into explicit cubics', () => {
+test('path fromSVGPath preserves smooth cubic commands', () => {
     const path = PathElement.fromSVGPath('M 0 0 C 10 0 20 10 30 10 S 50 20 60 0');
     const commands = path.getCommands();
 
     expect(commands).toBeDefined();
     expect(commands).toHaveLength(3);
     expect(commands![1].charAt(0)).toBe('c');
-    expect(commands![2].charAt(0)).toBe('c');
+    expect(commands![2]).toBe('S50,20,60,0');
 });
 
-test('path fromSVGPath normalizes arcs into cubic segments', () => {
+test('path fromSVGPath preserves arc commands', () => {
     const path = PathElement.fromSVGPath('M 0 0 A 10 10 0 0 1 20 0');
     const commands = path.getCommands();
 
     expect(commands).toBeDefined();
     expect(commands![0]).toBe('m0,0');
-    expect(commands!.slice(1).every((command) => command.charAt(0) === 'c')).toBe(true);
-    expect(path.pointCount()).toBeGreaterThan(1);
+    expect(commands![1]).toBe('A10,10,0,0,1,20,0');
+    expect(path.pointCount()).toBe(2);
 });
 
-test('path fromSVGPath normalizes relative arcs into cubic segments', () => {
+test('path fromSVGPath preserves relative arcs as absolute arc commands', () => {
     const path = PathElement.fromSVGPath('M 5 5 a 10 10 0 0 0 20 0');
     const commands = path.getCommands();
 
     expect(commands).toBeDefined();
     expect(commands![0]).toBe('m5,5');
-    expect(commands!.slice(1).every((command) => command.charAt(0) === 'c')).toBe(true);
+    expect(commands![1]).toBe('A10,10,0,0,0,25,5');
 });
 
-test('path setCommands normalizes mixed legacy and SVG commands', () => {
+test('path setCommands preserves native shorthand and axis-aligned commands', () => {
     const path = PathElement.create();
     path.setCommands('m(0,0) l(10,0) h 5 q 5 5 10 0 t 10 -5 z');
     const commands = path.getCommands();
@@ -452,9 +452,9 @@ test('path setCommands normalizes mixed legacy and SVG commands', () => {
     expect(commands).toBeDefined();
     expect(commands![0]).toBe('m0,0');
     expect(commands![1]).toBe('l10,0');
-    expect(commands![2]).toBe('l15,0');
+    expect(commands![2]).toBe('H15');
     expect(commands![3]).toBe('Q5,5,10,0');
-    expect(commands![4]).toBe('Q15,-5,10,-5');
+    expect(commands![4]).toBe('T10,-5');
     expect(commands![5]).toBe('z');
 });
 
