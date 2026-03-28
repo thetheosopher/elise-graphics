@@ -1786,14 +1786,13 @@ describe('design controller interaction indicators', () => {
 
         jest.spyOn(controller, 'renderGrid').mockImplementation(() => undefined);
         jest.spyOn(controller, 'getElementHandles').mockReturnValue([]);
-        const horizontalSpy = jest.spyOn(controller, 'drawHorizontalLine');
-        const verticalSpy = jest.spyOn(controller, 'drawVerticalLine');
-
         controller.invalidate();
         controller.draw();
 
-        expect(verticalSpy).toHaveBeenCalledWith(context, smartAligned.guides.vertical[0]);
-        expect(horizontalSpy).toHaveBeenCalledWith(context, smartAligned.guides.horizontal[0]);
+        expect(context.moveTo).toHaveBeenCalledWith(smartAligned.guides.vertical[0], 0);
+        expect(context.lineTo).toHaveBeenCalledWith(smartAligned.guides.vertical[0], 200);
+        expect(context.moveTo).toHaveBeenCalledWith(0, smartAligned.guides.horizontal[0]);
+        expect(context.lineTo).toHaveBeenCalledWith(200, smartAligned.guides.horizontal[0]);
     });
 
     test('dragging a selected element snaps move preview to the grid', () => {

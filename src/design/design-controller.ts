@@ -3,23 +3,20 @@ import { UndoManager, UndoState } from '../command/undo-manager';
 import { IController } from '../controller/controller';
 import { ControllerEvent, IControllerEvent } from '../controller/controller-event';
 import { ControllerEventArgs } from '../controller/controller-event-args';
-import { Color } from '../core/color';
 import { ErrorMessages } from '../core/error-messages';
 import { Logging } from '../core/logging';
 import { Matrix2D } from '../core/matrix-2d';
 import { Model } from '../core/model';
 import { IMouseEvent } from '../core/mouse-event';
 import { MouseEventArgs } from '../core/mouse-event-args';
-import { MouseLocationArgs } from '../core/mouse-location-args';
 import { Point } from '../core/point';
-import { PointDepth } from '../core/point-depth';
 import { PointEventParameters } from '../core/point-event-parameters';
 import { Region } from '../core/region';
 import { Size } from '../core/size';
 import { TimerParameters } from '../core/timer-parameters';
 import { Utility } from '../core/utility';
 import { ViewDragArgs } from '../core/view-drag-args';
-import { applyCanvasDisplaySize, getDevicePixelRatio, translateClientPointToCanvasPixels } from '../core/canvas-display';
+import { translateClientPointToCanvasPixels } from '../core/canvas-display';
 import { ElementBase } from '../elements/element-base';
 import type { ElementModel } from '../elements/element-base';
 import { ElementCreationProps } from '../elements/element-creation-props';
@@ -27,7 +24,6 @@ import { ElementDragArgs } from '../elements/element-drag-args';
 import { ElementLocationArgs } from '../elements/element-location-args';
 import { ElementRotationArgs } from '../elements/element-rotation-args';
 import { ElementSizeArgs } from '../elements/element-size-args';
-import { ElementSizeProps } from '../elements/element-size-props';
 import { MoveLocation } from '../elements/move-location';
 import { RectangleElement } from '../elements/rectangle-element';
 import { ResizeSize } from '../elements/resize-size';
@@ -36,14 +32,22 @@ import { Component } from './component/component';
 import { ComponentElement } from './component/component-element';
 import { ComponentRegistry } from './component/component-registry';
 import { DesignArrangementService, type DesignArrangementHost } from './design-arrangement-service';
+import { DesignCanvasInteractionService, type DesignCanvasInteractionHost } from './design-canvas-interaction-service';
+import { DesignCanvasLifecycleService, type DesignCanvasLifecycleHost } from './design-canvas-lifecycle-service';
 import { DesignClipboardService, type DesignClipboardData } from './design-clipboard-service';
 import { DesignContextMenuEventArgs } from './design-context-menu-event-args';
+import { DesignDrawService, type DesignDrawHost } from './design-draw-service';
 import { DesignKeyboardInteractionService, type DesignKeyboardInteractionHost } from './design-keyboard-interaction-service';
+import { DesignMouseInteractionService, type DesignMouseInteractionHost } from './design-mouse-interaction-service';
 import { DesignMovementService, type DesignMovableSelectionEntry, type DesignSmartAlignmentGuides, type DesignMovementHost } from './design-movement-service';
+import { DesignOverlayRenderService, type DesignOverlayRenderHost } from './design-overlay-render-service';
 import { DesignRenderer } from './design-renderer';
+import { DesignSelectionService, type DesignSelectionHost } from './design-selection-service';
 import { DesignTextEditingService, type DesignTextEditingHost } from './design-text-editing-service';
 import { DesignTouchInteractionService, type DesignTouchInteractionHost } from './design-touch-interaction-service';
 import { DesignTransformService, type DesignTransformHost } from './design-transform-service';
+import { DesignUndoStateService, type DesignUndoStateHost } from './design-undo-state-service';
+import { DesignUndoService, type DesignUndoHost, type DesignUndoSnapshot } from './design-undo-service';
 import { GridType } from './grid-type';
 import { Handle } from './handle';
 import { HandleFactory } from './handle-factory';
@@ -54,19 +58,6 @@ export type { DesignClipboardData } from './design-clipboard-service';
 const log = Logging.log;
 
 const EPSILON = 2e-23;
-
-interface UndoSelectionState {
-    id?: string;
-    index: number;
-    editPoints: boolean;
-}
-
-interface DesignUndoSnapshot {
-    model: Model;
-    selectedElements: UndoSelectionState[];
-    isDirty: boolean;
-    signature: string;
-}
 
 /**
  * Design controller for interactive element creation
@@ -747,12 +738,20 @@ export class DesignController implements IController {
     private pendingToolHistoryBaseline?: string;
     private smartAlignmentGuides: DesignSmartAlignmentGuides = { vertical: [], horizontal: [] };
     private arrangementService: DesignArrangementService = new DesignArrangementService();
+    private canvasInteractionService: DesignCanvasInteractionService = new DesignCanvasInteractionService();
+    private canvasLifecycleService: DesignCanvasLifecycleService = new DesignCanvasLifecycleService();
     private clipboardService: DesignClipboardService = new DesignClipboardService();
+    private drawService: DesignDrawService = new DesignDrawService();
     private keyboardInteractionService: DesignKeyboardInteractionService = new DesignKeyboardInteractionService();
+    private mouseInteractionService: DesignMouseInteractionService = new DesignMouseInteractionService();
     private movementService: DesignMovementService = new DesignMovementService();
+    private overlayRenderService: DesignOverlayRenderService = new DesignOverlayRenderService();
     private textEditingService: DesignTextEditingService = new DesignTextEditingService();
+    private selectionService: DesignSelectionService = new DesignSelectionService();
     private touchInteractionService: DesignTouchInteractionService = new DesignTouchInteractionService();
     private transformService: DesignTransformService = new DesignTransformService();
+    private undoStateService: DesignUndoStateService = new DesignUndoStateService();
+    private undoService: DesignUndoService = new DesignUndoService();
 
     /**
      * Manages rendering and interaction with rendered model content
@@ -1173,141 +1172,23 @@ export class DesignController implements IController {
      */
     public createCanvas() {
         log('Creating canvas and attaching event handlers');
-        const self = this;
-        if (!self.model) {
-            return;
-        }
-        const size = self.model.getSize();
-        if (!size) {
-            throw new Error(ErrorMessages.SizeUndefined);
-        }
-        const canvas = document.createElement('canvas');
-        canvas.setAttribute('tabindex', '0');
-        canvas.style.touchAction = 'none';
-
-        canvas.addEventListener('mouseenter', self.onCanvasMouseEnter);
-        canvas.addEventListener('mouseleave', self.onCanvasMouseLeave);
-        canvas.addEventListener('mousedown', self.onCanvasMouseDown);
-        canvas.addEventListener('contextmenu', self.onCanvasContextMenu);
-        canvas.addEventListener('mousemove', self.onCanvasMouseMove);
-        canvas.addEventListener('touchstart', self.onCanvasTouchStart, { passive: false });
-        canvas.addEventListener('touchmove', self.onCanvasTouchMove, { passive: false });
-        canvas.addEventListener('touchend', self.onCanvasTouchEnd, { passive: false });
-        canvas.addEventListener('touchcancel', self.onCanvasTouchCancel, { passive: false });
-        canvas.addEventListener('keydown', self.onCanvasKeyDown);
-        canvas.addEventListener('dragenter', self.onCanvasDragEnter);
-        canvas.addEventListener('dragover', self.onCanvasDragOver);
-        canvas.addEventListener('dragleave', self.onCanvasDragLeave);
-        canvas.addEventListener('drop', self.onCanvasDrop);
-
-        self.canvas = canvas;
-        self.renderer = new DesignRenderer(self);
-        self.refreshPixelRatio(true);
-        if (typeof window !== 'undefined' && window.addEventListener) {
-            window.addEventListener('resize', self.onWindowResize, true);
-        }
+        this.canvasLifecycleService.createCanvas(this.createCanvasLifecycleHost());
     }
 
     /**
      * Detaches and destroys current canvas
      */
     public detach(): void {
-        if (this.model) {
-            if (this.model.controller === this) {
-                this.model.controller = undefined;
-            }
-            this.model.controllerDetached.trigger(this.model, this);
-            this.model.controllerDetached.clear();
-            this.model.controllerAttached.clear();
-        }
-        window.removeEventListener('touchend', this.windowTouchEnd, true);
-        window.removeEventListener('touchmove', this.windowTouchMove, true);
-        window.removeEventListener('touchcancel', this.windowTouchCancel, true);
-        window.removeEventListener('resize', this.onWindowResize, true);
-        if (!this.canvas) {
-            return;
-        }
         log('Detaching event handlers and destroying canvas');
-        this.canvas.removeEventListener('mouseenter', this.onCanvasMouseEnter);
-        this.canvas.removeEventListener('mouseleave', this.onCanvasMouseLeave);
-        this.canvas.removeEventListener('mousedown', this.onCanvasMouseDown);
-        this.canvas.removeEventListener('contextmenu', this.onCanvasContextMenu);
-        this.canvas.removeEventListener('mousemove', this.onCanvasMouseMove);
-        this.canvas.removeEventListener('touchstart', this.onCanvasTouchStart);
-        this.canvas.removeEventListener('touchmove', this.onCanvasTouchMove);
-        this.canvas.removeEventListener('touchend', this.onCanvasTouchEnd);
-        this.canvas.removeEventListener('touchcancel', this.onCanvasTouchCancel);
-        this.canvas.removeEventListener('keydown', this.onCanvasKeyDown);
-        this.canvas.removeEventListener('dragenter', this.onCanvasDragEnter);
-        this.canvas.removeEventListener('dragover', this.onCanvasDragOver);
-        this.canvas.removeEventListener('dragleave', this.onCanvasDragLeave);
-        this.canvas.removeEventListener('drop', this.onCanvasDrop);
-        const element = this.canvas.parentElement;
-        if (element) {
-            element.removeChild(this.canvas);
-        }
-        this.modelUpdated.clear();
-        this.enabledChanged.clear();
-        this.mouseEnteredView.clear();
-        this.mouseLeftView.clear();
-        this.mouseDownView.clear();
-        this.mouseUpView.clear();
-        this.mouseMovedView.clear();
-        this.mouseEnteredElement.clear();
-        this.mouseLeftElement.clear();
-        this.mouseDownElement.clear();
-        this.mouseUpElement.clear();
-        this.elementClicked.clear();
-        this.contextMenuRequested.clear();
-        this.timer.clear();
-        this.selectionChanged.clear();
-        this.elementCreated.clear();
-        this.elementAdded.clear();
-        this.elementRemoved.clear();
-        this.onDelete.clear();
-        this.elementMoving.clear();
-        this.elementMoved.clear();
-        this.elementSizing.clear();
-        this.elementSized.clear();
-        this.elementRotating.clear();
-        this.elementRotated.clear();
-        this.viewDragEnter.clear();
-        this.viewDragOver.clear();
-        this.viewDragLeave.clear();
-        this.viewDrop.clear();
-        this.elementDragEnter.clear();
-        this.elementDragLeave.clear();
-        this.elementDrop.clear();
-        this.elementsReordered.clear();
-        this.isDirtyChanged.clear();
-        this.undoChanged.clear();
-        this.canvas = undefined;
+        this.canvasLifecycleService.detach(this.createCanvasLifecycleHost());
     }
 
     public undo(): boolean {
-        if (!this.canApplyUndoRedo()) {
-            return false;
-        }
-        const snapshot = this.undoManager.undo();
-        if (!snapshot) {
-            this.updateUndoAvailability();
-            return false;
-        }
-        this.applyUndoSnapshot(snapshot);
-        return true;
+        return this.undoService.undo(this.createUndoHost());
     }
 
     public redo(): boolean {
-        if (!this.canApplyUndoRedo()) {
-            return false;
-        }
-        const snapshot = this.undoManager.redo();
-        if (!snapshot) {
-            this.updateUndoAvailability();
-            return false;
-        }
-        this.applyUndoSnapshot(snapshot);
-        return true;
+        return this.undoService.redo(this.createUndoHost());
     }
 
     /**
@@ -1470,393 +1351,8 @@ export class DesignController implements IController {
      * @param e - Mouse event
      */
     public onCanvasMouseDown(e: MouseEvent | IMouseEvent): void {
-        if (!this.model) {
-            throw new Error(ErrorMessages.ModelUndefined);
-        }
-        if (!this.canvas) {
-            return;
-        }
         log(`Canvas mouse down ${e.clientX}:${e.clientY}`);
-        if (!this.enabled) {
-            return;
-        }
-        const p = this.windowToCanvas(e.clientX, e.clientY);
-        const button = e.button || 0;
-
-        if (button === 2) {
-            if (this.activeTool && this.activeTool.isCreating) {
-                this.activeTool.cancel();
-                this.finalizeToolHistorySession();
-                e.preventDefault?.();
-                e.stopPropagation?.();
-                this.isMouseDown = false;
-                this.draw();
-                return;
-            }
-
-            if (this.mouseDownView.hasListeners()) {
-                this.mouseDownView.trigger(this, new PointEventParameters(e, new Point(p.x, p.y)));
-            }
-            return;
-        }
-
-        DesignController.captured = this;
-        window.addEventListener('mouseup', this.windowMouseUp, true);
-        window.addEventListener('mousemove', this.windowMouseMove, true);
-        const context = this.canvas.getContext('2d');
-        if (!context) {
-            return;
-        }
-
-        // Set current location and empty width/height
-        this.currentX = p.x;
-        this.currentY = p.y;
-        this.currentWidth = 0;
-        this.currentHeight = 0;
-        this.mouseDownPosition = new Point(p.x, p.y);
-        this.isMouseDown = true;
-
-        // If we have an active tool
-        if (this.activeTool) {
-            // If it's creating and right button pressed, cancel and return
-            if (this.activeTool.isCreating && button === 2) {
-                this.activeTool.cancel();
-                this.finalizeToolHistorySession();
-                e.preventDefault?.();
-                e.stopPropagation?.();
-                this.isMouseDown = false;
-                this.draw();
-                return;
-            }
-
-            // If not right mouse button, pass to tool
-            if (button !== 2) {
-                if (!this.activeTool.isCreating) {
-                    this.beginToolHistorySession();
-                }
-                this.activeTool.mouseDown(new MouseLocationArgs(e, new Point(p.x, p.y)));
-            }
-
-            // Fire mouse down event
-            if (this.mouseDownView.hasListeners()) {
-                this.mouseDownView.trigger(this, new PointEventParameters(e, new Point(p.x, p.y)));
-            }
-
-            return;
-        }
-
-        // Fire mouse down event
-        if (this.mouseDownView.hasListeners()) {
-            this.mouseDownView.trigger(this, new PointEventParameters(e, new Point(p.x, p.y)));
-        }
-
-        if (this.editingTextElement && this.selectedElements.indexOf(this.editingTextElement) !== -1) {
-            const editingBounds = this.editingTextElement.getBounds();
-            const clickCount = typeof (e as MouseEvent).detail === 'number' ? (e as MouseEvent).detail : 1;
-            const localPoint = editingBounds
-                ? this.resolveTextEditInteractionPoint(this.editingTextElement, editingBounds, new Point(p.x, p.y))
-                : undefined;
-            if (editingBounds && localPoint && editingBounds.containsCoordinate(localPoint.x, localPoint.y)) {
-                const caretIndex = this.editingTextElement.getTextIndexAtPoint(
-                    context,
-                    editingBounds.location,
-                    editingBounds.size,
-                    localPoint,
-                );
-                this.textCaretPreferredX = undefined;
-                if (clickCount >= 2) {
-                    const [start, end] = this.editingTextElement.getWordRangeAt(caretIndex);
-                    this.textSelectionAnchor = start;
-                    this.textSelectionStart = start;
-                    this.textSelectionEnd = end;
-                    this.isSelectingText = false;
-                }
-                else {
-                    this.textSelectionAnchor = caretIndex;
-                    this.textSelectionStart = caretIndex;
-                    this.textSelectionEnd = caretIndex;
-                    this.isSelectingText = true;
-                }
-                this.invalidate();
-                this.drawIfNeeded();
-                return;
-            }
-        }
-
-        const selectedTextElement = this.getSelectedTextElement();
-        if (selectedTextElement && e.shiftKey) {
-            const editingBounds = selectedTextElement.getBounds();
-            const clickCount = typeof (e as MouseEvent).detail === 'number' ? (e as MouseEvent).detail : 1;
-            const localPoint = editingBounds
-                ? this.resolveTextEditInteractionPoint(selectedTextElement, editingBounds, new Point(p.x, p.y))
-                : undefined;
-            if (editingBounds && localPoint && editingBounds.containsCoordinate(localPoint.x, localPoint.y)) {
-                const caretIndex = selectedTextElement.getTextIndexAtPoint(
-                    context,
-                    editingBounds.location,
-                    editingBounds.size,
-                    localPoint,
-                );
-                this.beginTextEdit(selectedTextElement, caretIndex);
-                this.textCaretPreferredX = undefined;
-                if (clickCount >= 2) {
-                    const [start, end] = selectedTextElement.getWordRangeAt(caretIndex);
-                    this.textSelectionAnchor = start;
-                    this.textSelectionStart = start;
-                    this.textSelectionEnd = end;
-                    this.isSelectingText = false;
-                }
-                else {
-                    this.textSelectionAnchor = caretIndex;
-                    this.textSelectionStart = caretIndex;
-                    this.textSelectionEnd = caretIndex;
-                    this.isSelectingText = true;
-                }
-                this.invalidate();
-                this.drawIfNeeded();
-                return;
-            }
-        }
-
-        // Set active element if any at location
-        const activeElement = this.model.firstActiveElementAt(context, p.x, p.y);
-        this.setMouseDownElement(activeElement);
-
-        // Clear cancel action flag
-        this.cancelAction = false;
-
-        // Left button
-        if (button === 0 || button === 2) {
-            let foundHandle = false;
-            let selectedHandle: Handle | undefined;
-
-            for (const el of this.selectedElements) {
-                const handles = this.getElementHandles(el);
-
-                // If element is transformed, hit test against transformed rectangles
-                if (el.transform) {
-                    context.save();
-                    const b = el.getBounds();
-                    if (!b) {
-                        continue;
-                    }
-                    let reference = new Point(b.x, b.y);
-                    if (this.isMoving && el.canMove()) {
-                        reference = this.getElementMoveLocation(el);
-                    } else if (this.isResizing && el.canResize()) {
-                        reference = this.getElementMoveLocation(el);
-                    }
-                    this.model.setRenderTransform(context, el.transform, reference);
-                    for (const h of handles) {
-                        context.beginPath();
-                        if (h.region) {
-                            context.rect(h.region.x, h.region.y, h.region.width, h.region.height);
-                        }
-                        const hit = context.isPointInPath(p.x, p.y);
-                        context.closePath();
-                        if (hit) {
-                            this.canvas.style.cursor = h.cursor;
-                            foundHandle = true;
-                            selectedHandle = h;
-                            break;
-                        }
-                    }
-                    context.restore();
-                } else {
-                    // No element transform, so test handle regions
-                    for (const h of handles) {
-                        const hr = h.region;
-                        if (!hr) {
-                            continue;
-                        }
-                        let hit = hr.containsCoordinate(p.x, p.y);
-                        if (!hit) {
-                            if (h.barRegion && h.barRegion.containsCoordinate(p.x, p.y)) {
-                                hit = true;
-                            }
-                        }
-                        if (hit) {
-                            this.canvas.style.cursor = h.cursor;
-                            selectedHandle = h;
-                            foundHandle = true;
-                            break;
-                        }
-                    }
-                    if (foundHandle) {
-                        break;
-                    }
-                }
-            }
-
-            // If handle found put in resizing mode
-            if (foundHandle && button === 0 && selectedHandle) {
-                // If multiple elements selected
-                this.sizeHandles = [];
-
-                // Check for rotation or pivot handle
-                const hid = selectedHandle.handleId;
-                if (typeof hid === 'string' && hid.startsWith('rotate-')) {
-                    this.sizeHandles.push(selectedHandle);
-                    this.isRotating = true;
-                    const el = selectedHandle.element;
-                    const b = el.getBounds();
-                    if (b) {
-                        // Determine rotation center in canvas space
-                        if (!this.rotationCenter) {
-                            const rc = el.getRotationCenter();
-                            if (rc) {
-                                this.rotationCenter = new Point(b.x + rc.x, b.y + rc.y);
-                            } else {
-                                this.rotationCenter = new Point(b.x + b.width / 2, b.y + b.height / 2);
-                            }
-                        }
-                        // Transform local center to canvas space for angle calculation
-                        let canvasCenter = new Point(this.rotationCenter.x, this.rotationCenter.y);
-                        if (el.transform) {
-                            const mat = Matrix2D.fromTransformString(el.transform, new Point(b.x, b.y));
-                            canvasCenter = mat.transformPoint(this.rotationCenter);
-                        }
-                        this.rotationStartAngle = Math.atan2(p.y - canvasCenter.y, p.x - canvasCenter.x);
-                        this.originalRotation = el.getRotation();
-                        this.originalTransform = el.transform;
-                    }
-                    return;
-                } else if (typeof hid === 'string' && hid === 'pivot') {
-                    this.sizeHandles.push(selectedHandle);
-                    this.isMovingPivot = true;
-                    // Initialize rotation center from element or default
-                    const pivotEl = selectedHandle.element;
-                    const pivotBounds = pivotEl.getBounds();
-                    if (pivotBounds) {
-                        if (!this.rotationCenter) {
-                            const rc = pivotEl.getRotationCenter();
-                            if (rc) {
-                                this.rotationCenter = new Point(pivotBounds.x + rc.x, pivotBounds.y + rc.y);
-                            } else {
-                                this.rotationCenter = new Point(
-                                    pivotBounds.x + pivotBounds.width / 2,
-                                    pivotBounds.y + pivotBounds.height / 2,
-                                );
-                            }
-                        }
-                        this.originalPivotCenter = new Point(this.rotationCenter.x, this.rotationCenter.y);
-                    }
-                    return;
-                } else if (typeof hid === 'string' && hid.startsWith('cornerRadius-')) {
-                    this.sizeHandles.push(selectedHandle);
-                    this.isMovingCornerRadius = true;
-                    return;
-                }
-
-                if (this.resizeableSelectedElementCount() > 0) {
-                    const self = this;
-                    this.selectedElements.forEach((selectedElement) => {
-                        if (selectedElement.canResize()) {
-                            const elementHandles = self.getElementHandles(selectedElement);
-                            elementHandles.forEach((handle) => {
-                                if (selectedHandle && handle.handleId === selectedHandle.handleId) {
-                                    if (!self.sizeHandles) {
-                                        self.sizeHandles = [];
-                                    }
-                                    self.sizeHandles.push(handle);
-                                }
-                            }, self);
-                        }
-                    }, this);
-                    this.isResizing = true;
-                } else if (this.selectedElementCount() === 1) {
-                    const el = this.selectedElements[0];
-                    if (el.canMovePoint()) {
-                        const pointIndex = selectedHandle.handleIndex;
-                        if (pointIndex !== undefined) {
-                            this.sizeHandles.push(selectedHandle);
-                            this.isMovingPoint = true;
-                            this.movingPointLocation = el.getPointAt(pointIndex, PointDepth.Full);
-                            this.movingPointIndex = pointIndex;
-                        }
-                    }
-                }
-                return;
-            }
-
-            // Select/deselect element
-            if (this.selectionEnabled || e.ctrlKey || e.metaKey || button === 2) {
-                const elementsAtPoint = this.model.elementsAt(context, p.x, p.y);
-                if (elementsAtPoint && elementsAtPoint.length > 0) {
-                    this.rubberBandActive = false;
-                    this.canvas.style.cursor = 'pointer';
-
-                    // If any elements under point are already selected, do nothing
-                    let elementSelected = false;
-                    for (const elementAtPoint of elementsAtPoint) {
-                        if (this.isSelected(elementAtPoint)) {
-                            elementSelected = true;
-                            break;
-                        }
-                    }
-
-                    // Select element
-                    if (e.shiftKey) {
-                        if (button === 0) {
-                            this.toggleSelected(elementsAtPoint[elementsAtPoint.length - 1]);
-                        } else if (button === 2) {
-                            this.selectElement(elementsAtPoint[elementsAtPoint.length - 1]);
-                        }
-                    } else if (this.selectionEnabled && (e.ctrlKey || e.metaKey)) {
-                        if (button === 0) {
-                            this.toggleSelected(elementsAtPoint[elementsAtPoint.length - 1]);
-                        } else if (button === 2) {
-                            this.selectElement(elementsAtPoint[elementsAtPoint.length - 1]);
-                        }
-                    } else {
-                        // Select current element and clear others
-                        if (!elementSelected) {
-                            this.clearSelections();
-                            this.selectElement(elementsAtPoint[elementsAtPoint.length - 1]);
-                        } else {
-                            // Toggle edit points mode
-                            if (elementsAtPoint.length === 1) {
-                                if (elementsAtPoint[0].canEditPoints()) {
-                                    if (elementsAtPoint[0].editPoints) {
-                                        elementsAtPoint[0].editPoints = false;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    // Deselect all elements
-                    if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                        this.clearSelections();
-                    }
-
-                    // Enable rubber band
-                    this.rubberBandRegion = new Region(p.x, p.y, 0, 0);
-                    this.rubberBandActive = true;
-
-                    if (this.selectionEnabled) {
-                        this.selecting = true;
-                    } else {
-                        if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                            this.selecting = false;
-                        } else {
-                            this.selecting = true;
-                        }
-                    }
-
-                    this.invalidate();
-                }
-            } else {
-                // Enable rubber band
-                this.clearSelections();
-                this.rubberBandRegion = new Region(p.x, p.y, 0, 0);
-                this.rubberBandActive = true;
-                this.selecting = false;
-                this.invalidate();
-            }
-            this.invalidate();
-        }
-        this.drawIfNeeded();
+        this.mouseInteractionService.onCanvasMouseDown(this.createMouseInteractionHost(), e);
     }
 
     /**
@@ -1864,391 +1360,7 @@ export class DesignController implements IController {
      * @param e - Mouse event
      */
     public onCanvasMouseMove(e: MouseEvent | IMouseEvent): void {
-        if (!this.enabled) {
-            return;
-        }
-        if (!this.model) {
-            throw new Error(ErrorMessages.ModelUndefined);
-        }
-        if (!this.canvas) {
-            return;
-        }
-        if (e.button === 2) {
-            return;
-        }
-
-        this.lastClientX = e.clientX;
-        this.lastClientY = e.clientY;
-
-        const p = this.windowToCanvas(e.clientX, e.clientY);
-        if (this.isMouseDown && this.currentX !== undefined && this.currentY !== undefined) {
-            this.currentWidth = p.x - this.currentX;
-            this.currentHeight = p.y - this.currentY;
-        } else {
-            this.currentX = p.x;
-            this.currentY = p.y;
-            this.currentWidth = 0;
-            this.currentHeight = 0;
-        }
-
-        // Get distance moved
-        let deltaX = 0;
-        let deltaY = 0;
-        if (this.mouseDownPosition) {
-            const size = this.model.getSize();
-            if (size) {
-                deltaX = p.x - this.mouseDownPosition.x;
-                if (this.mouseDownPosition.x + deltaX < 0) {
-                    deltaX = -this.mouseDownPosition.x;
-                    this.currentX = 0;
-                    this.currentWidth = this.mouseDownPosition.x;
-                } else if (this.mouseDownPosition.x + deltaX >= size.width) {
-                    deltaX = size.width - this.mouseDownPosition.x;
-                    this.currentX = size.width - 1;
-                    this.currentWidth = deltaX;
-                }
-                deltaY = p.y - this.mouseDownPosition.y;
-                if (this.mouseDownPosition.y + deltaY < 0) {
-                    deltaY = -this.mouseDownPosition.y;
-                    this.currentY = 0;
-                    this.currentHeight = this.mouseDownPosition.y;
-                } else if (this.mouseDownPosition.y + deltaY >= size.height) {
-                    deltaY = size.height - this.mouseDownPosition.y;
-                    this.currentY = size.height - 1;
-                    this.currentHeight = deltaY;
-                }
-                if (deltaX === this.lastDeltaX && deltaY === this.lastDeltaY) {
-                    return;
-                }
-            }
-        }
-        this.lastDeltaX = deltaX;
-        this.lastDeltaY = deltaY;
-
-        // Fire view mouse moved event
-        if (this.mouseMovedView.hasListeners()) {
-            this.mouseMovedView.trigger(this, new PointEventParameters(e, new Point(p.x, p.y)));
-        }
-
-        if (this.isSelectingText && this.editingTextElement) {
-            const editingBounds = this.editingTextElement.getBounds();
-            const canvasContext = this.canvas.getContext('2d');
-            const localPoint = editingBounds
-                ? this.resolveTextEditInteractionPoint(this.editingTextElement, editingBounds, new Point(p.x, p.y))
-                : undefined;
-            if (editingBounds && canvasContext && localPoint) {
-                const caretIndex = this.editingTextElement.getTextIndexAtPoint(
-                    canvasContext,
-                    editingBounds.location,
-                    editingBounds.size,
-                    localPoint,
-                );
-                this.textSelectionStart = this.textSelectionAnchor;
-                this.textSelectionEnd = caretIndex;
-                this.invalidate();
-                this.drawIfNeeded();
-                return;
-            }
-        }
-
-        // If we have an active tool, then delegate and return
-        if (this.activeTool) {
-            this.activeTool.mouseMove(new MouseLocationArgs(e, new Point(p.x, p.y)));
-            return;
-        }
-
-        // If rotating
-        if (this.isRotating && this.sizeHandles && this.sizeHandles.length > 0) {
-            this.sizeHandles.forEach((h) => {
-                if (h.handleMoved) {
-                    h.handleMoved(h, {
-                        deltaX: 0,
-                        deltaY: 0,
-                        mouseX: p.x,
-                        mouseY: p.y,
-                        shiftKey: e.shiftKey,
-                    });
-                }
-            });
-            if (this.sizeHandles.length > 0) {
-                const rotEl = this.sizeHandles[0].element;
-                this.onElementRotating(rotEl, rotEl.getRotation());
-            }
-        }
-        // If moving pivot
-        else if (this.isMovingPivot && this.sizeHandles && this.sizeHandles.length > 0) {
-            this.sizeHandles.forEach((h) => {
-                if (h.handleMoved) {
-                    let dx = Math.round(deltaX);
-                    let dy = Math.round(deltaY);
-                    // Convert screen-space deltas to local element space for transformed elements
-                    const el = h.element;
-                    if (el.transform && this.model) {
-                        const b = el.getBounds();
-                        if (b) {
-                            const ref = new Point(b.x, b.y);
-                            const mat = Matrix2D.fromTransformString(el.transform, ref);
-                            const inv = mat.inverse();
-                            const local = inv.transformVector(deltaX, deltaY);
-                            dx = Math.round(local.x);
-                            dy = Math.round(local.y);
-                        }
-                    }
-                    h.handleMoved(h, { deltaX: dx, deltaY: dy });
-                }
-            });
-        }
-        // If resizing
-        else if (this.isResizing && this.sizeHandles && this.sizeHandles.length > 0) {
-            this.sizeHandles.forEach((h) => {
-                if (h.handleMoved) {
-                    let dx = Math.round(deltaX);
-                    let dy = Math.round(deltaY);
-                    // Convert screen-space deltas to local element space for transformed elements
-                    const el = h.element;
-                    if (el.transform && this.model) {
-                        const b = el.getBounds();
-                        if (b) {
-                            const ref = new Point(b.x, b.y);
-                            const mat = Matrix2D.fromTransformString(el.transform, ref);
-                            const inv = mat.inverse();
-                            const local = inv.transformVector(deltaX, deltaY);
-                            dx = Math.round(local.x);
-                            dy = Math.round(local.y);
-                        }
-                    }
-                    h.handleMoved(h, { deltaX: dx, deltaY: dy, shiftKey: e.shiftKey });
-                }
-            });
-        } else if (this.isMovingCornerRadius && this.sizeHandles && this.sizeHandles.length > 0) {
-            this.sizeHandles.forEach((h) => {
-                if (h.handleMoved) {
-                    let dx = Math.round(deltaX);
-                    let dy = Math.round(deltaY);
-                    const el = h.element;
-                    if (el.transform && this.model) {
-                        const b = el.getBounds();
-                        if (b) {
-                            const ref = new Point(b.x, b.y);
-                            const mat = Matrix2D.fromTransformString(el.transform, ref);
-                            const inv = mat.inverse();
-                            const local = inv.transformVector(deltaX, deltaY);
-                            dx = Math.round(local.x);
-                            dy = Math.round(local.y);
-                        }
-                    }
-                    h.handleMoved(h, { deltaX: dx, deltaY: dy, shiftKey: e.shiftKey });
-                }
-            });
-        } else if (this.isMoving) {
-            const movableEntries = this.getSelectedMovableEntries();
-            if (movableEntries.length > 0) {
-                const constrainedDelta = this.constrainMoveDeltaToBounds(movableEntries, deltaX, deltaY);
-                const snappedDelta = this.snapMoveDeltaToGrid(movableEntries, constrainedDelta.x, constrainedDelta.y);
-                let moveDeltaX = snappedDelta.x;
-                let moveDeltaY = snappedDelta.y;
-                const smartAligned = this.getSmartAlignmentDelta(movableEntries, moveDeltaX, moveDeltaY);
-                if (
-                    Math.abs(smartAligned.deltaX - moveDeltaX) > EPSILON ||
-                    Math.abs(smartAligned.deltaY - moveDeltaY) > EPSILON
-                ) {
-                    const reclampedDelta = this.constrainMoveDeltaToBounds(
-                        movableEntries,
-                        smartAligned.deltaX,
-                        smartAligned.deltaY,
-                    );
-                    if (
-                        Math.abs(reclampedDelta.x - smartAligned.deltaX) <= EPSILON &&
-                        Math.abs(reclampedDelta.y - smartAligned.deltaY) <= EPSILON
-                    ) {
-                        moveDeltaX = smartAligned.deltaX;
-                        moveDeltaY = smartAligned.deltaY;
-                        this.smartAlignmentGuides = smartAligned.guides;
-                    } else {
-                        this.smartAlignmentGuides = { vertical: [], horizontal: [] };
-                        moveDeltaX = reclampedDelta.x;
-                        moveDeltaY = reclampedDelta.y;
-                    }
-                } else {
-                    this.smartAlignmentGuides = smartAligned.guides;
-                }
-
-                for (const entry of movableEntries) {
-                    const moveSize = this.getElementResizeSize(entry.element);
-                    const moveLocation = new Point(Math.round(entry.bounds.x + moveDeltaX), Math.round(entry.bounds.y + moveDeltaY));
-                    this.setElementMoveLocation(entry.element, moveLocation, moveSize);
-                }
-                this.invalidate();
-            }
-        } else if (this.isMovingPoint && this.movingPointIndex !== undefined) {
-            const pointHolder = this.selectedElements[0];
-            let depth = PointDepth.Simple;
-            if (this.selectedElementCount() === 1) {
-                depth = PointDepth.Full;
-            }
-            const pointLocation = pointHolder.getPointAt(this.movingPointIndex, depth);
-            // Convert deltas to local element space for transformed elements
-            let localDX = deltaX;
-            let localDY = deltaY;
-            if (pointHolder.transform && this.model) {
-                const b = pointHolder.getBounds();
-                if (b) {
-                    const ref = new Point(b.x, b.y);
-                    const mat = Matrix2D.fromTransformString(pointHolder.transform, ref);
-                    const inv = mat.inverse();
-                    const local = inv.transformVector(deltaX, deltaY);
-                    localDX = local.x;
-                    localDY = local.y;
-                }
-            }
-            let newLocation: Point;
-            if (this.snapToGrid) {
-                newLocation = new Point(
-                    this.getNearestSnapX(pointLocation.x + localDX),
-                    this.getNearestSnapY(pointLocation.y + localDY),
-                );
-            } else {
-                newLocation = new Point(Math.round(pointLocation.x + localDX), Math.round(pointLocation.y + localDY));
-            }
-            this.movingPointLocation = newLocation;
-            this.invalidate();
-        } else if (this.isMouseDown) {
-            if (!this.isMoving) {
-                // Determine if any movable elements selected and if so, initiate move
-                if (this.movableSelectedElementCount() > 0) {
-                    if (deltaX * deltaX + deltaY * deltaY > 8) {
-                        this.selectedElements.forEach((selectedElement) => {
-                            if (selectedElement.canMove()) {
-                                const location = selectedElement.getLocation();
-                                const size = selectedElement.getSize();
-                                if (location && size) {
-                                    this.setElementMoveLocation(selectedElement, new Point(location.x, location.y), size);
-                                    this.setElementResizeSize(selectedElement, new Size(size.width, size.height), location);
-                                }
-                            }
-                        });
-                        this.isMoving = true;
-                        this.invalidate();
-                    }
-                }
-            }
-
-            // If rubber banding, update
-            if (this.rubberBandActive && this.mouseDownPosition) {
-                let left = Math.min(this.mouseDownPosition.x, this.mouseDownPosition.x + deltaX);
-                let top = Math.min(this.mouseDownPosition.y, this.mouseDownPosition.y + deltaY);
-                let width = Math.abs(deltaX);
-                let height = Math.abs(deltaY);
-
-                // If snapping to grid
-                if (this.snapToGrid) {
-                    const snappedLeft = this.getNearestSnapX(this.mouseDownPosition.x);
-                    left = snappedLeft;
-
-                    const snappedTop = this.getNearestSnapY(this.mouseDownPosition.y);
-                    top = snappedTop;
-                }
-                if (left < 0) {
-                    left = 0;
-                }
-                if (top < 0) {
-                    top = 0;
-                }
-                const size = this.model.getSize();
-                if (size) {
-                    if (left + width > size.width) {
-                        width = size.width - left;
-                    }
-                    if (top + height > size.height) {
-                        height = size.height - top;
-                    }
-                    this.rubberBandRegion = new Region(left, top, width, height);
-                }
-                this.invalidate();
-                if (this.canvas) {
-                    this.canvas.style.cursor = 'none';
-                }
-            }
-        } else {
-            // Determine if over handle
-            let foundHandle = false;
-            const sl = this.selectedElements.length;
-            for (let si = 0; si < sl; si++) {
-                const selectedElement = this.selectedElements[si];
-                const handles = this.getElementHandles(selectedElement);
-
-                // If element is transformed, hit test against transformed rectangles
-                if (selectedElement.transform) {
-                    const context = this.canvas.getContext('2d');
-                    if (context) {
-                        context.save();
-                        const b = selectedElement.getBounds();
-                        if (!b) {
-                            continue;
-                        }
-                        let reference = new Point(b.x, b.y);
-                        if (this.isMoving && selectedElement.canMove()) {
-                            reference = this.getElementMoveLocation(selectedElement);
-                        } else if (this.isResizing && selectedElement.canResize()) {
-                            reference = this.getElementMoveLocation(selectedElement);
-                        }
-                        this.model.setRenderTransform(context, selectedElement.transform, reference);
-                        for (const h of handles) {
-                            context.beginPath();
-                            if (!h.region) {
-                                return;
-                            }
-                            context.rect(h.region.x, h.region.y, h.region.width, h.region.height);
-                            const hit = context.isPointInPath(p.x, p.y);
-                            context.closePath();
-                            if (hit) {
-                                this.canvas.style.cursor = h.cursor;
-                                foundHandle = true;
-                                break;
-                            }
-                        }
-                        context.restore();
-                    }
-                } else {
-                    // No element transform, so test handle regions
-                    for (const h of handles) {
-                        if (!h.region) {
-                            continue;
-                        }
-                        const hit = h.region.containsCoordinate(p.x, p.y);
-                        if (hit) {
-                            this.canvas.style.cursor = h.cursor;
-                            foundHandle = true;
-                            break;
-                        }
-                    }
-                    if (foundHandle) {
-                        break;
-                    }
-                }
-            }
-            if (!foundHandle) {
-                const context = this.canvas.getContext('2d');
-                if (context) {
-                    const elementsAtPoint = this.model.elementsAt(context, p.x, p.y);
-                    if (elementsAtPoint && elementsAtPoint.length > 0) {
-                        if (e.ctrlKey || e.metaKey) {
-                            this.canvas.style.cursor = 'pointer';
-                        } else if (this.selectionEnabled) {
-                            this.canvas.style.cursor = 'pointer';
-                        } else {
-                            this.canvas.style.cursor = 'crosshair';
-                        }
-                        const activeElement = elementsAtPoint[elementsAtPoint.length - 1];
-                        this.setMouseOverElement(activeElement);
-                    } else {
-                        this.canvas.style.cursor = 'crosshair';
-                        this.setMouseOverElement(undefined);
-                    }
-                }
-            }
-        }
-        this.drawIfNeeded();
+        this.mouseInteractionService.onCanvasMouseMove(this.createMouseInteractionHost(), e);
     }
 
     /**
@@ -2257,337 +1369,7 @@ export class DesignController implements IController {
      */
     public onCanvasMouseUp(e: MouseEvent | IMouseEvent): void {
         log(`Canvas mouse up ${e.clientX}:${e.clientY}`);
-        if (!this.enabled) {
-            return;
-        }
-        if (!this.mouseDownPosition) {
-            return;
-        }
-        if (!this.model) {
-            throw new Error(ErrorMessages.ModelUndefined);
-        }
-        if (!this.canvas) {
-            return;
-        }
-
-        const p = this.windowToCanvas(e.clientX, e.clientY);
-        const deltaX = p.x - this.mouseDownPosition.x;
-        const deltaY = p.y - this.mouseDownPosition.y;
-
-        // Clear mouse down state and call any mouse up or click listeners
-        this.isMouseDown = false;
-        if (this.mouseUpView.hasListeners()) {
-            this.mouseUpView.trigger(this, new PointEventParameters(e, new Point(p.x, p.y)));
-        }
-
-        // If we have an active tool, then delegate and return
-        if (this.activeTool) {
-            this.activeTool.mouseUp(new MouseLocationArgs(e, new Point(p.x, p.y)));
-            if (!this.activeTool.isCreating) {
-                this.finalizeToolHistorySession();
-            }
-            return;
-        }
-
-        if (this.isSelectingText) {
-            this.isSelectingText = false;
-            this.invalidate();
-            this.drawIfNeeded();
-            return;
-        }
-
-        // Left button up
-        const button = e.button;
-        if (button === 0) {
-            this.isMouseDown = false;
-
-            // If rubber banding
-            if (this.rubberBandActive && this.rubberBandRegion) {
-                this.rubberBandActive = false;
-                if (this.selecting) {
-                    let itemsSelected = false;
-                    for (const el of this.model.elements) {
-                        if (el.interactive) {
-                            const b = el.getBounds();
-                            if (!b) {
-                                continue;
-                            }
-
-                            // If DX and DY are both negative, use full select
-                            if (deltaX < 0 && deltaY < 0) {
-                                if (this.rubberBandRegion.containsRegion(b)) {
-                                    if (!this.isSelected(el)) {
-                                        this.selectedElements.push(el);
-                                        itemsSelected = true;
-                                    }
-                                }
-                            } else {
-                                if (b.intersectsWith(this.rubberBandRegion)) {
-                                    if (!this.isSelected(el)) {
-                                        this.selectedElements.push(el);
-                                        itemsSelected = true;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    if (itemsSelected) {
-                        this.onSelectionChanged();
-                    }
-                    this.selecting = false;
-                } else {
-                    // If action not cancelled
-                    if (!this.cancelAction) {
-                        if (
-                            this.elementCreated.hasListeners() &&
-                            this.rubberBandRegion.width >= this.minElementSize.width &&
-                            this.rubberBandRegion.height >= this.minElementSize.height
-                        ) {
-                            this.elementCreated.trigger(this, this.rubberBandRegion);
-                        }
-                    }
-                }
-            }
-
-            this.invalidate();
-
-            // Exit if action cancelled
-            if (this.cancelAction) {
-                if (this.pressedElement) {
-                    const el = this.pressedElement;
-                    if (this.mouseUpElement.hasListeners()) {
-                        this.mouseUpElement.trigger(this, el);
-                    }
-                    this.pressedElement = undefined;
-                }
-                if (this.isMoving) {
-                    this.clearElementMoveLocations();
-                    this.selectedElements.forEach((el) => {
-                        if (el instanceof ComponentElement && el.component) {
-                            if (el.component.size.hasListeners()) {
-                                const size = el.getSize();
-                                if (size) {
-                                    el.component.size.trigger(el.component, new ElementSizeProps(el, size));
-                                }
-                            }
-                        }
-                    });
-                    this.isMoving = false;
-                    this.invalidate();
-                } else if (this.isResizing) {
-                    this.clearElementMoveLocations();
-                    this.clearElementResizeSizes();
-                    this.selectedElements.forEach((el) => {
-                        if (el instanceof ComponentElement && el.component) {
-                            if (el.component.size.hasListeners()) {
-                                const size = el.getSize();
-                                if (size) {
-                                    el.component.size.trigger(el.component, new ElementSizeProps(el, size));
-                                }
-                            }
-                        }
-                    });
-                    this.sizeHandles = undefined;
-                    this.isResizing = false;
-                    this.invalidate();
-                    this.canvas.style.cursor = 'crosshair';
-                } else if (this.isMovingPoint) {
-                    this.clearElementMoveLocations();
-                    this.clearElementResizeSizes();
-                    this.selectedElements.forEach((el) => {
-                        el.clearBounds();
-                    });
-                    this.sizeHandles = undefined;
-                    this.isMovingPoint = false;
-                    this.movingPointLocation = undefined;
-                    this.invalidate();
-                    this.canvas.style.cursor = 'crosshair';
-                } else if (this.isMovingCornerRadius) {
-                    const selectedHandle = this.sizeHandles && this.sizeHandles.length > 0 ? this.sizeHandles[0] : undefined;
-                    const originalRadii = DesignController.getHandleCornerRadii(selectedHandle);
-                    if (selectedHandle?.element instanceof RectangleElement && originalRadii) {
-                        selectedHandle.element.setCornerRadii(
-                            originalRadii[0],
-                            originalRadii[1],
-                            originalRadii[2],
-                            originalRadii[3],
-                        );
-                    }
-                    this.sizeHandles = undefined;
-                    this.isMovingCornerRadius = false;
-                    this.invalidate();
-                    this.canvas.style.cursor = 'crosshair';
-                } else if (this.isRotating) {
-                    // Restore original transform on cancel
-                    if (this.selectedElements.length > 0) {
-                        const el = this.selectedElements[0];
-                        el.transform = this.originalTransform;
-                    }
-                    this.sizeHandles = undefined;
-                    this.isRotating = false;
-                    this.originalTransform = undefined;
-                    this.invalidate();
-                    this.canvas.style.cursor = 'crosshair';
-                } else if (this.isMovingPivot) {
-                    // Restore original pivot position on cancel
-                    if (this.originalPivotCenter) {
-                        this.rotationCenter = new Point(this.originalPivotCenter.x, this.originalPivotCenter.y);
-                    }
-                    this.originalPivotCenter = undefined;
-                    this.sizeHandles = undefined;
-                    this.isMovingPivot = false;
-                    this.invalidate();
-                    this.canvas.style.cursor = 'crosshair';
-                }
-                return;
-            }
-
-            // If elements were being moved, commit move
-            if (this.isMoving) {
-                for (const selectedElement of this.selectedElements) {
-                    if (selectedElement.canMove()) {
-                        const moveLocation = this.getElementMoveLocation(selectedElement);
-                        selectedElement.setLocation(new Point(Math.round(moveLocation.x), Math.round(moveLocation.y)));
-                        const resizeSize = this.getElementResizeSize(selectedElement);
-                        selectedElement.setSize(new Size(Math.round(resizeSize.width), Math.round(resizeSize.height)));
-                        const bounds = selectedElement.getBounds();
-                        if (bounds) {
-                            this.onElementMoved(selectedElement, new Point(bounds.x, bounds.y));
-                            this.onElementSized(selectedElement, new Size(bounds.width, bounds.height));
-                        }
-                        this.invalidate();
-                    }
-                }
-                this.isMoving = false;
-                this.rotationCenter = undefined;
-                this.commitUndoSnapshot();
-                this.invalidate();
-            } else if (this.isResizing) {
-                for (const selectedElement of this.selectedElements) {
-                    if (selectedElement.canResize()) {
-                        const oldBounds = selectedElement.getBounds();
-                        const moveLocation = this.getElementMoveLocation(selectedElement);
-                        const resizeSize = this.getElementResizeSize(selectedElement);
-
-                        // Proportionally update rotation center in element transform
-                        if (oldBounds && selectedElement.transform && oldBounds.width > 0 && oldBounds.height > 0) {
-                            const rc = selectedElement.getRotationCenter();
-                            if (rc) {
-                                const newCx = (rc.x / oldBounds.width) * resizeSize.width;
-                                const newCy = (rc.y / oldBounds.height) * resizeSize.height;
-                                if (selectedElement.isSimpleRotation()) {
-                                    const angle = selectedElement.getRotation();
-                                    selectedElement.setRotation(angle, newCx, newCy);
-                                } else {
-                                    // For matrix/complex transforms, update center in the transform string
-                                    const t = selectedElement.transform!.trim();
-                                    const parenIdx = t.indexOf('(', t.indexOf('(') + 1);
-                                    if (parenIdx !== -1) {
-                                        const base = t.substring(0, parenIdx);
-                                        selectedElement.transform = `${base}(${newCx},${newCy}))`;
-                                    }
-                                }
-                            }
-                        }
-
-                        selectedElement.setLocation(new Point(Math.round(moveLocation.x), Math.round(moveLocation.y)));
-                        selectedElement.setSize(new Size(Math.round(resizeSize.width), Math.round(resizeSize.height)));
-                        const bounds = selectedElement.getBounds();
-                        if (bounds) {
-                            this.onElementMoved(selectedElement, new Point(bounds.x, bounds.y));
-                            this.onElementSized(selectedElement, new Size(bounds.width, bounds.height));
-                        }
-                        this.invalidate();
-                    }
-                }
-                this.sizeHandles = undefined;
-                this.isResizing = false;
-                this.rotationCenter = undefined;
-                this.commitUndoSnapshot();
-                this.invalidate();
-                this.canvas.style.cursor = 'crosshair';
-            } else if (this.isMovingPoint && this.movingPointIndex !== undefined && this.movingPointLocation) {
-                const selectedElement = this.selectedElements[0];
-                const moveLocation = this.movingPointLocation;
-                let depth = PointDepth.Simple;
-                if (this.selectedElementCount() === 1) {
-                    depth = PointDepth.Full;
-                }
-                selectedElement.setPointAt(
-                    this.movingPointIndex,
-                    new Point(Math.round(moveLocation.x), Math.round(moveLocation.y)),
-                    depth,
-                );
-                selectedElement.clearBounds();
-                this.clearElementMoveLocations();
-                this.clearElementResizeSizes();
-                this.sizeHandles = undefined;
-                this.isMovingPoint = false;
-                this.movingPointLocation = undefined;
-                this.setIsDirty(true);
-                this.commitUndoSnapshot();
-                this.invalidate();
-                this.canvas.style.cursor = 'crosshair';
-            } else if (this.isMovingCornerRadius) {
-                const selectedHandle = this.sizeHandles && this.sizeHandles.length > 0 ? this.sizeHandles[0] : undefined;
-                let changed = false;
-                const startRadii = DesignController.getHandleCornerRadii(selectedHandle);
-                if (selectedHandle?.element instanceof RectangleElement && startRadii) {
-                    const currentRadii = selectedHandle.element.cornerRadii
-                        ? [
-                            selectedHandle.element.cornerRadii[0],
-                            selectedHandle.element.cornerRadii[1],
-                            selectedHandle.element.cornerRadii[2],
-                            selectedHandle.element.cornerRadii[3],
-                        ]
-                        : undefined;
-                    changed = !DesignController.areCornerRadiiEqual(startRadii, currentRadii);
-                }
-                this.sizeHandles = undefined;
-                this.isMovingCornerRadius = false;
-                if (changed) {
-                    this.setIsDirty(true);
-                    this.commitUndoSnapshot();
-                }
-                this.invalidate();
-                this.canvas.style.cursor = 'crosshair';
-            } else if (this.isRotating) {
-                // Rotation is already applied to element transform during drag
-                if (this.selectedElements.length > 0) {
-                    const el = this.selectedElements[0];
-                    this.onElementRotated(el, el.getRotation());
-                }
-                this.sizeHandles = undefined;
-                this.isRotating = false;
-                this.rotationCenter = undefined;
-                this.originalTransform = undefined;
-                this.commitUndoSnapshot();
-                this.invalidate();
-                this.canvas.style.cursor = 'crosshair';
-            } else if (this.isMovingPivot) {
-                this.originalPivotCenter = undefined;
-                this.sizeHandles = undefined;
-                this.isMovingPivot = false;
-                this.setIsDirty(true);
-                this.commitUndoSnapshot();
-                this.invalidate();
-                this.canvas.style.cursor = 'crosshair';
-            }
-        }
-
-        if (this.pressedElement) {
-            const el = this.pressedElement;
-            if (this.mouseUpElement.hasListeners()) {
-                this.mouseUpElement.trigger(this, el);
-            }
-            if (el === this.mouseOverElement) {
-                if (this.elementClicked.hasListeners()) {
-                    this.elementClicked.trigger(this, el);
-                }
-            }
-            this.pressedElement = undefined;
-        }
-        this.drawIfNeeded();
+        this.mouseInteractionService.onCanvasMouseUp(this.createMouseInteractionHost(), e);
     }
 
     /**
@@ -2638,16 +1420,7 @@ export class DesignController implements IController {
      */
     public onCanvasDragEnter(e: DragEvent): void {
         log('Canvas drag enter');
-        e.stopPropagation();
-        e.preventDefault();
-        if (!this.enabled) {
-            return;
-        }
-        this.isDragging = true;
-        if (this.viewDragEnter.hasListeners()) {
-            this.viewDragEnter.trigger(this, new ViewDragArgs(e, undefined));
-        }
-        this.drawIfNeeded();
+        this.canvasInteractionService.onCanvasDragEnter(this.createCanvasInteractionHost(), e);
     }
 
     /**
@@ -2656,51 +1429,7 @@ export class DesignController implements IController {
      */
     public onCanvasDragOver(e: DragEvent): void {
         log(`Canvas drag over ${e.clientX}:${e.clientY}`);
-        e.stopPropagation();
-        e.preventDefault();
-
-        if (!this.enabled) {
-            return;
-        }
-        if (!this.canvas) {
-            return;
-        }
-        if (!this.model) {
-            throw new Error(ErrorMessages.ModelUndefined);
-        }
-        const p = this.windowToCanvas(e.clientX, e.clientY);
-
-        // Fire view drag over event
-        if (this.viewDragOver.hasListeners()) {
-            const evt = {
-                controller: this,
-                event: e,
-                location: new Point(p.x, p.y),
-            };
-            this.viewDragOver.trigger(this, evt);
-        }
-
-        // Determine if over element
-        const context = this.canvas.getContext('2d');
-        if (context) {
-            const elementsAtPoint = this.model.elementsAt(context, p.x, p.y);
-            if (elementsAtPoint && elementsAtPoint.length > 0) {
-                let draggable: ElementBase | undefined;
-                for (let i = elementsAtPoint.length - 1; i >= 0; i--) {
-                    const activeElement = elementsAtPoint[i];
-                    if (activeElement instanceof ComponentElement && activeElement.component) {
-                        if (activeElement.component.acceptsDrag) {
-                            draggable = activeElement;
-                            break;
-                        }
-                    }
-                }
-                this.setDragOverElement(draggable, e);
-            } else {
-                this.setDragOverElement(undefined, e);
-            }
-        }
-        this.drawIfNeeded();
+        this.canvasInteractionService.onCanvasDragOver(this.createCanvasInteractionHost(), e);
     }
 
     /**
@@ -2709,19 +1438,7 @@ export class DesignController implements IController {
      */
     public onCanvasDragLeave(e: DragEvent | undefined): void {
         log('Canvas drag leave');
-        if (e) {
-            e.stopPropagation();
-            e.preventDefault();
-        }
-        if (!this.enabled) {
-            return;
-        }
-        this.isDragging = false;
-        this.setDragOverElement(undefined, e);
-        if (this.viewDragLeave.hasListeners()) {
-            this.viewDragLeave.trigger(this, new ViewDragArgs(e, undefined));
-        }
-        this.drawIfNeeded();
+        this.canvasInteractionService.onCanvasDragLeave(this.createCanvasInteractionHost(), e);
     }
 
     /**
@@ -2730,38 +1447,7 @@ export class DesignController implements IController {
      */
     public onCanvasDrop(e: DragEvent): void {
         log(`Canvas drag over ${e.clientX}:${e.clientY}`);
-        e.stopPropagation();
-        e.preventDefault();
-        if (!this.enabled) {
-            return;
-        }
-        this.isDragging = false;
-        const p = this.windowToCanvas(e.clientX, e.clientY);
-        if (this.dragOverElement) {
-            if (this.dragOverElement instanceof ComponentElement) {
-                const ce = this.dragOverElement as ComponentElement;
-                if (ce.component && ce.component.dragLeave.hasListeners()) {
-                    ce.component.dragLeave.trigger(ce.component, new ElementDragArgs(this.dragOverElement, e));
-                    this.invalidate();
-                }
-            }
-            if (this.elementDrop.hasListeners()) {
-                const evt = {
-                    controller: this,
-                    element: this.dragOverElement,
-                    event: e,
-                };
-                this.elementDrop.trigger(this, evt);
-            }
-        } else if (this.viewDrop.hasListeners()) {
-            const evt = {
-                controller: this,
-                event: e,
-                location: new Point(p.x, p.y),
-            };
-            this.viewDrop.trigger(this, evt);
-        }
-        this.drawIfNeeded();
+        this.canvasInteractionService.onCanvasDrop(this.createCanvasInteractionHost(), e);
     }
 
     /**
@@ -2836,22 +1522,7 @@ export class DesignController implements IController {
      * @param el - Mouse down element
      */
     public setMouseDownElement(el?: ElementBase): void {
-        if (el) {
-            this.setMouseOverElement(el);
-        }
-        if (el !== this.pressedElement) {
-            if (this.pressedElement) {
-                if (this.mouseUpElement.hasListeners()) {
-                    this.mouseUpElement.trigger(this, this.pressedElement);
-                }
-            }
-            this.pressedElement = el;
-            if (el) {
-                if (this.mouseDownElement.hasListeners()) {
-                    this.mouseDownElement.trigger(this, el);
-                }
-            }
-        }
+        this.canvasInteractionService.setMouseDownElement(this.createCanvasInteractionHost(), el);
     }
 
     /**
@@ -2859,30 +1530,7 @@ export class DesignController implements IController {
      * @param e - Mouse event
      */
     public onCanvasContextMenu(e: MouseEvent | IMouseEvent): void {
-        if (!this.enabled || !this.model || !this.canvas) {
-            return;
-        }
-        if (this.activeTool && this.activeTool.isCreating) {
-            e.preventDefault?.();
-            e.stopPropagation?.();
-            return;
-        }
-
-        const context = this.canvas.getContext('2d');
-        if (!context) {
-            return;
-        }
-
-        const point = this.windowToCanvas(e.clientX, e.clientY);
-        const element = this.model.firstActiveElementAt(context, point.x, point.y);
-        const args = new DesignContextMenuEventArgs(e, new Point(point.x, point.y), element, this.selectedElements);
-
-        if (this.contextMenuRequested.hasListeners()) {
-            e.preventDefault?.();
-            e.stopPropagation?.();
-        }
-
-        this.contextMenuRequested.trigger(this, args);
+        this.canvasInteractionService.onCanvasContextMenu(this.createCanvasInteractionHost(), e);
     }
 
     /**
@@ -2890,19 +1538,7 @@ export class DesignController implements IController {
      * @param el - Mouse over element
      */
     public setMouseOverElement(el?: ElementBase): void {
-        if (el !== this.mouseOverElement) {
-            if (this.mouseOverElement) {
-                if (this.mouseLeftElement.hasListeners()) {
-                    this.mouseLeftElement.trigger(this, this.mouseOverElement);
-                }
-            }
-            this.mouseOverElement = el;
-            if (el) {
-                if (this.mouseEnteredElement.hasListeners()) {
-                    this.mouseEnteredElement.trigger(this, el);
-                }
-            }
-        }
+        this.canvasInteractionService.setMouseOverElement(this.createCanvasInteractionHost(), el);
     }
 
     /**
@@ -2910,64 +1546,14 @@ export class DesignController implements IController {
      * @param el - Drag over element
      */
     public setDragOverElement(el?: ElementBase, evt?: DragEvent): void {
-        if (el !== this.dragOverElement) {
-            if (this.dragOverElement) {
-                if (this.dragOverElement instanceof ComponentElement) {
-                    const ce = this.dragOverElement as ComponentElement;
-                    if (ce.component) {
-                        ce.component.dragLeave.trigger(ce.component, new ElementDragArgs(this.dragOverElement, evt));
-                    }
-                }
-                if (this.elementDragLeave.hasListeners()) {
-                    this.elementDragLeave.trigger(this, new ElementDragArgs(this.dragOverElement, evt));
-                }
-            }
-            this.dragOverElement = el;
-            if (el) {
-                if (el instanceof ComponentElement && el.component) {
-                    el.component.dragEnter.trigger(el.component, new ElementDragArgs(el, evt));
-                }
-                if (this.elementDragEnter.hasListeners()) {
-                    this.elementDragEnter.trigger(this, new ElementDragArgs(el, evt));
-                }
-            }
-            this.invalidate();
-        }
+        this.canvasInteractionService.setDragOverElement(this.createCanvasInteractionHost(), el, evt);
     }
 
     /**
      * Called when selected elements are changed
      */
     public onSelectionChanged(): void {
-        const self = this;
-        const selected: string[] = [];
-        if (!self.model) {
-            return;
-        }
-        if (self.editingTextElement && self.selectedElements.indexOf(self.editingTextElement) === -1) {
-            self.endTextEdit();
-        }
-        // Clear transient rotation state when selection changes
-        self.rotationCenter = undefined;
-        self.originalPivotCenter = undefined;
-        self.model.elements.forEach((el) => {
-            if (self.isSelected(el) && el.id) {
-                selected.push(el.id);
-                if (el instanceof ComponentElement && el.component) {
-                    el.component.select.trigger(el.component, el);
-                }
-            } else if (el instanceof ComponentElement && el.component) {
-                el.component.deselect.trigger(el.component, el);
-            }
-        });
-        if (self.selectionChanged.hasListeners()) {
-            self.selectionChanged.trigger(self, selected.length);
-        }
-        if (!self.restoringUndoState && self.model) {
-            self.undoManager.replaceCurrent(self.createUndoSnapshot());
-            self.updateUndoAvailability();
-        }
-        self.invalidate();
+        this.canvasInteractionService.onSelectionChanged(this.createCanvasInteractionHost());
     }
 
     /**
@@ -3082,41 +1668,7 @@ export class DesignController implements IController {
     }
 
     private drawTextEditingOverlay(c: CanvasRenderingContext2D): void {
-        const textElement = this.editingTextElement;
-        if (!textElement || this.selectedElements.indexOf(textElement) === -1) {
-            return;
-        }
-
-        const bounds = textElement.getBounds();
-        if (!bounds) {
-            return;
-        }
-
-        const start = Math.min(this.textSelectionStart, this.textSelectionEnd);
-        const end = Math.max(this.textSelectionStart, this.textSelectionEnd);
-        c.save();
-        if (textElement.transform && this.model) {
-            this.model.setRenderTransform(c, textElement.transform, bounds.location);
-        }
-        c.fillStyle = 'rgba(80, 140, 255, 0.28)';
-        c.strokeStyle = 'rgba(0, 90, 255, 0.9)';
-        c.lineWidth = 1 / this.scale;
-
-        if (start !== end) {
-            const regions = textElement.getSelectionRegions(c, bounds.location, bounds.size, start, end);
-            for (const region of regions) {
-                c.fillRect(region.x, region.y, region.width, region.height);
-            }
-        }
-        else {
-            const caret = textElement.getCaretRegion(c, bounds.location, bounds.size, start);
-            c.beginPath();
-            c.moveTo(caret.x, caret.y);
-            c.lineTo(caret.x, caret.y + caret.height);
-            c.stroke();
-        }
-
-        c.restore();
+        this.overlayRenderService.drawTextEditingOverlay(this.createOverlayRenderHost(), c);
     }
 
     /**
@@ -3273,72 +1825,7 @@ export class DesignController implements IController {
      * Renders design surface grid
      */
     public renderGrid(): void {
-        if (!this.model || this.gridType === GridType.None || this.gridSpacing < 1) {
-            return;
-        }
-
-        const context = this.model.context;
-        const size = this.model.getSize();
-        if (!context || !size) {
-            return;
-        }
-
-        const spacing = Math.max(1, this.gridSpacing);
-        if (this.gridType === GridType.Dots) {
-            const backdropRadius = Math.max(1.2 / this.scale, 0.6);
-            const foregroundRadius = Math.max(0.7 / this.scale, 0.35);
-
-            for (let y = 0; y <= size.height; y += spacing) {
-                for (let x = 0; x <= size.width; x += spacing) {
-                    context.beginPath();
-                    context.fillStyle = Color.White.toStyleString();
-                    context.arc(x, y, backdropRadius, 0, Math.PI * 2);
-                    context.fill();
-
-                    context.beginPath();
-                    context.fillStyle = Color.Black.toStyleString();
-                    context.arc(x, y, foregroundRadius, 0, Math.PI * 2);
-                    context.fill();
-                }
-            }
-            return;
-        }
-
-        let gridColor: Color;
-        try {
-            gridColor = Color.parse(this.gridColor || 'Black');
-        }
-        catch (_error) {
-            gridColor = Color.Black;
-        }
-
-        context.save();
-        context.beginPath();
-        context.strokeStyle = Color.White.toStyleString();
-        context.lineWidth = 3 / this.scale;
-        for (let x = 0; x <= size.width; x += spacing) {
-            context.moveTo(x, 0);
-            context.lineTo(x, size.height);
-        }
-        for (let y = 0; y <= size.height; y += spacing) {
-            context.moveTo(0, y);
-            context.lineTo(size.width, y);
-        }
-        context.stroke();
-
-        context.beginPath();
-        context.strokeStyle = gridColor.toStyleString();
-        context.lineWidth = 1 / this.scale;
-        for (let x = 0; x <= size.width; x += spacing) {
-            context.moveTo(x, 0);
-            context.lineTo(x, size.height);
-        }
-        for (let y = 0; y <= size.height; y += spacing) {
-            context.moveTo(0, y);
-            context.lineTo(size.width, y);
-        }
-        context.stroke();
-        context.restore();
+        this.overlayRenderService.renderGrid(this.createOverlayRenderHost());
     }
 
     /**
@@ -3358,15 +1845,7 @@ export class DesignController implements IController {
         y2: number,
         dashLength: number,
     ): void {
-        c.beginPath();
-        dashLength = dashLength === undefined ? 5 : dashLength;
-        const deltaX = x2 - x1;
-        const deltaY = y2 - y1;
-        const numDashes = Math.floor(Math.sqrt(deltaX * deltaX + deltaY * deltaY) / dashLength);
-        for (let i = 0; i < numDashes; ++i) {
-            c[i % 2 === 0 ? 'moveTo' : 'lineTo'](x1 + (deltaX / numDashes) * i, y1 + (deltaY / numDashes) * i);
-        }
-        c.stroke();
+        this.overlayRenderService.drawDashedLine(c, x1, y1, x2, y2, dashLength);
     }
 
     /**
@@ -3391,25 +1870,7 @@ export class DesignController implements IController {
      * @param c - Rendering context
      */
     public drawRubberBand(c: CanvasRenderingContext2D): void {
-        if (!this.selecting || !this.rubberBandRegion) {
-            this.drawHotspot(c);
-            return;
-        }
-
-        const x1 = this.rubberBandRegion.x;
-        const x2 = this.rubberBandRegion.x + this.rubberBandRegion.width;
-        const y1 = this.rubberBandRegion.y;
-        const y2 = this.rubberBandRegion.y + this.rubberBandRegion.height;
-
-        c.strokeStyle = 'black';
-        c.lineWidth = 1.0 / this.scale;
-        c.strokeRect(x1, y1, this.rubberBandRegion.width, this.rubberBandRegion.height);
-
-        c.strokeStyle = 'white';
-        this.drawDashedLine(c, x1, y1, x2, y1, 1);
-        this.drawDashedLine(c, x2, y1, x2, y2, 1);
-        this.drawDashedLine(c, x2, y2, x1, y2, 1);
-        this.drawDashedLine(c, x1, y2, x1, y1, 1);
+        this.overlayRenderService.drawRubberBand(this.createOverlayRenderHost(), c);
     }
 
     /**
@@ -3417,37 +1878,7 @@ export class DesignController implements IController {
      * @param c - Rendering context
      */
     public drawHotspot(c: CanvasRenderingContext2D): void {
-        if (!this.rubberBandRegion) {
-            return;
-        }
-        c.save();
-        c.strokeStyle = 'red';
-        c.lineWidth = 1.0 / this.scale;
-        if (this.activeComponent && this.activeComponent.setCreationFill) {
-            this.activeComponent.setCreationFill(c);
-        } else if (this.fillImage) {
-            const pattern = c.createPattern(this.fillImage, 'repeat');
-            if (pattern) {
-                c.fillStyle = pattern;
-            }
-        } else {
-            c.fillStyle = Color.Gold.toStyleString();
-        }
-        c.globalAlpha = 0.5;
-        c.fillRect(
-            this.rubberBandRegion.x,
-            this.rubberBandRegion.y,
-            this.rubberBandRegion.width,
-            this.rubberBandRegion.height,
-        );
-        c.globalAlpha = 1.0;
-        c.strokeRect(
-            this.rubberBandRegion.x,
-            this.rubberBandRegion.y,
-            this.rubberBandRegion.width,
-            this.rubberBandRegion.height,
-        );
-        c.restore();
+        this.overlayRenderService.drawHotspot(this.createOverlayRenderHost(), c);
     }
 
     /**
@@ -3456,13 +1887,7 @@ export class DesignController implements IController {
      * @param y - Y coordinate
      */
     public drawDashedHorizontalLine(c: CanvasRenderingContext2D, y: number) {
-        if (!this.model) {
-            throw new Error(ErrorMessages.ModelUndefined);
-        }
-        const size = this.model.getSize();
-        if (size) {
-            this.drawDashedLine(c, 0, y, size.width, y, 1);
-        }
+        this.overlayRenderService.drawDashedHorizontalLine(this.createOverlayRenderHost(), c, y);
     }
 
     /**
@@ -3471,13 +1896,7 @@ export class DesignController implements IController {
      * @param x - X coordinate
      */
     public drawDashedVerticalLine(c: CanvasRenderingContext2D, x: number) {
-        if (!this.model) {
-            throw new Error(ErrorMessages.ModelUndefined);
-        }
-        const size = this.model.getSize();
-        if (size) {
-            this.drawDashedLine(c, x, 0, x, size.height, 1);
-        }
+        this.overlayRenderService.drawDashedVerticalLine(this.createOverlayRenderHost(), c, x);
     }
 
     /**
@@ -3486,17 +1905,7 @@ export class DesignController implements IController {
      * @param y - Y coordinate
      */
     public drawHorizontalLine(c: CanvasRenderingContext2D, y: number) {
-        if (!this.model) {
-            throw new Error(ErrorMessages.ModelUndefined);
-        }
-        const size = this.model.getSize();
-        if (!size) {
-            return;
-        }
-        c.beginPath();
-        c.moveTo(0, y);
-        c.lineTo(size.width, y);
-        c.stroke();
+        this.overlayRenderService.drawHorizontalLine(this.createOverlayRenderHost(), c, y);
     }
 
     /**
@@ -3505,17 +1914,7 @@ export class DesignController implements IController {
      * @param x - X coordinate
      */
     public drawVerticalLine(c: CanvasRenderingContext2D, x: number) {
-        if (!this.model) {
-            throw new Error(ErrorMessages.ModelUndefined);
-        }
-        const size = this.model.getSize();
-        if (!size) {
-            return;
-        }
-        c.beginPath();
-        c.moveTo(x, 0);
-        c.lineTo(x, size.height);
-        c.stroke();
+        this.overlayRenderService.drawVerticalLine(this.createOverlayRenderHost(), c, x);
     }
 
     /**
@@ -3525,73 +1924,11 @@ export class DesignController implements IController {
      * @param y - Y coordinate
      */
     public drawGuidewires(c: CanvasRenderingContext2D, x: number, y: number) {
-        if (!this.model) {
-            throw new Error(ErrorMessages.ModelUndefined);
-        }
-        const size = this.model.getSize();
-        if (!size) {
-            return;
-        }
-        const _scale = this.scale;
-        const lw = 1.0 / _scale;
-        const dl = 2 / _scale;
-
-        c.strokeStyle = new Color(166, 0, 0, 0).toStyleString();
-        c.lineWidth = lw;
-        this.drawHorizontalLine(c, y);
-        this.drawVerticalLine(c, x);
-
-        c.strokeStyle = new Color(204, 255, 255, 255).toStyleString();
-        this.drawDashedLine(c, x, y, 0, y, dl);
-        this.drawDashedLine(c, x, y, size.width, y, dl);
-        this.drawDashedLine(c, x, y, x, 0, dl);
-        this.drawDashedLine(c, x, y, x, size.height, dl);
-
-        c.strokeStyle = new Color(153, 0, 0, 0).toStyleString();
-        c.beginPath();
-        c.arc(x, y, 6 / _scale, 0, Math.PI * 2);
-        c.stroke();
-
-        c.strokeStyle = new Color(191, 255, 255, 255).toStyleString();
-        c.beginPath();
-        c.arc(x, y, 5 / _scale, 0, Math.PI * 2);
-        c.stroke();
-
-        c.strokeStyle = new Color(153, 0, 0, 0).toStyleString();
-        c.beginPath();
-        c.arc(x, y, 4 / _scale, 0, Math.PI * 2);
-        c.stroke();
-
-        c.strokeStyle = new Color(230, 0, 0, 0).toStyleString();
-        this.drawDashedLine(c, x - 1 / _scale, y, x - 4 / _scale, y, 2);
-        this.drawDashedLine(c, x + 1 / _scale, y, x + 4 / _scale, y, 2);
-        this.drawDashedLine(c, x, y - 1 / _scale, x, y - 4 / _scale, 2);
-        this.drawDashedLine(c, x, y + 1 / _scale, x, y + 4 / _scale, 2);
+        this.overlayRenderService.drawGuidewires(this.createOverlayRenderHost(), c, x, y);
     }
 
     private drawSmartAlignmentGuides(c: CanvasRenderingContext2D): void {
-        if (this.smartAlignmentGuides.vertical.length === 0 && this.smartAlignmentGuides.horizontal.length === 0) {
-            return;
-        }
-
-        c.save();
-        c.strokeStyle = new Color(166, 0, 0, 0).toStyleString();
-        c.lineWidth = 1.0 / this.scale;
-        for (const x of this.smartAlignmentGuides.vertical) {
-            this.drawVerticalLine(c, x);
-        }
-        for (const y of this.smartAlignmentGuides.horizontal) {
-            this.drawHorizontalLine(c, y);
-        }
-
-        c.strokeStyle = new Color(204, 255, 255, 255).toStyleString();
-        for (const x of this.smartAlignmentGuides.vertical) {
-            this.drawDashedVerticalLine(c, x);
-        }
-        for (const y of this.smartAlignmentGuides.horizontal) {
-            this.drawDashedHorizontalLine(c, y);
-        }
-        c.restore();
+        this.overlayRenderService.drawSmartAlignmentGuides(this.createOverlayRenderHost(), c);
     }
 
     /**
@@ -3600,11 +1937,7 @@ export class DesignController implements IController {
      * @returns Formatted string
      */
     public formatIndicatorValue(value: number): string {
-        const rounded = Math.round(value * 10) / 10;
-        if (Math.abs(rounded - Math.round(rounded)) < 0.05) {
-            return Math.round(rounded).toString();
-        }
-        return rounded.toString();
+        return this.overlayRenderService.formatIndicatorValue(value);
     }
 
     /**
@@ -3612,65 +1945,11 @@ export class DesignController implements IController {
      * @returns Tentative bounds or undefined when unavailable
      */
     public getInteractionIndicatorBounds(): Region | undefined {
-        if (!this.isMoving && !this.isResizing) {
-            return undefined;
-        }
-
-        let minX = Number.POSITIVE_INFINITY;
-        let minY = Number.POSITIVE_INFINITY;
-        let maxX = Number.NEGATIVE_INFINITY;
-        let maxY = Number.NEGATIVE_INFINITY;
-
-        for (const el of this.selectedElements) {
-            let indicatorBounds = this.getVisualInteractionBoundsForElement(el);
-            if (!indicatorBounds) {
-                continue;
-            }
-            if (el.transform) {
-                indicatorBounds = DesignController.getTransformedAABB(indicatorBounds.location, indicatorBounds.size, el.transform);
-            }
-
-            minX = Math.min(minX, indicatorBounds.x);
-            minY = Math.min(minY, indicatorBounds.y);
-            maxX = Math.max(maxX, indicatorBounds.x + indicatorBounds.width);
-            maxY = Math.max(maxY, indicatorBounds.y + indicatorBounds.height);
-        }
-
-        if (!Number.isFinite(minX) || !Number.isFinite(minY) || !Number.isFinite(maxX) || !Number.isFinite(maxY)) {
-            return undefined;
-        }
-
-        return new Region(minX, minY, maxX - minX, maxY - minY);
+        return this.overlayRenderService.getInteractionIndicatorBounds(this.createOverlayRenderHost());
     }
 
     private getVisualInteractionBoundsForElement(el: ElementBase): Region | undefined {
-        const bounds = el.getBounds();
-        if (!bounds) {
-            return undefined;
-        }
-
-        let location = bounds.location;
-        let size = bounds.size;
-
-        if (this.isMoving && el.canMove()) {
-            const moveLocation = this.getElementMoveLocation(el);
-            const frameLocation = el.getLocation();
-            if (frameLocation) {
-                location = new Point(
-                    bounds.x + (moveLocation.x - frameLocation.x),
-                    bounds.y + (moveLocation.y - frameLocation.y),
-                );
-            }
-            else {
-                location = moveLocation;
-            }
-        }
-        else if (this.isResizing && el.canResize()) {
-            location = this.getElementMoveLocation(el);
-            size = this.getElementResizeSize(el);
-        }
-
-        return new Region(location.x, location.y, size.width, size.height);
+        return this.overlayRenderService.getVisualInteractionBoundsForElement(this.createOverlayRenderHost(), el);
     }
 
     /**
@@ -3678,62 +1957,7 @@ export class DesignController implements IController {
      * @returns Indicator content and anchor point
      */
     public getInteractionIndicator(): { lines: string[]; anchor: Point } | undefined {
-        if (this.isMovingPoint && this.movingPointLocation) {
-            let anchor = this.movingPointLocation;
-            const element = this.selectedElements[0];
-            if (element?.transform) {
-                const bounds = element.getBounds();
-                if (bounds) {
-                    const matrix = Matrix2D.fromTransformString(element.transform, bounds.location);
-                    anchor = matrix.transformPoint(anchor);
-                }
-            }
-            return {
-                lines: [
-                    `pt ${this.movingPointIndex ?? 0}`,
-                    `x ${this.formatIndicatorValue(this.movingPointLocation.x)} y ${this.formatIndicatorValue(this.movingPointLocation.y)}`,
-                ],
-                anchor,
-            };
-        }
-
-        if (this.isMovingCornerRadius && this.sizeHandles && this.sizeHandles.length > 0) {
-            const handle = this.sizeHandles[0];
-            const rectangle = handle.element;
-            if (rectangle instanceof RectangleElement) {
-                const cornerNames = ['top-left', 'top-right', 'bottom-right', 'bottom-left'];
-                const cornerIndex = handle.handleIndex ?? 0;
-                const radii = rectangle.getCornerRadii();
-                let anchor = new Point(handle.x, handle.y);
-                if (rectangle.transform) {
-                    const bounds = rectangle.getBounds();
-                    if (bounds) {
-                        const matrix = Matrix2D.fromTransformString(rectangle.transform, bounds.location);
-                        anchor = matrix.transformPoint(anchor);
-                    }
-                }
-                return {
-                    lines: [
-                        `corner ${cornerNames[cornerIndex] ?? cornerIndex}`,
-                        `radius ${this.formatIndicatorValue(radii[cornerIndex] ?? 0)}`,
-                    ],
-                    anchor,
-                };
-            }
-        }
-
-        const bounds = this.getInteractionIndicatorBounds();
-        if (!bounds) {
-            return undefined;
-        }
-
-        return {
-            lines: [
-                `x ${this.formatIndicatorValue(bounds.x)} y ${this.formatIndicatorValue(bounds.y)}`,
-                `w ${this.formatIndicatorValue(bounds.width)} h ${this.formatIndicatorValue(bounds.height)}`,
-            ],
-            anchor: new Point(bounds.x + bounds.width, bounds.y),
-        };
+        return this.overlayRenderService.getInteractionIndicator(this.createOverlayRenderHost());
     }
 
     /**
@@ -3741,258 +1965,14 @@ export class DesignController implements IController {
      * @param c - Rendering context
      */
     public drawInteractionIndicator(c: CanvasRenderingContext2D): void {
-        const indicator = this.getInteractionIndicator();
-        if (!indicator || indicator.lines.length === 0) {
-            return;
-        }
-
-        const scale = this.scale || 1;
-        const offsetX = 8 / scale;
-        const offsetY = 8 / scale;
-        const lineHeight = 13 / scale;
-        const startX = indicator.anchor.x + offsetX;
-        const startY = Math.max(lineHeight, indicator.anchor.y - offsetY);
-
-        c.save();
-        c.font = `${11 / scale}px sans-serif`;
-        c.textAlign = 'left';
-        c.textBaseline = 'top';
-        c.lineWidth = 3 / scale;
-        c.strokeStyle = 'white';
-        c.fillStyle = new Color(230, 0, 128, 255).toStyleString();
-
-        indicator.lines.forEach((line, index) => {
-            const y = startY + index * lineHeight;
-            c.strokeText(line, startX, y);
-            c.fillText(line, startX, y);
-        });
-
-        c.restore();
+        this.overlayRenderService.drawInteractionIndicator(this.createOverlayRenderHost(), c);
     }
 
     /**
      * Renders model and design components
      */
     public draw(): void {
-        if (!this.canvas) {
-            return;
-        }
-        if (!this.model) {
-            throw new Error(ErrorMessages.ModelUndefined);
-        }
-        const size = this.model.getSize();
-        if (!size) {
-            return;
-        }
-
-        this.refreshPixelRatio();
-
-        const context = this.canvas.getContext('2d');
-        if (!context) {
-            return;
-        }
-        if (!this.renderer) {
-            return;
-        }
-        this.model.context = context;
-        if (typeof context.setTransform === 'function') {
-            context.setTransform(1, 0, 0, 1, 0, 0);
-        }
-        context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-        context.save();
-        context.scale(this.pixelRatio, this.pixelRatio);
-        if (this.scale !== 1.0) {
-            context.scale(this.scale, this.scale);
-        }
-
-        // Render grid
-        this.renderGrid();
-
-        // Render model (already scaled above)
-        this.renderer.renderToContext(context, 1.0);
-        this.drawTextEditingOverlay(context);
-
-        // Draw handles for selected elements
-        for (const el of this.selectedElements) {
-            const b = el.getBounds();
-            if (!b) {
-                continue;
-            }
-
-            let reference = new Point(b.x, b.y);
-            if (this.isMoving && el.canMove()) {
-                reference = this.getElementMoveLocation(el);
-            }
-            else if (this.isResizing && el.canResize()) {
-                reference = this.getElementMoveLocation(el);
-            }
-
-            context.save();
-            if (el.transform) {
-                this.model.setRenderTransform(context, el.transform, reference);
-            }
-
-            const handles = this.getElementHandles(el);
-
-            for (const handle of handles) {
-                if (handle.connectedHandles) {
-                    for (const connected of handle.connectedHandles) {
-                        context.beginPath();
-                        context.moveTo(handle.x, handle.y);
-                        context.lineTo(connected.x, connected.y);
-                        context.strokeStyle = 'white';
-                        context.lineWidth = 1.0 / this.scale;
-                        context.stroke();
-                        context.strokeStyle = 'black';
-                        this.drawDashedLine(context, handle.x, handle.y, connected.x, connected.y, 2);
-                    }
-                }
-            }
-
-            // Draw handles
-            for (const handle of handles) {
-                handle.draw(context);
-            }
-
-            context.restore();
-
-            // Draw rotation angle feedback when rotating
-            if (this.isRotating && this.rotationCenter) {
-                const angle = el.getRotation();
-                // Transform local center to canvas space for feedback drawing
-                let cx = this.rotationCenter.x;
-                let cy = this.rotationCenter.y;
-                if (this.originalTransform) {
-                    const feedbackMat = Matrix2D.fromTransformString(this.originalTransform, new Point(b.x, b.y));
-                    const feedbackCenter = feedbackMat.transformPoint(new Point(cx, cy));
-                    cx = feedbackCenter.x;
-                    cy = feedbackCenter.y;
-                }
-                const _scale = this.scale;
-
-                // Draw dashed line from pivot to element center
-                context.save();
-                context.strokeStyle = new Color(153, 0, 128, 255).toStyleString();
-                context.lineWidth = 1.0 / _scale;
-                context.setLineDash([4 / _scale, 4 / _scale]);
-                context.beginPath();
-                context.moveTo(cx, cy);
-                const armLen = 40 / _scale;
-                const angleRad = (angle * Math.PI) / 180;
-                context.lineTo(
-                    cx + armLen * Math.cos(angleRad - Math.PI / 2),
-                    cy + armLen * Math.sin(angleRad - Math.PI / 2),
-                );
-                context.stroke();
-                context.setLineDash([]);
-
-                // Draw arc showing rotation
-                if (Math.abs(angle) > 0.5) {
-                    const arcRadius = 30 / _scale;
-                    const startRad = -Math.PI / 2;
-                    const endRad = startRad + angleRad;
-                    context.beginPath();
-                    context.arc(cx, cy, arcRadius, startRad, endRad, angle < 0);
-                    context.strokeStyle = new Color(128, 0, 128, 255).toStyleString();
-                    context.lineWidth = 1.5 / _scale;
-                    context.stroke();
-                }
-
-                // Draw angle text
-                const displayAngle = Math.round(angle * 10) / 10;
-                const fontSize = 11 / _scale;
-                context.font = `${fontSize}px sans-serif`;
-                context.fillStyle = new Color(230, 0, 128, 255).toStyleString();
-                context.fillText(`${displayAngle}°`, cx + 8 / _scale, cy - 8 / _scale);
-                context.restore();
-            }
-        }
-
-        this.drawInteractionIndicator(context);
-
-        // Draw rubber band and guidewires
-        if (this.enabled) {
-            if (this.rubberBandActive) {
-                this.drawRubberBand(context);
-                // this.drawGuidewires(context, this.currentX + this.currentWidth, this.currentY + this.currentHeight);
-            } else if (
-                this.isMouseDown &&
-                this.currentX !== undefined &&
-                this.currentY !== undefined &&
-                this.currentWidth !== undefined &&
-                this.currentHeight !== undefined &&
-                this.selectedElementCount() === 0
-            ) {
-                this.drawGuidewires(context, this.currentX + this.currentWidth, this.currentY + this.currentHeight);
-            } else if ((this.isResizing || this.isMoving) && this.selectedElementCount() === 1) {
-                // If single item being resized, show sizing guides
-                const el = this.selectedElements[0];
-                const visualBounds = this.getVisualInteractionBoundsForElement(el);
-                if (!visualBounds) {
-                    this.needsRedraw = false;
-                    context.restore();
-                    return;
-                }
-                const s = visualBounds.size;
-                const p = visualBounds.location;
-                let transformed = false;
-
-                // If element is transformed, apply transform to guide wires
-                if (el.transform) {
-                    context.save();
-                    transformed = true;
-                    const b = el.getBounds();
-                    if (b) {
-                        let reference = new Point(b.x, b.y);
-                        if (this.isMoving && el.canMove()) {
-                            reference = this.getElementMoveLocation(el);
-                        } else if (this.isResizing && el.canResize()) {
-                            reference = this.getElementMoveLocation(el);
-                        }
-                        this.model.setRenderTransform(context, el.transform, reference);
-                    }
-                }
-
-                context.strokeStyle = new Color(166, 0, 0, 0).toStyleString();
-                context.lineWidth = 1.0 / this.scale;
-                this.drawHorizontalLine(context, p.y);
-                this.drawHorizontalLine(context, p.y + s.height);
-                this.drawVerticalLine(context, p.x);
-                this.drawVerticalLine(context, p.x + s.width);
-
-                context.strokeStyle = new Color(204, 255, 255, 255).toStyleString();
-                this.drawDashedHorizontalLine(context, p.y);
-                this.drawDashedHorizontalLine(context, p.y + s.height);
-                this.drawDashedVerticalLine(context, p.x);
-                this.drawDashedVerticalLine(context, p.x + s.width);
-
-                if (transformed) {
-                    context.restore();
-                }
-            }
-
-            if (this.isMoving) {
-                this.drawSmartAlignmentGuides(context);
-            }
-        }
-
-        if (this.model.displayFPS) {
-            context.fillStyle = Color.CornflowerBlue.toStyleString();
-            context.font = '16px monospace';
-            context.fillText(this.calculateFPS().toFixed() + ' fps', 20, 20);
-        }
-
-        // If disabled draw disabled fill
-        if (!this.enabled && this.disabledFill) {
-            context.fillStyle = Color.parse(this.disabledFill).toStyleString();
-            context.fillRect(0, 0, size.width, size.height);
-        }
-
-        context.restore();
-
-        // Clear redraw flag
-        this.needsRedraw = false;
+        this.drawService.draw(this.createDrawHost());
     }
 
     /**
@@ -4040,17 +2020,7 @@ export class DesignController implements IController {
      * Clears selected elements
      */
     public clearSelections(): void {
-        if (this.selectedElements.length > 0) {
-            this.selectedElements.forEach((el) => {
-                if (el.canEditPoints()) {
-                    el.editPoints = false;
-                }
-            });
-            this.selectedElements = [];
-            this.rotationCenter = undefined;
-            this.originalPivotCenter = undefined;
-            this.onSelectionChanged();
-        }
+        this.selectionService.clearSelections(this.createSelectionHost());
     }
 
     /**
@@ -4059,11 +2029,7 @@ export class DesignController implements IController {
      * @returns True if element is selected
      */
     public isSelected(el: ElementBase): boolean {
-        const index = this.selectedElements.indexOf(el);
-        if (index === -1) {
-            return false;
-        }
-        return true;
+        return this.selectionService.isSelected(this.createSelectionHost(), el);
     }
 
     /**
@@ -4071,11 +2037,7 @@ export class DesignController implements IController {
      * @param el - Element
      */
     public selectElement(el: ElementBase): void {
-        if (!this.isSelected(el)) {
-            this.selectedElements.push(el);
-            this.onSelectionChanged();
-            return;
-        }
+        this.selectionService.selectElement(this.createSelectionHost(), el);
     }
 
     /**
@@ -4083,14 +2045,7 @@ export class DesignController implements IController {
      * @param el - Element
      */
     public deselectElement(el: ElementBase): void {
-        const index = this.selectedElements.indexOf(el);
-        if (index !== -1) {
-            this.selectedElements.splice(index, 1);
-            if (el.canEditPoints()) {
-                el.editPoints = false;
-            }
-            this.onSelectionChanged();
-        }
+        this.selectionService.deselectElement(this.createSelectionHost(), el);
     }
 
     /**
@@ -4098,38 +2053,14 @@ export class DesignController implements IController {
      * @param el - Element
      */
     public toggleSelected(el: ElementBase): void {
-        const index = this.selectedElements.indexOf(el);
-        if (index !== -1) {
-            if (el.canEditPoints()) {
-                if (!el.editPoints) {
-                    el.editPoints = true;
-                } else {
-                    el.editPoints = false;
-                    this.selectedElements.splice(index, 1);
-                }
-            } else {
-                this.selectedElements.splice(index, 1);
-            }
-        } else {
-            this.selectedElements.push(el);
-        }
-        this.onSelectionChanged();
+        this.selectionService.toggleSelected(this.createSelectionHost(), el);
     }
 
     /**
      * Selects all elements
      */
     public selectAll(): void {
-        const c = this;
-        c.selectedElements = [];
-        if (c.model) {
-            c.model.elements.forEach((el) => {
-                if (el.interactive) {
-                    c.selectedElements.push(el);
-                }
-            });
-        }
-        this.onSelectionChanged();
+        this.selectionService.selectAll(this.createSelectionHost());
     }
 
     /**
@@ -4137,11 +2068,7 @@ export class DesignController implements IController {
      * @param elements - Elements to select
      */
     public selectElements(elements: ElementBase[]): void {
-        if (elements) {
-            for (const element of elements) {
-                this.selectElement(element);
-            }
-        }
+        this.selectionService.selectElements(this.createSelectionHost(), elements);
     }
 
     /**
@@ -4399,10 +2326,51 @@ export class DesignController implements IController {
             this.isDirty = isDirty;
             this.isDirtyChanged.trigger(this, isDirty);
             if (!this.restoringUndoState && !isDirty) {
-                this.undoManager.replaceCurrent(this.createUndoSnapshot());
-                this.updateUndoAvailability();
+                this.replaceCurrentUndoSnapshot();
             }
         }
+    }
+
+    private replaceCurrentUndoSnapshot(): void {
+        this.undoService.replaceCurrentUndoSnapshot(this.createUndoHost());
+    }
+
+    private clearControllerEvents(): void {
+        this.modelUpdated.clear();
+        this.enabledChanged.clear();
+        this.mouseEnteredView.clear();
+        this.mouseLeftView.clear();
+        this.mouseDownView.clear();
+        this.mouseUpView.clear();
+        this.mouseMovedView.clear();
+        this.mouseEnteredElement.clear();
+        this.mouseLeftElement.clear();
+        this.mouseDownElement.clear();
+        this.mouseUpElement.clear();
+        this.elementClicked.clear();
+        this.contextMenuRequested.clear();
+        this.timer.clear();
+        this.selectionChanged.clear();
+        this.elementCreated.clear();
+        this.elementAdded.clear();
+        this.elementRemoved.clear();
+        this.onDelete.clear();
+        this.elementMoving.clear();
+        this.elementMoved.clear();
+        this.elementSizing.clear();
+        this.elementSized.clear();
+        this.elementRotating.clear();
+        this.elementRotated.clear();
+        this.viewDragEnter.clear();
+        this.viewDragOver.clear();
+        this.viewDragLeave.clear();
+        this.viewDrop.clear();
+        this.elementDragEnter.clear();
+        this.elementDragLeave.clear();
+        this.elementDrop.clear();
+        this.elementsReordered.clear();
+        this.isDirtyChanged.clear();
+        this.undoChanged.clear();
     }
 
     /**
@@ -4675,110 +2643,23 @@ export class DesignController implements IController {
     }
 
     private resetUndoHistory(): void {
-        if (!this.model) {
-            this.undoManager.clear();
-            this.updateUndoAvailability();
-            return;
-        }
-        this.undoManager.reset(this.createUndoSnapshot());
-        this.updateUndoAvailability();
+        this.undoService.resetUndoHistory(this.createUndoHost());
     }
 
     private commitUndoSnapshot(): void {
-        if (this.restoringUndoState || !this.model) {
-            return;
-        }
-        this.undoManager.push(this.createUndoSnapshot());
-        this.updateUndoAvailability();
+        this.undoService.commitUndoSnapshot(this.createUndoHost());
     }
 
     private beginToolHistorySession(): void {
-        if (!this.model || this.pendingToolHistoryBaseline !== undefined) {
-            return;
-        }
-        this.pendingToolHistoryBaseline = this.buildModelStateSignature(this.model);
+        this.undoService.beginToolHistorySession(this.createUndoHost());
     }
 
     private finalizeToolHistorySession(): void {
-        if (!this.model || this.pendingToolHistoryBaseline === undefined) {
-            return;
-        }
-        const baseline = this.pendingToolHistoryBaseline;
-        this.pendingToolHistoryBaseline = undefined;
-        if (this.buildModelStateSignature(this.model) !== baseline) {
-            this.onModelUpdated();
-            this.commitUndoSnapshot();
-            this.drawIfNeeded();
-        }
-    }
-
-    private canApplyUndoRedo(): boolean {
-        if (!this.model) {
-            return false;
-        }
-        if (
-            this.isMouseDown ||
-            this.isMoving ||
-            this.isResizing ||
-            this.isMovingPoint ||
-            this.isRotating ||
-            this.isMovingPivot
-        ) {
-            return false;
-        }
-        if (this.activeTool && this.activeTool.isCreating) {
-            return false;
-        }
-        return true;
-    }
-
-    private updateUndoAvailability(): void {
-        const canUndo = this.undoManager.canUndo;
-        const canRedo = this.undoManager.canRedo;
-        const changed = canUndo !== this.canUndo || canRedo !== this.canRedo;
-        this.canUndo = canUndo;
-        this.canRedo = canRedo;
-        if (changed) {
-            this.undoChanged.trigger(this, new UndoState(canUndo, canRedo));
-        }
+        this.undoService.finalizeToolHistorySession(this.createUndoHost());
     }
 
     private createUndoSnapshot(): DesignUndoSnapshot {
-        if (!this.model) {
-            throw new Error(ErrorMessages.ModelUndefined);
-        }
-        const model = this.cloneModelForUndo(this.model);
-        const selectedElements = this.selectedElements
-            .map((element) => this.createSelectionState(element))
-            .filter((value): value is UndoSelectionState => value !== undefined);
-        return {
-            model,
-            selectedElements,
-            isDirty: this.isDirty,
-            signature: this.buildUndoSignature(model, selectedElements, this.isDirty),
-        };
-    }
-
-    private createSelectionState(element: ElementBase): UndoSelectionState | undefined {
-        if (!this.model) {
-            return undefined;
-        }
-        const index = this.model.elements.indexOf(element);
-        if (index === -1) {
-            return undefined;
-        }
-        return {
-            id: element.id,
-            index,
-            editPoints: !!element.editPoints,
-        };
-    }
-
-    private buildUndoSignature(model: Model, selectedElements: UndoSelectionState[], isDirty: boolean): string {
-        const selectionSignature = selectedElements
-            .map((selection) => `${selection.id ?? ''}@${selection.index}:${selection.editPoints ? 1 : 0}`)
-            .join('|');
-        return `${this.buildModelStateSignature(model)}::${isDirty ? 1 : 0}::${selectionSignature}`;
+        return this.undoStateService.createUndoSnapshot(this.createUndoStateHost());
     }
 
     private getSelectedMovableEntries(): DesignMovableSelectionEntry[] {
@@ -4832,11 +2713,387 @@ export class DesignController implements IController {
         };
     }
 
+    private createSelectionHost(): DesignSelectionHost {
+        const self = this;
+
+        return {
+            get model() {
+                return self.model;
+            },
+            get selectedElements() {
+                return self.selectedElements;
+            },
+            set selectedElements(value: ElementBase[]) {
+                self.selectedElements = value;
+            },
+            onSelectionChanged: () => self.onSelectionChanged(),
+        };
+    }
+
+    private createUndoHost(): DesignUndoHost {
+        const self = this;
+
+        return {
+            controller: self,
+            get model() {
+                return self.model;
+            },
+            get undoManager() {
+                return self.undoManager;
+            },
+            get canUndo() {
+                return self.canUndo;
+            },
+            set canUndo(value: boolean) {
+                self.canUndo = value;
+            },
+            get canRedo() {
+                return self.canRedo;
+            },
+            set canRedo(value: boolean) {
+                self.canRedo = value;
+            },
+            get restoringUndoState() {
+                return self.restoringUndoState;
+            },
+            get pendingToolHistoryBaseline() {
+                return self.pendingToolHistoryBaseline;
+            },
+            set pendingToolHistoryBaseline(value: string | undefined) {
+                self.pendingToolHistoryBaseline = value;
+            },
+            get isMouseDown() {
+                return self.isMouseDown;
+            },
+            get isMoving() {
+                return self.isMoving;
+            },
+            get isResizing() {
+                return self.isResizing;
+            },
+            get isMovingPoint() {
+                return self.isMovingPoint;
+            },
+            get isRotating() {
+                return self.isRotating;
+            },
+            get isMovingPivot() {
+                return self.isMovingPivot;
+            },
+            get activeToolIsCreating() {
+                return !!(self.activeTool && self.activeTool.isCreating);
+            },
+            undoChanged: self.undoChanged,
+            createUndoSnapshot: () => self.createUndoSnapshot(),
+            applyUndoSnapshot: (snapshot: DesignUndoSnapshot) => self.applyUndoSnapshot(snapshot),
+            buildModelStateSignature: (model: Model) => self.buildModelStateSignature(model),
+            onModelUpdated: () => self.onModelUpdated(),
+            drawIfNeeded: () => self.drawIfNeeded(),
+        };
+    }
+
+    private createUndoStateHost(): DesignUndoStateHost {
+        const self = this;
+
+        return {
+            get model() {
+                return self.model;
+            },
+            get selectedElements() {
+                return self.selectedElements;
+            },
+            get isDirty() {
+                return self.isDirty;
+            },
+            get restoringUndoState() {
+                return self.restoringUndoState;
+            },
+            set restoringUndoState(value: boolean) {
+                self.restoringUndoState = value;
+            },
+            get pendingToolHistoryBaseline() {
+                return self.pendingToolHistoryBaseline;
+            },
+            set pendingToolHistoryBaseline(value: string | undefined) {
+                self.pendingToolHistoryBaseline = value;
+            },
+            get isMouseDown() {
+                return self.isMouseDown;
+            },
+            set isMouseDown(value: boolean) {
+                self.isMouseDown = value;
+            },
+            get isMoving() {
+                return self.isMoving;
+            },
+            set isMoving(value: boolean) {
+                self.isMoving = value;
+            },
+            get isResizing() {
+                return self.isResizing;
+            },
+            set isResizing(value: boolean) {
+                self.isResizing = value;
+            },
+            get isRotating() {
+                return self.isRotating;
+            },
+            set isRotating(value: boolean) {
+                self.isRotating = value;
+            },
+            get isMovingPivot() {
+                return self.isMovingPivot;
+            },
+            set isMovingPivot(value: boolean) {
+                self.isMovingPivot = value;
+            },
+            get isMovingPoint() {
+                return self.isMovingPoint;
+            },
+            set isMovingPoint(value: boolean) {
+                self.isMovingPoint = value;
+            },
+            get isMovingCornerRadius() {
+                return self.isMovingCornerRadius;
+            },
+            set isMovingCornerRadius(value: boolean) {
+                self.isMovingCornerRadius = value;
+            },
+            get mouseDownPosition() {
+                return self.mouseDownPosition;
+            },
+            set mouseDownPosition(value: Point | undefined) {
+                self.mouseDownPosition = value;
+            },
+            get currentWidth() {
+                return self.currentWidth || 0;
+            },
+            set currentWidth(value: number) {
+                self.currentWidth = value;
+            },
+            get currentHeight() {
+                return self.currentHeight || 0;
+            },
+            set currentHeight(value: number) {
+                self.currentHeight = value;
+            },
+            get rotationCenter() {
+                return self.rotationCenter;
+            },
+            set rotationCenter(value: Point | undefined) {
+                self.rotationCenter = value;
+            },
+            get originalPivotCenter() {
+                return self.originalPivotCenter;
+            },
+            set originalPivotCenter(value: Point | undefined) {
+                self.originalPivotCenter = value;
+            },
+            get originalTransform() {
+                return self.originalTransform;
+            },
+            set originalTransform(value: string | undefined) {
+                self.originalTransform = value;
+            },
+            get movingPointIndex() {
+                return self.movingPointIndex;
+            },
+            set movingPointIndex(value: number | undefined) {
+                self.movingPointIndex = value;
+            },
+            get movingPointLocation() {
+                return self.movingPointLocation;
+            },
+            set movingPointLocation(value: Point | undefined) {
+                self.movingPointLocation = value;
+            },
+            get sizeHandles() {
+                return self.sizeHandles;
+            },
+            set sizeHandles(value: Handle[] | undefined) {
+                self.sizeHandles = value;
+            },
+            setSelectedElements: (value: ElementBase[]) => {
+                self.selectedElements = value;
+            },
+            setIsDirty: (value: boolean) => self.setIsDirty(value),
+            triggerModelUpdated: () => {
+                if (self.model) {
+                    self.modelUpdated.trigger(self, self.model);
+                }
+            },
+            invalidate: () => self.invalidate(),
+            drawIfNeeded: () => self.drawIfNeeded(),
+            onSelectionChanged: () => self.onSelectionChanged(),
+            clearElementMoveLocations: () => self.clearElementMoveLocations(),
+            clearElementResizeSizes: () => self.clearElementResizeSizes(),
+        };
+    }
+
+    private createOverlayRenderHost(): DesignOverlayRenderHost {
+        const self = this;
+
+        return {
+            get model() {
+                return self.model;
+            },
+            get scale() {
+                return self.scale;
+            },
+            get gridType() {
+                return self.gridType;
+            },
+            get gridSpacing() {
+                return self.gridSpacing;
+            },
+            get gridColor() {
+                return self.gridColor;
+            },
+            get selecting() {
+                return self.selecting;
+            },
+            get rubberBandRegion() {
+                return self.rubberBandRegion;
+            },
+            get activeComponent() {
+                return self.activeComponent;
+            },
+            get fillImage() {
+                return self.fillImage;
+            },
+            get smartAlignmentGuides() {
+                return self.smartAlignmentGuides;
+            },
+            get selectedElements() {
+                return self.selectedElements;
+            },
+            get editingTextElement() {
+                return self.editingTextElement;
+            },
+            get textSelectionStart() {
+                return self.textSelectionStart;
+            },
+            get textSelectionEnd() {
+                return self.textSelectionEnd;
+            },
+            get isMoving() {
+                return self.isMoving;
+            },
+            get isResizing() {
+                return self.isResizing;
+            },
+            get isMovingPoint() {
+                return self.isMovingPoint;
+            },
+            get isMovingCornerRadius() {
+                return self.isMovingCornerRadius;
+            },
+            get movingPointIndex() {
+                return self.movingPointIndex;
+            },
+            get movingPointLocation() {
+                return self.movingPointLocation;
+            },
+            get sizeHandles() {
+                return self.sizeHandles;
+            },
+            getElementMoveLocation: (element: ElementBase) => self.getElementMoveLocation(element),
+            getElementResizeSize: (element: ElementBase) => self.getElementResizeSize(element),
+        };
+    }
+
+    private createDrawHost(): DesignDrawHost {
+        const self = this;
+
+        return {
+            get canvas() {
+                return self.canvas;
+            },
+            get model() {
+                return self.model;
+            },
+            get renderer() {
+                return self.renderer;
+            },
+            get pixelRatio() {
+                return self.pixelRatio;
+            },
+            get scale() {
+                return self.scale;
+            },
+            get enabled() {
+                return self.enabled;
+            },
+            get rubberBandActive() {
+                return self.rubberBandActive;
+            },
+            get isMouseDown() {
+                return self.isMouseDown;
+            },
+            get isMoving() {
+                return self.isMoving;
+            },
+            get isResizing() {
+                return self.isResizing;
+            },
+            get isRotating() {
+                return self.isRotating;
+            },
+            get currentX() {
+                return self.currentX;
+            },
+            get currentY() {
+                return self.currentY;
+            },
+            get currentWidth() {
+                return self.currentWidth;
+            },
+            get currentHeight() {
+                return self.currentHeight;
+            },
+            get rotationCenter() {
+                return self.rotationCenter;
+            },
+            get originalTransform() {
+                return self.originalTransform;
+            },
+            get disabledFill() {
+                return self.disabledFill;
+            },
+            get selectedElements() {
+                return self.selectedElements;
+            },
+            refreshPixelRatio: () => self.refreshPixelRatio(),
+            renderGrid: () => self.renderGrid(),
+            drawTextEditingOverlay: (context: CanvasRenderingContext2D) => self.drawTextEditingOverlay(context),
+            getElementHandles: (element: ElementBase) => self.getElementHandles(element),
+            drawDashedLine: (
+                context: CanvasRenderingContext2D,
+                x1: number,
+                y1: number,
+                x2: number,
+                y2: number,
+                dashLength: number,
+            ) => self.drawDashedLine(context, x1, y1, x2, y2, dashLength),
+            drawInteractionIndicator: (context: CanvasRenderingContext2D) => self.drawInteractionIndicator(context),
+            drawRubberBand: (context: CanvasRenderingContext2D) => self.drawRubberBand(context),
+            drawGuidewires: (context: CanvasRenderingContext2D, x: number, y: number) => self.drawGuidewires(context, x, y),
+            drawHorizontalLine: (context: CanvasRenderingContext2D, y: number) => self.drawHorizontalLine(context, y),
+            drawVerticalLine: (context: CanvasRenderingContext2D, x: number) => self.drawVerticalLine(context, x),
+            drawDashedHorizontalLine: (context: CanvasRenderingContext2D, y: number) => self.drawDashedHorizontalLine(context, y),
+            drawDashedVerticalLine: (context: CanvasRenderingContext2D, x: number) => self.drawDashedVerticalLine(context, x),
+            drawSmartAlignmentGuides: (context: CanvasRenderingContext2D) => self.drawSmartAlignmentGuides(context),
+            getVisualInteractionBoundsForElement: (element: ElementBase) => self.getVisualInteractionBoundsForElement(element),
+            getElementMoveLocation: (element: ElementBase) => self.getElementMoveLocation(element),
+            calculateFPS: () => self.calculateFPS(),
+            setNeedsRedraw: (value: boolean) => {
+                self.needsRedraw = value;
+            },
+        };
+    }
+
     private buildModelStateSignature(model: Model): string {
-        const interactiveSignature = model.elements
-            .map((element, index) => `${index}:${element.interactive ? 1 : 0}:${element.editPoints ? 1 : 0}`)
-            .join('|');
-        return `${model.rawJSON()}::${interactiveSignature}`;
+        return this.undoStateService.buildModelStateSignature(model);
     }
 
     private static areCornerRadiiEqual(
@@ -4866,152 +3123,8 @@ export class DesignController implements IController {
         return [0, 1, 2, 3].map((index) => Math.max(0, Number(values[index]) || 0)) as [number, number, number, number];
     }
 
-    private cloneModelForUndo(model: Model): Model {
-        const clone = model.clone();
-        clone.basePath = model.basePath;
-        clone.modelPath = model.modelPath;
-        clone.displayFPS = model.displayFPS;
-        clone.resourceManager.localResourcePath = model.resourceManager.localResourcePath;
-        clone.resourceManager.currentLocaleId = model.resourceManager.currentLocaleId;
-        clone.resourceManager.urlProxy = model.resourceManager.urlProxy;
-        clone.resources.forEach((resource) => {
-            resource.resourceManager = clone.resourceManager;
-        });
-        clone.elements.forEach((element, index) => {
-            const source = model.elements[index];
-            if (source) {
-                element.interactive = source.interactive;
-                element.editPoints = source.editPoints;
-            }
-            element.model = clone;
-        });
-        return clone;
-    }
-
     private applyUndoSnapshot(snapshot: DesignUndoSnapshot): void {
-        if (!this.model) {
-            return;
-        }
-        this.restoringUndoState = true;
-        try {
-            const restoredModel = this.cloneModelForUndo(snapshot.model);
-            this.restoreModelState(this.model, restoredModel);
-            this.restoreSelectionState(snapshot.selectedElements);
-            this.resetTransientInteractionState();
-            this.setIsDirty(snapshot.isDirty);
-            this.modelUpdated.trigger(this, this.model);
-            this.invalidate();
-            this.drawIfNeeded();
-        } finally {
-            this.restoringUndoState = false;
-            this.updateUndoAvailability();
-        }
-    }
-
-    private restoreModelState(target: Model, source: Model): void {
-        target.type = source.type;
-        target.id = source.id;
-        target.sizeValue = source.sizeValue ? Size.parse(source.sizeValue) : undefined;
-        target.locationValue = source.locationValue ? Point.parse(source.locationValue) : undefined;
-        target.locked = source.locked;
-        target.aspectLocked = source.aspectLocked;
-        target.fill = this.cloneFillValue(source.fill);
-        target.fillScale = source.fillScale;
-        target.fillOffsetX = source.fillOffsetX;
-        target.fillOffsetY = source.fillOffsetY;
-        target.stroke = source.stroke;
-        target.opacity = source.opacity;
-        target.transform = source.transform;
-        target.clipPath = source.clipPath
-            ? {
-                  commands: source.clipPath.commands.slice(),
-                  winding: source.clipPath.winding,
-                  transform: source.clipPath.transform,
-                  units: source.clipPath.units,
-              }
-            : undefined;
-        target.mouseDown = source.mouseDown;
-        target.mouseUp = source.mouseUp;
-        target.mouseEnter = source.mouseEnter;
-        target.mouseLeave = source.mouseLeave;
-        target.click = source.click;
-        target.basePath = source.basePath;
-        target.modelPath = source.modelPath;
-        target.displayFPS = source.displayFPS;
-        target.resources = source.resources;
-        target.elements = source.elements;
-        target.resourceManager.model = target;
-        target.resourceManager.localResourcePath = source.resourceManager.localResourcePath;
-        target.resourceManager.currentLocaleId = source.resourceManager.currentLocaleId;
-        target.resourceManager.urlProxy = source.resourceManager.urlProxy;
-        target.resourceManager.pendingResources = [];
-        target.resourceManager.pendingResourceCount = 0;
-        target.resourceManager.totalResourceCount = target.resources.length;
-        target.resourceManager.numberLoaded = 0;
-        target.resourceManager.resourceFailed = false;
-        target.resourceManager.completionCallback = undefined;
-        target.resources.forEach((resource) => {
-            resource.resourceManager = target.resourceManager;
-        });
-        target.elements.forEach((element) => {
-            element.model = target;
-        });
-    }
-
-    private cloneFillValue(fill: ElementBase['fill']): ElementBase['fill'] {
-        if (!fill || typeof fill === 'string') {
-            return fill;
-        }
-        if ('clone' in fill && typeof fill.clone === 'function') {
-            return fill.clone();
-        }
-        return fill;
-    }
-
-    private restoreSelectionState(selectionStates: UndoSelectionState[]): void {
-        if (!this.model) {
-            return;
-        }
-        this.selectedElements = [];
-        this.model.elements.forEach((element) => {
-            element.editPoints = false;
-        });
-        selectionStates.forEach((selection) => {
-            let element: ElementBase | undefined;
-            if (selection.id) {
-                element = this.model?.elements.find((candidate) => candidate.id === selection.id);
-            }
-            if (!element) {
-                element = this.model?.elements[selection.index];
-            }
-            if (element && !this.isSelected(element)) {
-                element.editPoints = selection.editPoints;
-                this.selectedElements.push(element);
-            }
-        });
-        this.onSelectionChanged();
-    }
-
-    private resetTransientInteractionState(): void {
-        this.isMouseDown = false;
-        this.isMoving = false;
-        this.isResizing = false;
-        this.isRotating = false;
-        this.isMovingPivot = false;
-        this.isMovingPoint = false;
-        this.isMovingCornerRadius = false;
-        this.mouseDownPosition = undefined;
-        this.currentWidth = 0;
-        this.currentHeight = 0;
-        this.rotationCenter = undefined;
-        this.originalPivotCenter = undefined;
-        this.originalTransform = undefined;
-        this.movingPointIndex = undefined;
-        this.movingPointLocation = undefined;
-        this.sizeHandles = undefined;
-        this.clearElementMoveLocations();
-        this.clearElementResizeSizes();
-        this.pendingToolHistoryBaseline = undefined;
+        this.undoStateService.applyUndoSnapshot(this.createUndoStateHost(), snapshot);
     }
 
     /**
@@ -5066,17 +3179,7 @@ export class DesignController implements IController {
      * @param pixelRatio - Optional manual ratio when disabling auto mode
      */
     public setAutoPixelRatio(enabled: boolean, pixelRatio?: number): void {
-        this.autoPixelRatio = enabled;
-        if (enabled) {
-            this.pixelRatio = getDevicePixelRatio();
-        }
-        else {
-            this.pixelRatio = pixelRatio !== undefined && pixelRatio > 0 ? pixelRatio : 1;
-        }
-        this.refreshPixelRatio(true);
-        if (this.canvas && this.model) {
-            this.draw();
-        }
+        this.canvasLifecycleService.setAutoPixelRatio(this.createCanvasLifecycleHost(), enabled, pixelRatio);
     }
 
     /**
@@ -5084,48 +3187,19 @@ export class DesignController implements IController {
      * @param pixelRatio - Manual backing-store ratio
      */
     public setPixelRatio(pixelRatio: number): void {
-        this.autoPixelRatio = false;
-        this.pixelRatio = Number.isFinite(pixelRatio) && pixelRatio > 0 ? pixelRatio : 1;
-        this.refreshPixelRatio(true);
-        if (this.canvas && this.model) {
-            this.draw();
-        }
+        this.canvasLifecycleService.setPixelRatio(this.createCanvasLifecycleHost(), pixelRatio);
     }
 
     private onWindowResize(): void {
-        if (!this.autoPixelRatio || !this.canvas || !this.model) {
-            return;
-        }
-        const changed = this.refreshPixelRatio();
-        if (changed) {
-            this.draw();
-        }
+        this.canvasLifecycleService.onWindowResize(this.createCanvasLifecycleHost());
     }
 
     private refreshPixelRatio(force?: boolean): boolean {
-        const nextPixelRatio = this.autoPixelRatio ? getDevicePixelRatio() : this.pixelRatio;
-        const changed = force || nextPixelRatio !== this.pixelRatio;
-        this.pixelRatio = nextPixelRatio;
-        return this.resizeCanvas() || changed;
+        return this.canvasLifecycleService.refreshPixelRatio(this.createCanvasLifecycleHost(), force);
     }
 
     private resizeCanvas(): boolean {
-        if (!this.canvas || !this.model) {
-            return false;
-        }
-        const size = this.model.getSize();
-        if (!size) {
-            throw new Error(ErrorMessages.SizeUndefined);
-        }
-        const cssWidth = size.width * this.scale;
-        const cssHeight = size.height * this.scale;
-        const changed = applyCanvasDisplaySize(this.canvas, cssWidth, cssHeight, this.pixelRatio);
-        const element = this.canvas.parentElement;
-        if (element) {
-            element.style.width = cssWidth + 'px';
-            element.style.height = cssHeight + 'px';
-        }
-        return changed;
+        return this.canvasLifecycleService.resizeCanvas(this.createCanvasLifecycleHost());
     }
 
     private createTouchInteractionHost(): DesignTouchInteractionHost {
@@ -5190,6 +3264,75 @@ export class DesignController implements IController {
         };
     }
 
+    private createCanvasLifecycleHost(): DesignCanvasLifecycleHost {
+        const self = this;
+
+        return {
+            controller: self,
+            get model() {
+                return self.model;
+            },
+            get canvas() {
+                return self.canvas;
+            },
+            set canvas(value: HTMLCanvasElement | undefined) {
+                self.canvas = value;
+            },
+            get renderer() {
+                return self.renderer;
+            },
+            set renderer(value: DesignRenderer | undefined) {
+                self.renderer = value;
+            },
+            get scale() {
+                return self.scale;
+            },
+            get pixelRatio() {
+                return self.pixelRatio;
+            },
+            set pixelRatio(value: number) {
+                self.pixelRatio = value;
+            },
+            get autoPixelRatio() {
+                return self.autoPixelRatio;
+            },
+            set autoPixelRatio(value: boolean) {
+                self.autoPixelRatio = value;
+            },
+            onCanvasMouseEnter: (e: MouseEvent) => self.onCanvasMouseEnter(e),
+            onCanvasMouseLeave: (e: MouseEvent) => self.onCanvasMouseLeave(e),
+            onCanvasMouseDown: (e: MouseEvent) => self.onCanvasMouseDown(e),
+            onCanvasContextMenu: (e: MouseEvent) => self.onCanvasContextMenu(e),
+            onCanvasMouseMove: (e: MouseEvent) => self.onCanvasMouseMove(e),
+            onCanvasTouchStart: (e: TouchEvent) => self.onCanvasTouchStart(e),
+            onCanvasTouchMove: (e: TouchEvent) => self.onCanvasTouchMove(e),
+            onCanvasTouchEnd: (e: TouchEvent) => self.onCanvasTouchEnd(e),
+            onCanvasTouchCancel: (e: TouchEvent) => self.onCanvasTouchCancel(e),
+            onCanvasKeyDown: (e: KeyboardEvent) => self.onCanvasKeyDown(e),
+            onCanvasDragEnter: (e: DragEvent) => self.onCanvasDragEnter(e),
+            onCanvasDragOver: (e: DragEvent) => self.onCanvasDragOver(e),
+            onCanvasDragLeave: (e: DragEvent) => self.onCanvasDragLeave(e),
+            onCanvasDrop: (e: DragEvent) => self.onCanvasDrop(e),
+            onWindowResize: () => self.onWindowResize(),
+            windowTouchEnd: (e: TouchEvent) => self.windowTouchEnd(e),
+            windowTouchMove: (e: TouchEvent) => self.windowTouchMove(e),
+            windowTouchCancel: (e: TouchEvent) => self.windowTouchCancel(e),
+            detachModelController: () => {
+                if (!self.model) {
+                    return;
+                }
+                if (self.model.controller === self) {
+                    self.model.controller = undefined;
+                }
+                self.model.controllerDetached.trigger(self.model, self);
+                self.model.controllerDetached.clear();
+                self.model.controllerAttached.clear();
+            },
+            draw: () => self.draw(),
+            clearControllerEvents: () => self.clearControllerEvents(),
+        };
+    }
+
     private createKeyboardInteractionHost(): DesignKeyboardInteractionHost {
         const self = this;
 
@@ -5241,6 +3384,398 @@ export class DesignController implements IController {
             onCanvasMouseUp: (e: MouseEvent | IMouseEvent) => self.onCanvasMouseUp(e),
             selectedElementCount: () => self.selectedElementCount(),
             clearSelections: () => self.clearSelections(),
+        };
+    }
+
+    private createMouseInteractionHost(): DesignMouseInteractionHost {
+        const self = this;
+
+        return {
+            controller: self,
+            get enabled() {
+                return self.enabled;
+            },
+            get model() {
+                return self.model;
+            },
+            get canvas() {
+                return self.canvas;
+            },
+            get activeTool() {
+                return self.activeTool;
+            },
+            get mouseDownPosition() {
+                return self.mouseDownPosition;
+            },
+            set mouseDownPosition(value: Point | undefined) {
+                self.mouseDownPosition = value;
+            },
+            get textCaretPreferredX() {
+                return self.textCaretPreferredX;
+            },
+            set textCaretPreferredX(value: number | undefined) {
+                self.textCaretPreferredX = value;
+            },
+            get currentX() {
+                return self.currentX;
+            },
+            set currentX(value: number | undefined) {
+                self.currentX = value;
+            },
+            get currentY() {
+                return self.currentY;
+            },
+            set currentY(value: number | undefined) {
+                self.currentY = value;
+            },
+            get currentWidth() {
+                return self.currentWidth;
+            },
+            set currentWidth(value: number | undefined) {
+                self.currentWidth = value;
+            },
+            get currentHeight() {
+                return self.currentHeight;
+            },
+            set currentHeight(value: number | undefined) {
+                self.currentHeight = value;
+            },
+            get lastClientX() {
+                return self.lastClientX;
+            },
+            set lastClientX(value: number) {
+                self.lastClientX = value;
+            },
+            get lastClientY() {
+                return self.lastClientY;
+            },
+            set lastClientY(value: number) {
+                self.lastClientY = value;
+            },
+            get lastDeltaX() {
+                return self.lastDeltaX;
+            },
+            set lastDeltaX(value: number) {
+                self.lastDeltaX = value;
+            },
+            get lastDeltaY() {
+                return self.lastDeltaY;
+            },
+            set lastDeltaY(value: number) {
+                self.lastDeltaY = value;
+            },
+            get isMouseDown() {
+                return self.isMouseDown;
+            },
+            set isMouseDown(value: boolean) {
+                self.isMouseDown = value;
+            },
+            get isMoving() {
+                return self.isMoving;
+            },
+            set isMoving(value: boolean) {
+                self.isMoving = value;
+            },
+            get isResizing() {
+                return self.isResizing;
+            },
+            set isResizing(value: boolean) {
+                self.isResizing = value;
+            },
+            get isRotating() {
+                return self.isRotating;
+            },
+            set isRotating(value: boolean) {
+                self.isRotating = value;
+            },
+            get isMovingPivot() {
+                return self.isMovingPivot;
+            },
+            set isMovingPivot(value: boolean) {
+                self.isMovingPivot = value;
+            },
+            get isMovingPoint() {
+                return self.isMovingPoint;
+            },
+            set isMovingPoint(value: boolean) {
+                self.isMovingPoint = value;
+            },
+            get isMovingCornerRadius() {
+                return self.isMovingCornerRadius;
+            },
+            set isMovingCornerRadius(value: boolean) {
+                self.isMovingCornerRadius = value;
+            },
+            get isSelectingText() {
+                return self.isSelectingText;
+            },
+            set isSelectingText(value: boolean) {
+                self.isSelectingText = value;
+            },
+            get selecting() {
+                return self.selecting;
+            },
+            set selecting(value: boolean) {
+                self.selecting = value;
+            },
+            get selectionEnabled() {
+                return self.selectionEnabled;
+            },
+            get snapToGrid() {
+                return self.snapToGrid;
+            },
+            get cancelAction() {
+                return self.cancelAction;
+            },
+            set cancelAction(value: boolean) {
+                self.cancelAction = value;
+            },
+            get movingPointIndex() {
+                return self.movingPointIndex;
+            },
+            set movingPointIndex(value: number | undefined) {
+                self.movingPointIndex = value;
+            },
+            get movingPointLocation() {
+                return self.movingPointLocation;
+            },
+            set movingPointLocation(value: Point | undefined) {
+                self.movingPointLocation = value;
+            },
+            get rubberBandActive() {
+                return self.rubberBandActive;
+            },
+            set rubberBandActive(value: boolean) {
+                self.rubberBandActive = value;
+            },
+            get rubberBandRegion() {
+                return self.rubberBandRegion;
+            },
+            set rubberBandRegion(value: Region | undefined) {
+                self.rubberBandRegion = value;
+            },
+            get sizeHandles() {
+                return self.sizeHandles;
+            },
+            set sizeHandles(value: Handle[] | undefined) {
+                self.sizeHandles = value;
+            },
+            get selectedElements() {
+                return self.selectedElements;
+            },
+            get editingTextElement() {
+                return self.editingTextElement;
+            },
+            get textSelectionAnchor() {
+                return self.textSelectionAnchor;
+            },
+            set textSelectionAnchor(value: number) {
+                self.textSelectionAnchor = value;
+            },
+            get textSelectionStart() {
+                return self.textSelectionStart;
+            },
+            set textSelectionStart(value: number) {
+                self.textSelectionStart = value;
+            },
+            get textSelectionEnd() {
+                return self.textSelectionEnd;
+            },
+            set textSelectionEnd(value: number) {
+                self.textSelectionEnd = value;
+            },
+            get pressedElement() {
+                return self.pressedElement;
+            },
+            set pressedElement(value: ElementBase | undefined) {
+                self.pressedElement = value;
+            },
+            get mouseOverElement() {
+                return self.mouseOverElement;
+            },
+            get rotationCenter() {
+                return self.rotationCenter;
+            },
+            set rotationCenter(value: Point | undefined) {
+                self.rotationCenter = value;
+            },
+            get originalPivotCenter() {
+                return self.originalPivotCenter;
+            },
+            set originalPivotCenter(value: Point | undefined) {
+                self.originalPivotCenter = value;
+            },
+            get originalTransform() {
+                return self.originalTransform;
+            },
+            set originalTransform(value: string | undefined) {
+                self.originalTransform = value;
+            },
+            get rotationStartAngle() {
+                return self.rotationStartAngle;
+            },
+            set rotationStartAngle(value: number) {
+                self.rotationStartAngle = value;
+            },
+            get originalRotation() {
+                return self.originalRotation;
+            },
+            set originalRotation(value: number) {
+                self.originalRotation = value;
+            },
+            get minElementSize() {
+                return self.minElementSize;
+            },
+            mouseDownView: self.mouseDownView,
+            get smartAlignmentGuides() {
+                return self.smartAlignmentGuides;
+            },
+            set smartAlignmentGuides(value: DesignSmartAlignmentGuides) {
+                self.smartAlignmentGuides = value;
+            },
+            mouseMovedView: self.mouseMovedView,
+            mouseUpView: self.mouseUpView,
+            mouseUpElement: self.mouseUpElement,
+            elementClicked: self.elementClicked,
+            elementCreated: self.elementCreated,
+            captureMouse: () => {
+                DesignController.captured = self;
+                window.addEventListener('mouseup', self.windowMouseUp, true);
+                window.addEventListener('mousemove', self.windowMouseMove, true);
+            },
+            windowToCanvas: (x: number, y: number) => self.windowToCanvas(x, y),
+            resolveTextEditInteractionPoint: (element: TextElement, bounds: Region, point: Point) =>
+                self.resolveTextEditInteractionPoint(element, bounds, point),
+            beginTextEdit: (element?: TextElement, index?: number) => self.beginTextEdit(element, index),
+            getSelectedTextElement: () => self.getSelectedTextElement(),
+            selectedElementCount: () => self.selectedElementCount(),
+            movableSelectedElementCount: () => self.movableSelectedElementCount(),
+            resizeableSelectedElementCount: () => self.resizeableSelectedElementCount(),
+            getElementHandles: (element: ElementBase) => self.getElementHandles(element),
+            getSelectedMovableEntries: () => self.getSelectedMovableEntries(),
+            constrainMoveDeltaToBounds: (entries: DesignMovableSelectionEntry[], deltaX: number, deltaY: number) =>
+                self.constrainMoveDeltaToBounds(entries, deltaX, deltaY),
+            snapMoveDeltaToGrid: (entries: DesignMovableSelectionEntry[], deltaX: number, deltaY: number) =>
+                self.snapMoveDeltaToGrid(entries, deltaX, deltaY),
+            getSmartAlignmentDelta: (entries: DesignMovableSelectionEntry[], deltaX: number, deltaY: number) =>
+                self.getSmartAlignmentDelta(entries, deltaX, deltaY),
+            getElementMoveLocation: (element: ElementBase) => self.getElementMoveLocation(element),
+            setElementMoveLocation: (element: ElementBase, location: Point, size: Size) =>
+                self.setElementMoveLocation(element, location, size),
+            getElementResizeSize: (element: ElementBase) => self.getElementResizeSize(element),
+            setElementResizeSize: (element: ElementBase, size: Size, location?: Point) =>
+                self.setElementResizeSize(element, size, location),
+            clearElementMoveLocations: () => self.clearElementMoveLocations(),
+            clearElementResizeSizes: () => self.clearElementResizeSizes(),
+            onElementMoved: (element: ElementBase, location: Point) => self.onElementMoved(element, location),
+            onElementSized: (element: ElementBase, size: Size) => self.onElementSized(element, size),
+            onElementRotating: (element: ElementBase, angle: number) => self.onElementRotating(element, angle),
+            onElementRotated: (element: ElementBase, angle: number) => self.onElementRotated(element, angle),
+            setIsDirty: (value: boolean) => self.setIsDirty(value),
+            beginToolHistorySession: () => self.beginToolHistorySession(),
+            commitUndoSnapshot: () => self.commitUndoSnapshot(),
+            finalizeToolHistorySession: () => self.finalizeToolHistorySession(),
+            draw: () => self.draw(),
+            drawIfNeeded: () => self.drawIfNeeded(),
+            invalidate: () => self.invalidate(),
+            setMouseDownElement: (element?: ElementBase) => self.setMouseDownElement(element),
+            setMouseOverElement: (element?: ElementBase) => self.setMouseOverElement(element),
+            isSelected: (element: ElementBase) => self.isSelected(element),
+            onSelectionChanged: () => self.onSelectionChanged(),
+            clearSelections: () => self.clearSelections(),
+            selectElement: (element: ElementBase) => self.selectElement(element),
+            toggleSelected: (element: ElementBase) => self.toggleSelected(element),
+            getNearestSnapX: (x: number) => self.getNearestSnapX(x),
+            getNearestSnapY: (y: number) => self.getNearestSnapY(y),
+            getHandleCornerRadii: (handle?: Handle) => DesignController.getHandleCornerRadii(handle),
+            areCornerRadiiEqual: (
+                left?: [number, number, number, number] | number[],
+                right?: [number, number, number, number] | number[],
+            ) => DesignController.areCornerRadiiEqual(left, right),
+        };
+    }
+
+    private createCanvasInteractionHost(): DesignCanvasInteractionHost {
+        const self = this;
+
+        return {
+            controller: self,
+            get enabled() {
+                return self.enabled;
+            },
+            get canvas() {
+                return self.canvas;
+            },
+            get model() {
+                return self.model;
+            },
+            get activeToolIsCreating() {
+                return !!(self.activeTool && self.activeTool.isCreating);
+            },
+            get isDragging() {
+                return self.isDragging;
+            },
+            set isDragging(value: boolean) {
+                self.isDragging = value;
+            },
+            get mouseOverElement() {
+                return self.mouseOverElement;
+            },
+            set mouseOverElement(value: ElementBase | undefined) {
+                self.mouseOverElement = value;
+            },
+            get pressedElement() {
+                return self.pressedElement;
+            },
+            set pressedElement(value: ElementBase | undefined) {
+                self.pressedElement = value;
+            },
+            get dragOverElement() {
+                return self.dragOverElement;
+            },
+            set dragOverElement(value: ElementBase | undefined) {
+                self.dragOverElement = value;
+            },
+            get selectedElements() {
+                return self.selectedElements;
+            },
+            get editingTextElement() {
+                return self.editingTextElement;
+            },
+            get rotationCenter() {
+                return self.rotationCenter;
+            },
+            set rotationCenter(value: Point | undefined) {
+                self.rotationCenter = value;
+            },
+            get originalPivotCenter() {
+                return self.originalPivotCenter;
+            },
+            set originalPivotCenter(value: Point | undefined) {
+                self.originalPivotCenter = value;
+            },
+            get restoringUndoState() {
+                return self.restoringUndoState;
+            },
+            mouseEnteredElement: self.mouseEnteredElement,
+            mouseLeftElement: self.mouseLeftElement,
+            mouseDownElement: self.mouseDownElement,
+            mouseUpElement: self.mouseUpElement,
+            contextMenuRequested: self.contextMenuRequested,
+            selectionChanged: self.selectionChanged,
+            elementDragEnter: self.elementDragEnter,
+            elementDragLeave: self.elementDragLeave,
+            elementDrop: self.elementDrop,
+            viewDragEnter: self.viewDragEnter,
+            viewDragOver: self.viewDragOver,
+            viewDragLeave: self.viewDragLeave,
+            viewDrop: self.viewDrop,
+            windowToCanvas: (x: number, y: number) => self.windowToCanvas(x, y),
+            isSelected: (element: ElementBase) => self.isSelected(element),
+            endTextEdit: () => self.endTextEdit(),
+            replaceCurrentUndoSnapshot: () => self.replaceCurrentUndoSnapshot(),
+            invalidate: () => self.invalidate(),
+            drawIfNeeded: () => self.drawIfNeeded(),
         };
     }
 }

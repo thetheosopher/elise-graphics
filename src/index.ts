@@ -157,6 +157,7 @@ import { SurfaceViewController } from './surface/surface-view-controller';
 
 import { TransitionRenderer } from './transitions/transitions';
 
+import { SVGViewController } from './view/svg-view-controller';
 import { ViewController } from './view/view-controller';
 import { ViewRenderer } from './view/view-renderer';
 
@@ -324,6 +325,7 @@ export { SurfaceViewController } from './surface/surface-view-controller';
 
 export { TransitionRenderer } from './transitions/transitions';
 
+export { SVGViewController } from './view/svg-view-controller';
 export { ViewController } from './view/view-controller';
 export { ViewRenderer } from './view/view-renderer';
 
@@ -429,6 +431,9 @@ export { uriTextResource };
 
 const view = ViewController.initializeTarget;
 export { view };
+
+const svgView = SVGViewController.initializeTarget;
+export { svgView };
 
 const requestAnimationFrameCompat =
     typeof globalThis.requestAnimationFrame === 'function'
@@ -571,6 +576,7 @@ export default {
     SurfaceTextElement: SurfaceTextElement,
     SurfaceVideoLayer: SurfaceVideoLayer,
     SurfaceViewController: SurfaceViewController,
+    SVGViewController: SVGViewController,
     TextElement: TextElement,
     TextResource: TextResource,
     TextTool: TextTool,
@@ -617,6 +623,7 @@ export default {
     ring: ring,
     size: size,
     sketcher: sketcher,
+    svgView: svgView,
     sprite: sprite,
     spriteFrame: spriteFrame,
     text: text,

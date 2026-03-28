@@ -18,7 +18,7 @@ Analysis Date: March 2026 | Library Version: 1.1.0
 
 ## 1. Executive Summary
 
-Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a rich feature set that includes a full design surface, sprite animation with 40+ transitions, a composable model hierarchy, JSON serialization, resource management with localization, and a higher-level Surface system integrating video/HTML/panes. Its closest competitors are **Fabric.js**, **Konva.js**, **Paper.js**, **Two.js**, and **PixiJS**.
+Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a rich feature set that includes a full design surface, sprite animation with 40+ transitions, a composable model hierarchy, JSON serialization, resource management with localization, and a higher-level Surface system integrating video/HTML/panes. It now also has an initial **live SVG view runtime path** alongside its mature SVG import/export pipeline. Its closest competitors are **Fabric.js**, **Konva.js**, **Paper.js**, **Two.js**, and **PixiJS**.
 
 **Key Strengths:**
 
@@ -47,7 +47,7 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | **Core** | Model, elements, color, transforms, serialization | `Model`, `ElementBase`, `Color`, `Matrix2D`, `Point`, `Region` |
 | **Elements** | Drawing primitives | `RectangleElement`, `EllipseElement`, `LineElement`, `PathElement`, `ArcElement`, `RegularPolygonElement`, `ArrowElement`, `WedgeElement`, `RingElement`, `PolygonElement`, `PolylineElement`, `TextElement`, `ImageElement`, `SpriteElement`, `ModelElement` |
 | **Fill** | Fill/stroke system with gradients and patterns | `LinearGradientFill`, `RadialGradientFill`, `FillFactory` |
-| **View** | Read-only model rendering | `ViewController`, `ViewRenderer` |
+| **View** | Read-only model rendering | `ViewController`, `SVGViewController`, `ViewRenderer` |
 | **Design** | Interactive editing surface | `DesignController`, `DesignRenderer`, creation/edit tools for rectangles, ellipses, lines, paths, polygons, polylines, arc, regular polygon, arrow, wedge, ring, text, image, and model elements, `HandleFactory` |
 | **Command** | Element-level command/event dispatch | `ElementCommand`, `ElementCommandHandler` |
 | **Resource** | Bitmap/text/model resource management | `ResourceManager`, `BitmapResource`, `TextResource`, `ModelResource` |
@@ -86,14 +86,14 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Canvas 2D | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | WebGL | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
 | WebGPU | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| SVG Renderer | ❌ | ✅ | ❌ | ✅ | ✅ | ❌ |
+| SVG Renderer | ⚠️ (view-only runtime) | ✅ | ❌ | ✅ | ✅ | ❌ |
 | Retained Mode | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Bounds Culling | ✅ (partial) | ❌ | ❌ | ❌ | ❌ | ✅ |
 | Offscreen Rendering | ✅ (manual) | ❌ | ✅ | ❌ | ❌ | ✅ |
 | Web Worker | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | HiDPI/Retina | ✅ (auto + opt-out API) | ✅ | ✅ | ✅ | ✅ | ✅ |
 
-**Analysis:** Elise's Canvas 2D renderer is functional with basic bounds culling (though culling is incomplete for transformed elements). Automatic HiDPI/backing-store scaling in both view and design controllers closes one of the most visible quality gaps with competitors. The lack of a WebGL renderer still puts it behind PixiJS and Two.js for performance-intensive applications. PixiJS v8 is now the first library in this class to ship a WebGPU rendering backend alongside WebGL. No library in this class supports Web Workers well.
+**Analysis:** Elise's Canvas 2D renderer is functional with basic bounds culling (though culling is incomplete for transformed elements), and it now has an initial SVG runtime path for view-mode rendering through `SVGViewController`/`svgView(...)`. Automatic HiDPI/backing-store scaling in both view and design controllers closes one of the most visible quality gaps with competitors. The remaining rendering limitations are that the SVG runtime is still view-only, redraws the full scene, and does not yet provide design-surface parity. The lack of a WebGL renderer still puts Elise behind PixiJS and Two.js for performance-intensive applications. PixiJS v8 is now the first library in this class to ship a WebGPU rendering backend alongside WebGL. No library in this class supports Web Workers well.
 
 ### 3.2 Drawing Primitives
 
@@ -279,7 +279,7 @@ All five planned steps have been delivered:
 | Z-order controls | ✅ | ✅ | ✅ | ❌ |
 | Text edit mode | ✅ | ✅ | ❌ | ❌ |
 
-**Analysis:** Elise has the **most comprehensive built-in design surface** of any library in this comparison. The combination of 9 creation tools, component registry, rubber-band selection, grid snapping, dirty tracking, undo/redo, z-order controls, alignment and distribution helpers, smart drag guides, resize-to-match helpers, duplication workflows, clipboard workflows, and inline text editing with rich formatting is unmatched. The remaining gaps now sit outside core editing ergonomics, especially masking, SVG DOM rendering, and runtime keyboard APIs.
+**Analysis:** Elise has the **most comprehensive built-in design surface** of any library in this comparison. The combination of 9 creation tools, component registry, rubber-band selection, grid snapping, dirty tracking, undo/redo, z-order controls, alignment and distribution helpers, smart drag guides, resize-to-match helpers, duplication workflows, clipboard workflows, and inline text editing with rich formatting is unmatched. The remaining gaps now sit outside core editing ergonomics, especially masking, **SVG design/runtime parity beyond the initial view-only path**, and runtime keyboard APIs.
 
 ### 3.10 Serialization & Persistence
 
@@ -323,17 +323,18 @@ All five planned steps have been delivered:
 
 Elise now has **substantial SVG capability**:
 
-- ❌ No SVG rendering backend (canvas-only)
+- ⚠️ A live SVG runtime exists for view mode via `SVGViewController` and the exported `svgView(hostDiv, model, scale?)` helper; it redraws from `Model.toSVG()` into a mounted SVG root and mirrors the existing view timer/invalidate lifecycle closely enough for animated examples
 - ✅ SVG import covers `<path>`, `<rect>`, `<ellipse>`, `<circle>`, `<line>`, `<polygon>`, `<polyline>`, `<text>`, `<image>`, `<g>`, `<symbol>`, and `<use>`, including hierarchy-preserving container import, `use` reference resolution, inherited basic styles, gradient fills and clip paths from `<defs>`, `viewBox` origin offset handling, and SVG transform import via normalized matrix transforms
 - ✅ SVG export supports the base `Model`, `PathElement`, `ArcElement`, `RegularPolygonElement`, `ArrowElement`, `WedgeElement`, `RingElement`, `RectangleElement`, `EllipseElement`, `LineElement`, `PolygonElement`, `PolylineElement`, `TextElement`, `ImageElement`, and `ModelElement`, with nested group export for embedded models and `<symbol>`/`<use>` export for reusable `ModelResource`-backed elements
 - ✅ Standard SVG path strings are supported with native persisted arc, shorthand, axis-aligned, cubic, and quadratic commands, while runtime rendering still expands those commands internally where canvas requires explicit segments
 - ⚠️ Elise transform strings are converted to valid SVG matrix transforms during export, but Elise still does not use native SVG transform syntax as its internal authoring format
+- ⚠️ The live SVG path is currently **view-mode only**: no design-surface overlays, no canvas-style hit testing parity, no SVG interaction/event routing, and no incremental DOM diffing yet
 
 ### Why SVG Support Matters
 
 1. **Interoperability** — SVG is the universal vector exchange format. Design tools (Figma, Illustrator, Inkscape) export SVG. Icon libraries ship SVG. Elise’s expanded import/export now covers the most common element types and grouping constructs, though advanced features like patterns, masks, and filters remain unsupported.
 
-2. **Resolution independence** — While Elise's canvas renderer scales well, SVG enables crisp rendering at any zoom and is natively supported by browsers without JavaScript.
+2. **Resolution independence** — While Elise's canvas renderer scales well and the new SVG view runtime now provides a native DOM path, SVG still enables crisp rendering at any zoom and is natively supported by browsers without JavaScript.
 
 3. **Accessibility** — SVG supports ARIA attributes, `<title>`, `<desc>`, and keyboard focus. Canvas is opaque to screen readers.
 
@@ -384,10 +385,12 @@ Elise now has **substantial SVG capability**:
 - `<use>` references are resolved against named elements collected during import, with offset transforms applied
 - Remaining work includes patterns, masks, richer text semantics, and additional SVG-specific layout features
 
-#### Phase 4 — SVG Rendering Backend (Optional)
+#### Phase 4 — SVG Rendering Backend
 
-- Alternative renderer that outputs to SVG DOM instead of Canvas
-- Would enable SVG advantages (accessibility, print) with Elise's retained-mode API
+- Status: Initial slice completed
+- `SVGViewController` now provides a live SVG runtime for view-mode rendering, and the package exports a matching `svgView(...)` helper alongside the existing canvas `view(...)` API
+- The current implementation redraws from `Model.toSVG()` into a mounted SVG root and supports the same timer/invalidate flow used by animated view examples
+- Remaining work for full parity includes shared SVG scene-building helpers, incremental DOM updates, runtime hit testing/event routing, richer unsupported-feature fallback strategy, and any design-surface integration
 
 ---
 
@@ -404,7 +407,7 @@ Elise now has **substantial SVG capability**:
 | Gap | Impact | Difficulty | Competitors with feature |
 | --- | ------ | ---------- | ------------------------ |
 | No mask/clipping composition beyond clip paths | Cannot apply alpha masks or shape-based masking | Medium | PixiJS, Konva.js, Paper.js |
-| No SVG rendering backend | Cannot render to SVG DOM for accessibility, print, or SEO | High | Fabric.js, Paper.js, Two.js |
+| Partial SVG runtime only | Live SVG rendering exists for view mode, but it does not yet provide full interaction, design-surface parity, or incremental DOM updates | High | Fabric.js, Paper.js, Two.js |
 | Runtime keyboard events not exposed | `ViewController` has no keyboard API; applications must wire DOM events manually | Medium | Fabric.js, Konva.js, Paper.js |
 
 ### 5.3 Nice-to-Have Gaps (Would enhance competitive position)
@@ -608,7 +611,7 @@ Animate elements along arbitrary path geometries. Combines the existing tweening
 
 Elise occupies a **unique niche** that no single competitor fills: a retained-mode graphics library with a **built-in design surface**, **application framework** (Surface/Pane system with video/HTML integration), and **sprite animation with 40+ transitions**. The closest competitor combining editing + rendering is Fabric.js, but Fabric lacks Elise's Surface system, component registry, undo/redo, rubber-band selection, and transition effects.
 
-With the completion of 21 major feature milestones (animation system, touch support, SVG import/export, undo/redo, rich text editing, blend modes, filters, event bubbling, clipboard support, automatic HiDPI rendering, expanded easing coverage, and more), Elise now competes on **core capability** rather than playing catch-up on basics. The design surface is the most comprehensive in its class.
+With the completion of 22 major feature milestones (animation system, touch support, SVG import/export, initial live SVG view runtime support, undo/redo, rich text editing, blend modes, filters, event bubbling, clipboard support, automatic HiDPI rendering, expanded easing coverage, and more), Elise now competes on **core capability** rather than playing catch-up on basics. The design surface is the most comprehensive in its class.
 
 **Competitive landscape shift:** Konva.js has grown to the largest library in this class by npm downloads (~1.1M/week), driven by React/Vue/Svelte/Angular framework integrations. Fabric.js v7 added multi-touch gestures, aligning guidelines, and improved text handling. PixiJS v8 shipped WebGPU as the first library in this class. Paper.js development has stalled. The market is bifurcating between high-performance renderers (PixiJS) and interactive editing libraries (Fabric.js, Konva.js, Elise).
 
@@ -616,13 +619,13 @@ With the completion of 21 major feature milestones (animation system, touch supp
 
 1. **Advanced filters/effects pipeline** — CSS-style filters now exist, but pixel-level effect pipelines and authored SVG filter graphs still lag richer competitors
 2. **Advanced vector tooling** — Boolean path ops, richer arc manipulation, and exact non-uniform SVG path fidelity remain behind Paper.js-class tooling
-3. **GPU rendering path** — No WebGL/WebGPU backend for high-complexity scenes
+3. **Rendering backend depth** — SVG runtime support is now started, but Elise still lacks full SVG parity and any WebGL/WebGPU backend for high-complexity scenes
 4. **Accessibility layer** — Canvas content still lacks a first-class ARIA/focus model
 
 **The recommended path forward:**
 
 1. **Deepen effects work:** richer filter/effect pipelines and masking remain the most visible motion-and-rendering shortcoming
 2. **Build strategic advantage** (R1-R5): Masking, text on path, runtime keyboard APIs, and timeline animation extend Elise's unique design surface and animation strengths
-3. **Polish and differentiate** (R6-R15): Accessibility, boolean operations, advanced SVG, PDF export, and future renderer backends round out the platform for specialized use cases
+3. **Polish and differentiate** (R6-R15): Accessibility, boolean operations, advanced SVG, SVG runtime parity work, PDF export, and future renderer backends round out the platform for specialized use cases
 
 This strategy leverages Elise's unique Surface/Pane architecture and comprehensive design surface as differentiators while closing the feature gaps that matter most in competitive evaluations.
