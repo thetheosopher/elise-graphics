@@ -146,7 +146,7 @@ Elise includes a property tweening API for animating element bounds, centers, ra
 * `element.animate(targets, options)` starts a tween and returns an `ElementTween` instance.
 * `element.cancelAnimations()` stops all active tweens for the element.
 * `element.cancelAnimations(['x', 'opacity'])` stops only the listed properties.
-* `AnimationEasing` exposes the built-in easing functions and lookup helper.
+* `AnimationEasing` exposes 31 built-in easing functions covering linear, quad/cubic/quart/quint, sine/expo/circ, and back/elastic/bounce families, plus the lookup helper.
 
 Supported tween targets include:
 
@@ -215,6 +215,37 @@ The design surface supports inline text editing with rich formatting. Double-cli
 * Double-click to select a word
 * **Ctrl+B** for bold, **Ctrl+I** for italic, **Ctrl+U** for underline
 * Escape to exit text edit mode
+
+## Design Surface Clipboard API
+
+The design surface now exposes programmatic clipboard helpers directly on `DesignController`, so toolbar and menu commands do not need to synthesize keyboard events.
+
+```javascript
+const editor = elise.design(hostDiv, model);
+
+copyButton.onclick = () => editor.copySelectedToClipboard();
+cutButton.onclick = () => editor.cutSelectedToClipboard();
+pasteButton.onclick = () => void editor.pasteFromClipboard();
+
+// Custom application clipboard store
+const clipboardText = editor.exportSelectionClipboardText();
+if (clipboardText) {
+    appClipboard = clipboardText;
+}
+
+if (appClipboard) {
+    editor.pasteClipboardData(appClipboard, 8, 8);
+}
+```
+
+Available editor clipboard methods:
+
+* `copySelectedToClipboard()` copies the current selection to the internal clipboard and, when available, `navigator.clipboard`.
+* `cutSelectedToClipboard()` copies then removes the current selection.
+* `pasteFromClipboard()` pastes from the system clipboard or Elise's internal clipboard buffer and applies the standard incremental paste offset.
+* `exportSelectionClipboardData()` returns a structured clipboard payload for app-managed clipboard integrations.
+* `exportSelectionClipboardText()` returns the serialized clipboard JSON string.
+* `pasteClipboardData(data, offsetX?, offsetY?)` pastes a structured payload or serialized payload directly.
 
 ## Example Projects
 

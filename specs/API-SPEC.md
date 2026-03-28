@@ -24,7 +24,7 @@ Elise is a retained-mode 2D graphics library built on the HTML5 Canvas API. It p
 | **Command** | Event-driven command dispatch system |
 | **Surface** | High-level application framework with layers (image, HTML, video, hidden) |
 | **Sketcher** | Progressive drawing animation engine |
-| **Transitions** | 38+ visual transition effects and 13 easing functions |
+| **Transitions** | 38+ visual transition effects and 31 easing functions |
 
 ---
 
@@ -959,6 +959,8 @@ class DesignController implements IController {
   enabled: boolean;
   isDirty: boolean;
   scale: number;
+  autoPixelRatio: boolean;
+  pixelRatio: number;
   needsRedraw: boolean;
 
   // Selection
@@ -976,6 +978,8 @@ class DesignController implements IController {
   constrainToBounds: boolean;
   minElementSize: Size;
   largeJump: number;
+  smartAlignmentEnabled: boolean;
+  smartAlignmentThreshold: number;
 
   // Design Tools
   activeTool?: DesignTool;
@@ -999,6 +1003,7 @@ class DesignController implements IController {
   elementDragEnter: ControllerEvent<ElementDragArgs>;
   elementDragLeave: ControllerEvent<ElementDragArgs>;
   elementDragDrop: ControllerEvent<ElementDragArgs>;
+  contextMenuRequested: ControllerEvent<DesignContextMenuEventArgs>;
   // + all inherited view events
 
   // Factory
@@ -1008,6 +1013,8 @@ class DesignController implements IController {
   setModel(model: Model): void;
   setEnabled(enabled: boolean, disabledFill?: string): void;
   setScale(scale: number): void;
+  setAutoPixelRatio(enabled: boolean, pixelRatio?: number): void;
+  setPixelRatio(pixelRatio: number): void;
   draw(): void;
   invalidate(): void;
   detach(): void;
@@ -1024,6 +1031,13 @@ class DesignController implements IController {
   moveToBack(el: ElementBase): void;
   moveForward(el: ElementBase): void;
   moveBackward(el: ElementBase): void;
+  copySelectedToClipboard(): boolean;
+  cutSelectedToClipboard(): boolean;
+  pasteFromClipboard(): Promise<boolean>;
+  exportSelectionClipboardData(): DesignClipboardData | undefined;
+  exportSelectionClipboardText(): string | undefined;
+  pasteClipboardData(data: string | DesignClipboardData,
+                     offsetX?: number, offsetY?: number): boolean;
 
   // Undo/Redo
   undo(): boolean;
@@ -1037,6 +1051,13 @@ class DesignController implements IController {
   sendToBack(el?: ElementBase): void;
   bringForward(el?: ElementBase): void;
   sendBackward(el?: ElementBase): void;
+  alignSelectedHorizontally(alignment: 'left' | 'center' | 'right'): void;
+  alignSelectedVertically(alignment: 'top' | 'middle' | 'bottom'): void;
+  distributeSelectedHorizontally(): void;
+  distributeSelectedVertically(): void;
+  resizeSelectedToSameWidth(): void;
+  resizeSelectedToSameHeight(): void;
+  resizeSelectedToSameSize(): void;
 
   // Corner Radius
   setSelectedRectangleCornerRadius(radius: number): void;
@@ -1058,6 +1079,22 @@ class DesignController implements IController {
   // Tool Management
   setActiveTool(tool: DesignTool): void;
   clearActiveTool(): void;
+}
+```
+
+```typescript
+interface DesignClipboardData {
+  format: string;
+  version: number;
+  resources: SerializedData[];
+  elements: SerializedData[];
+}
+```
+
+```typescript
+class DesignContextMenuEventArgs extends PointEventParameters {
+  element?: ElementBase;
+  selectedElements: ElementBase[];
 }
 ```
 

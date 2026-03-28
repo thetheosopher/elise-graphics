@@ -1,5 +1,29 @@
 import { ViewController } from '../../view/view-controller';
 
+function setWindowDevicePixelRatio(value: number) {
+    const globals = globalThis as typeof globalThis & { window?: Window & typeof globalThis };
+    const originalWindow = globals.window;
+    const target = (globals.window || ({} as Window & typeof globalThis)) as Window & typeof globalThis;
+    globals.window = target;
+    const original = Object.getOwnPropertyDescriptor(target, 'devicePixelRatio');
+    Object.defineProperty(target, 'devicePixelRatio', {
+        configurable: true,
+        value,
+    });
+    return () => {
+        if (!originalWindow) {
+            delete (globals as { window?: Window & typeof globalThis }).window;
+            return;
+        }
+        if (original) {
+            Object.defineProperty(target, 'devicePixelRatio', original);
+            return;
+        }
+        delete (target as { devicePixelRatio?: number }).devicePixelRatio;
+        globals.window = originalWindow;
+    };
+}
+
 function installFakeWindow() {
     const globals = globalThis as unknown as { window?: any };
     const originalWindow = globals.window;
@@ -128,6 +152,46 @@ test('view controller windowToCanvasWithOutput scales clamps and offsets', () =>
     expect(result).toBe(out);
     expect(result.x).toBe(5);
     expect(result.y).toBe(-3);
+});
+
+test('view controller draw scales backing store for device pixel ratio', () => {
+    const restoreDevicePixelRatio = setWindowDevicePixelRatio(2);
+    const controller = new ViewController();
+    const context = {
+        clearRect: jest.fn(),
+        save: jest.fn(),
+        restore: jest.fn(),
+        scale: jest.fn(),
+        translate: jest.fn(),
+        setTransform: jest.fn(),
+        fillText: jest.fn(),
+    } as unknown as CanvasRenderingContext2D;
+
+    controller.model = {
+        getSize: () => ({ width: 100, height: 50 }),
+        displayFPS: false,
+    } as unknown as any;
+    controller.canvas = {
+        width: 100,
+        height: 50,
+        style: { width: '', height: '' },
+        parentElement: { style: {} } as unknown as HTMLDivElement,
+        getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 50 }),
+        getContext: () => context,
+    } as unknown as HTMLCanvasElement;
+    controller.renderer = {
+        renderToContext: jest.fn(),
+    } as unknown as any;
+
+    controller.draw();
+
+    expect(controller.canvas.width).toBe(200);
+    expect(controller.canvas.height).toBe(100);
+    expect((controller.canvas.style as CSSStyleDeclaration).width).toBe('100px');
+    expect((controller.canvas.style as CSSStyleDeclaration).height).toBe('50px');
+    expect(context.scale).toHaveBeenNthCalledWith(1, 2, 2);
+
+    restoreDevicePixelRatio();
 });
 
 test('view controller detach clears timers listeners and canvas', () => {

@@ -1,3 +1,4 @@
+import { AnimationEasing, animationEasingNames } from '../../animation/animation-easing';
 import { SpriteElement } from '../../elements/sprite-element';
 import { SpriteFrame } from '../../elements/sprite-frame';
 import { TransitionRenderer } from '../../transitions/transitions';
@@ -69,5 +70,14 @@ describe('transition renderer', () => {
         expect(sprite.frameIndex).toBe(1);
         expect(sprite.transition).toBeUndefined();
         expect(draw).toHaveBeenCalled();
+    });
+
+    test('transition easing registry matches the shared animation easing set', () => {
+        expect(TransitionRenderer.easingFunctions.map(entry => entry.name)).toEqual(animationEasingNames);
+
+        const easing = TransitionRenderer.getEasingFunction('easeInOutElastic');
+        expect(easing(0)).toBeCloseTo(0, 8);
+        expect(easing(1)).toBeCloseTo(1, 8);
+        expect(easing(0.5)).toBeCloseTo(AnimationEasing.easeInOutElastic(0.5), 8);
     });
 });

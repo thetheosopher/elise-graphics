@@ -61,6 +61,7 @@ describe('index api surface', () => {
         const indexModule = loadIndexModule();
 
         expect(typeof indexModule.AnimationEasing.easeInOutCubic).toBe('function');
+        expect(typeof indexModule.AnimationEasing.easeInOutElastic).toBe('function');
         expect(typeof indexModule.ElementAnimator.animate).toBe('function');
         expect(indexModule.default.AnimationEasing).toBe(indexModule.AnimationEasing);
         expect(indexModule.default.ElementAnimator).toBe(indexModule.ElementAnimator);

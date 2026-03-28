@@ -1,4 +1,4 @@
-import { AnimationEasing } from '../../animation/animation-easing';
+import { AnimationEasing, animationEasingNames } from '../../animation/animation-easing';
 import { ElementAnimator } from '../../animation/element-tween';
 import { RectangleElement } from '../../elements/rectangle-element';
 
@@ -88,6 +88,34 @@ describe('element tweening', () => {
         expect(rect.fill).not.toBe('rgba(0,0,0,0)');
         expect(rect.stroke).not.toBe('rgb(0,0,0)');
         expect(rect.opacity).toBeCloseTo(0.625);
+
+        fakeAnimationFrame.restore();
+    });
+
+    test('all built-in easing names resolve with stable endpoints', () => {
+        for (const easingName of animationEasingNames) {
+            const easing = AnimationEasing.get(easingName);
+
+            expect(easing(0)).toBeCloseTo(0, 8);
+            expect(easing(1)).toBeCloseTo(1, 8);
+            expect(Number.isFinite(easing(0.5))).toBe(true);
+        }
+    });
+
+    test('supports bounce easing names during tween playback', () => {
+        const fakeAnimationFrame = installFakeAnimationFrame();
+        jest.spyOn(performance, 'now').mockReturnValue(0);
+
+        const rect = RectangleElement.create(0, 0, 10, 10);
+        rect.model = { controller: { draw: jest.fn() } } as unknown as any;
+
+        rect.animate({ x: 100 }, { duration: 1000, easing: 'easeOutBounce' });
+
+        fakeAnimationFrame.step(500);
+        expect(rect.getBounds()?.x).toBeCloseTo(76.5625, 4);
+
+        fakeAnimationFrame.step(1000);
+        expect(rect.getBounds()?.x).toBeCloseTo(100);
 
         fakeAnimationFrame.restore();
     });

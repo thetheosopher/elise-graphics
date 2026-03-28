@@ -17,6 +17,30 @@ import { HandleMovedArgs } from '../../design/handle-moved-args';
 import { RectangleTool } from '../../design/tools/rectangle-tool';
 import { BitmapResource } from '../../resource/bitmap-resource';
 
+function setWindowDevicePixelRatio(value: number) {
+    const globals = globalThis as typeof globalThis & { window?: Window & typeof globalThis };
+    const originalWindow = globals.window;
+    const target = (globals.window || ({} as Window & typeof globalThis)) as Window & typeof globalThis;
+    globals.window = target;
+    const original = Object.getOwnPropertyDescriptor(target, 'devicePixelRatio');
+    Object.defineProperty(target, 'devicePixelRatio', {
+        configurable: true,
+        value,
+    });
+    return () => {
+        if (!originalWindow) {
+            delete (globals as { window?: Window & typeof globalThis }).window;
+            return;
+        }
+        if (original) {
+            Object.defineProperty(target, 'devicePixelRatio', original);
+            return;
+        }
+        delete (target as { devicePixelRatio?: number }).devicePixelRatio;
+        globals.window = originalWindow;
+    };
+}
+
 function installFakeWindow() {
     const globals = globalThis as unknown as { window?: any };
     const originalWindow = globals.window;
@@ -59,6 +83,15 @@ function createTouchEvent(touches: Touch[], changedTouches: Touch[] = touches) {
     } as unknown as TouchEvent;
 }
 
+function readCanvasDisplaySize(canvas: { width: number; height: number; style?: { width?: string; height?: string } }) {
+    const width = canvas.style?.width ? parseFloat(canvas.style.width) : canvas.width;
+    const height = canvas.style?.height ? parseFloat(canvas.style.height) : canvas.height;
+    return {
+        width: Number.isFinite(width) && width > 0 ? width : canvas.width,
+        height: Number.isFinite(height) && height > 0 ? height : canvas.height,
+    };
+}
+
 function installDesignSurface(controller: DesignController) {
     const scrollContainer = { scrollLeft: 30, scrollTop: 40 } as HTMLElement;
     const hostElement = {
@@ -74,14 +107,19 @@ function installDesignSurface(controller: DesignController) {
         closePath: jest.fn(),
     } as unknown as CanvasRenderingContext2D;
 
-    controller.canvas = {
+    const canvas = {
         width: 100,
         height: 100,
-        style: { cursor: 'default' },
+        style: { cursor: 'default', width: '100px', height: '100px' },
         parentElement: hostElement,
-        getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 }),
+        getBoundingClientRect: () => {
+            const size = readCanvasDisplaySize(canvas);
+            return { left: 0, top: 0, width: size.width, height: size.height };
+        },
         getContext: () => context,
     } as unknown as HTMLCanvasElement;
+
+    controller.canvas = canvas;
 
     controller.model = {
         getSize: () => ({ width: 100, height: 100 }),
@@ -97,14 +135,18 @@ function installDesignSurface(controller: DesignController) {
 }
 
 function installCanvasOnly(controller: DesignController) {
-    controller.canvas = {
+    const canvas = {
         width: 100,
         height: 100,
-        style: { cursor: 'default', touchAction: 'none' },
+        style: { cursor: 'default', touchAction: 'none', width: '100px', height: '100px' },
         parentElement: { style: {} } as unknown as HTMLDivElement,
-        getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 }),
+        getBoundingClientRect: () => {
+            const size = readCanvasDisplaySize(canvas);
+            return { left: 0, top: 0, width: size.width, height: size.height };
+        },
         getContext: () => ({}) as CanvasRenderingContext2D,
     } as unknown as HTMLCanvasElement;
+    controller.canvas = canvas;
     controller.draw = jest.fn();
 }
 
@@ -121,6 +163,11 @@ function installInteractiveCanvas(controller: DesignController, context?: Partia
     const canvasContext = {
         save: jest.fn(),
         restore: jest.fn(),
+        setTransform: jest.fn(),
+        translate: jest.fn(),
+        scale: jest.fn(),
+        rotate: jest.fn(),
+        transform: jest.fn(),
         beginPath: jest.fn(),
         moveTo: jest.fn(),
         lineTo: jest.fn(),
@@ -138,14 +185,18 @@ function installInteractiveCanvas(controller: DesignController, context?: Partia
         ...context,
     } as unknown as CanvasRenderingContext2D;
 
-    controller.canvas = {
+    const canvas = {
         width: 100,
         height: 100,
-        style: { cursor: 'default', touchAction: 'none' },
+        style: { cursor: 'default', touchAction: 'none', width: '100px', height: '100px' },
         parentElement: { style: {} } as unknown as HTMLDivElement,
-        getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 }),
+        getBoundingClientRect: () => {
+            const size = readCanvasDisplaySize(canvas);
+            return { left: 0, top: 0, width: size.width, height: size.height };
+        },
         getContext: () => canvasContext,
     } as unknown as HTMLCanvasElement;
+    controller.canvas = canvas;
     controller.draw = jest.fn();
 
     return canvasContext;
@@ -156,9 +207,11 @@ function createOverlayContext() {
         clearRect: jest.fn(),
         save: jest.fn(),
         restore: jest.fn(),
+        setTransform: jest.fn(),
         scale: jest.fn(),
         translate: jest.fn(),
         rotate: jest.fn(),
+        transform: jest.fn(),
         beginPath: jest.fn(),
         moveTo: jest.fn(),
         lineTo: jest.fn(),
@@ -184,14 +237,18 @@ function createOverlayContext() {
 }
 
 function installDrawCanvas(controller: DesignController, context: CanvasRenderingContext2D) {
-    controller.canvas = {
+    const canvas = {
         width: 100,
         height: 100,
-        style: { cursor: 'default' },
+        style: { cursor: 'default', width: '100px', height: '100px' },
         parentElement: { style: {} } as unknown as HTMLDivElement,
-        getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100 }),
+        getBoundingClientRect: () => {
+            const size = readCanvasDisplaySize(canvas);
+            return { left: 0, top: 0, width: size.width, height: size.height };
+        },
         getContext: () => context,
     } as unknown as HTMLCanvasElement;
+    controller.canvas = canvas;
 }
 
 describe('design controller touch support', () => {
@@ -385,6 +442,28 @@ describe('design controller undo and redo', () => {
         expect(model.elements.map((element) => element.getBounds()?.y)).toEqual([70, 60, 60]);
     });
 
+    test('distribution commands space selected elements evenly and support undo', () => {
+        const { controller, model } = createControllerWithRectangles(
+            RectangleElement.create(0, 0, 10, 10),
+            RectangleElement.create(30, 35, 20, 20),
+            RectangleElement.create(80, 90, 10, 10)
+        );
+
+        controller.selectedElements = model.elements.slice();
+        controller.distributeSelectedHorizontally();
+
+        expect(model.elements.map((element) => element.getBounds()?.x)).toEqual([0, 35, 80]);
+
+        controller.undo();
+
+        expect(model.elements.map((element) => element.getBounds()?.x)).toEqual([0, 30, 80]);
+
+        controller.selectedElements = model.elements.slice();
+        controller.distributeSelectedVertically();
+
+        expect(model.elements.map((element) => element.getBounds()?.y)).toEqual([0, 40, 90]);
+    });
+
     test('same-size resize commands use the first selected resizable element and support undo', () => {
         const { controller, model } = createControllerWithRectangles(
             RectangleElement.create(10, 10, 20, 15),
@@ -426,6 +505,120 @@ describe('design controller undo and redo', () => {
         expect(controller.selectedElements).toHaveLength(2);
         expect(controller.selectedElements[0]).toBe(model.elements[2]);
         expect(controller.selectedElements[1]).toBe(model.elements[3]);
+    });
+
+    test('copySelectedToClipboard and pasteFromClipboard preserve ordering and apply a paste offset', async () => {
+        const { controller, model } = createControllerWithRectangles(
+            RectangleElement.create(10, 10, 20, 15),
+            RectangleElement.create(40, 30, 25, 20)
+        );
+
+        controller.selectedElements = model.elements.slice();
+
+        expect(controller.copySelectedToClipboard()).toBe(true);
+        await expect(controller.pasteFromClipboard()).resolves.toBe(true);
+
+        expect(model.elements).toHaveLength(4);
+        expect(model.elements[2].getBounds()?.x).toBe(20);
+        expect(model.elements[2].getBounds()?.y).toBe(20);
+        expect(model.elements[3].getBounds()?.x).toBe(50);
+        expect(model.elements[3].getBounds()?.y).toBe(40);
+        expect(controller.selectedElements).toEqual([model.elements[2], model.elements[3]]);
+        expect(model.elements[2].interactive).toBe(true);
+        expect(model.elements[3].interactive).toBe(true);
+        expect(controller.canUndo).toBe(true);
+    });
+
+    test('pasted elements can be reselected after clearing the current selection', async () => {
+        const fakeWindowScope = installFakeWindow();
+        const { controller, model } = createControllerWithRectangles(
+            RectangleElement.create(10, 10, 20, 15),
+            RectangleElement.create(40, 30, 25, 20)
+        );
+
+        controller.selectedElements = model.elements.slice();
+        expect(controller.copySelectedToClipboard()).toBe(true);
+        await expect(controller.pasteFromClipboard()).resolves.toBe(true);
+
+        const pasted = model.elements[2];
+        installInteractiveCanvas(controller);
+        jest.spyOn(model, 'firstActiveElementAt').mockReturnValue(pasted);
+        jest.spyOn(model, 'elementsAt').mockReturnValue([pasted]);
+
+        controller.clearSelections();
+        controller.onCanvasMouseDown({
+            button: 0,
+            clientX: 25,
+            clientY: 25,
+            detail: 1,
+            preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+        } as unknown as MouseEvent);
+
+        expect(controller.selectedElements).toEqual([pasted]);
+
+        fakeWindowScope.restore();
+    });
+
+    test('exportSelectionClipboardText and pasteClipboardData support programmatic editor integration', () => {
+        const { controller, model } = createControllerWithRectangles(
+            RectangleElement.create(10, 10, 20, 15),
+            RectangleElement.create(40, 30, 25, 20)
+        );
+
+        controller.selectedElements = model.elements.slice();
+
+        const text = controller.exportSelectionClipboardText();
+
+        expect(text).toBeDefined();
+        expect(controller.pasteClipboardData(text!, 4, 6)).toBe(true);
+        expect(model.elements).toHaveLength(4);
+        expect(model.elements[2].getBounds()?.x).toBe(14);
+        expect(model.elements[2].getBounds()?.y).toBe(16);
+        expect(model.elements[3].getBounds()?.x).toBe(44);
+        expect(model.elements[3].getBounds()?.y).toBe(36);
+    });
+
+    test('right click preserves selection and emits a design context menu event', () => {
+        const { controller, model } = createControllerWithRectangles(
+            RectangleElement.create(10, 10, 20, 15),
+            RectangleElement.create(40, 30, 25, 20)
+        );
+
+        installInteractiveCanvas(controller);
+        controller.selectedElements = [model.elements[0]];
+
+        jest.spyOn(model, 'firstActiveElementAt').mockReturnValue(model.elements[1]);
+
+        const contextMenuRequested = jest.fn();
+        const preventDefault = jest.fn();
+        const stopPropagation = jest.fn();
+
+        controller.contextMenuRequested.add(contextMenuRequested);
+
+        controller.onCanvasMouseDown({
+            button: 2,
+            clientX: 45,
+            clientY: 35,
+            preventDefault,
+            stopPropagation,
+        } as unknown as MouseEvent);
+
+        expect(controller.selectedElements).toEqual([model.elements[0]]);
+
+        controller.onCanvasContextMenu({
+            button: 2,
+            clientX: 45,
+            clientY: 35,
+            preventDefault,
+            stopPropagation,
+        } as unknown as MouseEvent);
+
+        expect(contextMenuRequested).toHaveBeenCalledTimes(1);
+        expect(contextMenuRequested.mock.calls[0][1]?.element).toBe(model.elements[1]);
+        expect(contextMenuRequested.mock.calls[0][1]?.selectedElements).toEqual([model.elements[0]]);
+        expect(preventDefault).toHaveBeenCalled();
+        expect(stopPropagation).toHaveBeenCalled();
     });
 
     test('removeUnusedResourcesFromResourceManager removes unused resources and supports undo', () => {
@@ -750,6 +943,66 @@ describe('design controller undo and redo', () => {
         expect(controller.onCanvasKeyDown(ctrlY)).toBe(true);
         expect(undoSpy).toHaveBeenCalledTimes(1);
         expect(redoSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test('keyboard shortcuts route to clipboard commands', () => {
+        const controller = new DesignController();
+        const copySpy = jest.spyOn(controller, 'copySelectedToClipboard').mockReturnValue(true);
+        const cutSpy = jest.spyOn(controller, 'cutSelectedToClipboard').mockReturnValue(true);
+        const pasteSpy = jest.spyOn(controller, 'pasteFromClipboard').mockResolvedValue(true);
+
+        const ctrlC = {
+            keyCode: 67,
+            ctrlKey: true,
+            metaKey: false,
+            shiftKey: false,
+            preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+        } as unknown as KeyboardEvent;
+        const ctrlX = {
+            keyCode: 88,
+            ctrlKey: true,
+            metaKey: false,
+            shiftKey: false,
+            preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+        } as unknown as KeyboardEvent;
+        const ctrlV = {
+            keyCode: 86,
+            ctrlKey: true,
+            metaKey: false,
+            shiftKey: false,
+            preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+        } as unknown as KeyboardEvent;
+
+        expect(controller.onCanvasKeyDown(ctrlC)).toBe(true);
+        expect(controller.onCanvasKeyDown(ctrlX)).toBe(true);
+        expect(controller.onCanvasKeyDown(ctrlV)).toBe(true);
+        expect(copySpy).toHaveBeenCalledTimes(1);
+        expect(cutSpy).toHaveBeenCalledTimes(1);
+        expect(pasteSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test('design controller draw scales backing store for device pixel ratio', () => {
+        const restoreDevicePixelRatio = setWindowDevicePixelRatio(2);
+        const controller = new DesignController();
+        const model = Model.create(100, 50);
+        const context = createOverlayContext();
+
+        installDrawCanvas(controller, context);
+        controller.model = model;
+        controller.renderer = {
+            renderToContext: jest.fn(),
+        } as unknown as any;
+
+        controller.draw();
+
+        expect(controller.canvas?.width).toBe(200);
+        expect(controller.canvas?.height).toBe(100);
+        expect(context.scale).toHaveBeenNthCalledWith(1, 2, 2);
+
+        restoreDevicePixelRatio();
     });
 
     test('typing into a selected text element enters text edit mode and supports inline formatting', () => {
@@ -1410,6 +1663,67 @@ describe('design controller interaction indicators', () => {
         expect(dashedHorizontalSpy).toHaveBeenCalledWith(context, initialBounds.y + deltaY + initialBounds.height);
         expect(dashedVerticalSpy).toHaveBeenCalledWith(context, initialBounds.x + deltaX);
         expect(dashedVerticalSpy).toHaveBeenCalledWith(context, initialBounds.x + deltaX + initialBounds.width);
+    });
+
+    test('move preview snaps multi-selection to nearby element bounds and draws smart alignment guides', () => {
+        const controller = new DesignController();
+        const model = Model.create(200, 200);
+        const first = RectangleElement.create(10, 10, 10, 10).setInteractive(true);
+        const second = RectangleElement.create(25, 15, 10, 10).setInteractive(true);
+        const target = RectangleElement.create(50, 40, 20, 20).setInteractive(true);
+
+        model.add(first);
+        model.add(second);
+        model.add(target);
+        installInteractiveCanvas(controller);
+        controller.setModel(model);
+        controller.selectedElements = [first, second];
+        controller.isMoving = true;
+        controller.smartAlignmentThreshold = 12;
+        const movableEntries = (controller as any).getSelectedMovableEntries() as Array<{ element: RectangleElement; bounds: Region }>;
+        const smartAligned = (controller as any).getSmartAlignmentDelta(movableEntries, 44, 35) as {
+            deltaX: number;
+            deltaY: number;
+            guides: { vertical: number[]; horizontal: number[] };
+        };
+
+        expect(smartAligned.guides.vertical).toHaveLength(1);
+        expect(smartAligned.guides.horizontal).toHaveLength(1);
+        expect(smartAligned.deltaX).not.toBe(44);
+
+        for (const entry of movableEntries) {
+            controller.setElementMoveLocation(
+                entry.element,
+                new Point(entry.bounds.x + smartAligned.deltaX, entry.bounds.y + smartAligned.deltaY),
+                entry.element.getSize()!,
+            );
+        }
+        (controller as any).smartAlignmentGuides = smartAligned.guides;
+
+        expect(controller.getElementMoveLocation(first)).toMatchObject({
+            x: movableEntries[0].bounds.x + smartAligned.deltaX,
+            y: movableEntries[0].bounds.y + smartAligned.deltaY,
+        });
+        expect(controller.getElementMoveLocation(second)).toMatchObject({
+            x: movableEntries[1].bounds.x + smartAligned.deltaX,
+            y: movableEntries[1].bounds.y + smartAligned.deltaY,
+        });
+
+        const context = createOverlayContext();
+        installDrawCanvas(controller, context);
+        controller.draw = DesignController.prototype.draw.bind(controller);
+        controller.renderer = { renderToContext: jest.fn() } as never;
+
+        jest.spyOn(controller, 'renderGrid').mockImplementation(() => undefined);
+        jest.spyOn(controller, 'getElementHandles').mockReturnValue([]);
+        const horizontalSpy = jest.spyOn(controller, 'drawHorizontalLine');
+        const verticalSpy = jest.spyOn(controller, 'drawVerticalLine');
+
+        controller.invalidate();
+        controller.draw();
+
+        expect(verticalSpy).toHaveBeenCalledWith(context, smartAligned.guides.vertical[0]);
+        expect(horizontalSpy).toHaveBeenCalledWith(context, smartAligned.guides.horizontal[0]);
     });
 
     test('draw shows point drag indicator with point coordinates', () => {

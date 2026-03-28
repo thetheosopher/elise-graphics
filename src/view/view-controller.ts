@@ -10,6 +10,7 @@ import { MousePositionInfo } from '../core/mouse-position-info';
 import { Point } from '../core/point';
 import { PointEventParameters } from '../core/point-event-parameters';
 import { TimerParameters } from '../core/timer-parameters';
+import { applyCanvasDisplaySize, getDevicePixelRatio, translateClientPointToCanvasPixels } from '../core/canvas-display';
 import { ElementBase } from '../elements/element-base';
 import { ViewRenderer } from './view-renderer';
 
@@ -166,6 +167,16 @@ export class ViewController implements IController {
      * Rendering scale
      */
     public scale: number = 1;
+
+    /**
+     * True when canvas backing store should follow device pixel ratio automatically.
+     */
+    public autoPixelRatio: boolean;
+
+    /**
+     * Current backing-store pixel ratio.
+     */
+    public pixelRatio: number;
 
     /**
      * Last mouse movement X delta
@@ -352,9 +363,16 @@ export class ViewController implements IController {
         this.timerPhase = this.timerPhase.bind(this);
         this.bindTarget = this.bindTarget.bind(this);
         this.windowToCanvasWithOutput = this.windowToCanvasWithOutput.bind(this);
+        this.setAutoPixelRatio = this.setAutoPixelRatio.bind(this);
+        this.setPixelRatio = this.setPixelRatio.bind(this);
+        this.onWindowResize = this.onWindowResize.bind(this);
+        this.refreshPixelRatio = this.refreshPixelRatio.bind(this);
+        this.resizeCanvas = this.resizeCanvas.bind(this);
 
         this.enabled = true;
         this.scale = 1;
+        this.autoPixelRatio = true;
+        this.pixelRatio = 1;
         this.offsetX = 0;
         this.offsetY = 0;
         this.lastDeltaX = -1;
@@ -398,17 +416,7 @@ export class ViewController implements IController {
             this.createCanvas();
         }
         else if (this.model) {
-            const size = this.model.getSize();
-            if (!size) {
-                throw new Error(ErrorMessages.SizeUndefined);
-            }
-            this.canvas.width = size.width * this.scale;
-            this.canvas.height = size.height * this.scale;
-            const element = this.canvas.parentElement;
-            if (element) {
-                element.style.width = size.width * this.scale + 'px';
-                element.style.height = size.height * this.scale + 'px';
-            }
+            this.refreshPixelRatio(true);
         }
         if (this.model.elements !== undefined && this.model.elements.length > 0) {
             this.model.elements.forEach(element => {
@@ -463,8 +471,7 @@ export class ViewController implements IController {
         if (!size) {
             throw new Error(ErrorMessages.SizeUndefined);
         }
-        this.canvas.width = size.width * this.scale;
-        this.canvas.height = size.height * this.scale;
+        this.refreshPixelRatio(true);
         return this.canvas;
     }
 
@@ -492,8 +499,6 @@ export class ViewController implements IController {
             throw new Error(ErrorMessages.SizeUndefined);
         }
         const canvas = document.createElement('canvas');
-        canvas.width = size.width * self.scale;
-        canvas.height = size.height * self.scale;
         canvas.style.touchAction = 'none';
         canvas.addEventListener('mouseenter', self.onCanvasMouseEnter);
         canvas.addEventListener('mouseleave', self.onCanvasMouseLeave);
@@ -506,6 +511,10 @@ export class ViewController implements IController {
 
         self.canvas = canvas;
         self.renderer = new ViewRenderer(self);
+        self.refreshPixelRatio(true);
+        if (typeof window !== 'undefined' && window.addEventListener) {
+            window.addEventListener('resize', self.onWindowResize, true);
+        }
     }
 
     /**
@@ -521,6 +530,7 @@ export class ViewController implements IController {
         window.removeEventListener('touchend', this.windowTouchEnd, true);
         window.removeEventListener('touchmove', this.windowTouchMove, true);
         window.removeEventListener('touchcancel', this.windowTouchCancel, true);
+        window.removeEventListener('resize', this.onWindowResize, true);
         this.stopTimer();
         if (this.model) {
             if (this.model.controller === this) {
@@ -595,19 +605,13 @@ export class ViewController implements IController {
         if (!size) {
             throw new Error(ErrorMessages.SizeUndefined);
         }
-        let x1: number;
-        let y1: number;
-        x1 = x - Math.round(bounds.left);
-        y1 = y - Math.round(bounds.top);
-        if (this.canvas.width !== bounds.width) {
-            x1 *= this.canvas.width / bounds.width;
-        }
-        if (this.canvas.height !== bounds.height) {
-            y1 *= this.canvas.height / bounds.height;
-        }
-        if (this.scale !== 1) {
-            x1 /= this.scale;
-            y1 /= this.scale;
+        const translated = translateClientPointToCanvasPixels(this.canvas, x, y);
+        let x1 = translated.x;
+        let y1 = translated.y;
+        const effectiveScale = this.scale * this.pixelRatio;
+        if (effectiveScale !== 1) {
+            x1 /= effectiveScale;
+            y1 /= effectiveScale;
         }
         if (this.isMouseOver) {
             if (x1 < 0) {
@@ -1073,6 +1077,8 @@ export class ViewController implements IController {
             return;
         }
 
+        this.refreshPixelRatio();
+
         const context = this.canvas.getContext('2d');
         if (!context) {
             throw new Error(ErrorMessages.CanvasContextIsNull);
@@ -1085,32 +1091,28 @@ export class ViewController implements IController {
         const w = size.width;
         const h = size.height;
 
-        // Clear context
-        if (this.scale !== 1.0) {
-            context.clearRect(0, 0, w * this.scale, h * this.scale);
+        if (typeof context.setTransform === 'function') {
+            context.setTransform(1, 0, 0, 1, 0, 0);
         }
-        else {
-            context.clearRect(0, 0, w, h);
-        }
+        context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // Offset for scroll
         context.save();
+        context.scale(this.pixelRatio, this.pixelRatio);
         context.translate(-this.offsetX * this.scale, -this.offsetY * this.scale);
 
-        // Render model
         if (!this.renderer) {
             throw new Error(ErrorMessages.RendererIsUndefined);
         }
         this.renderer.renderToContext(context, this.scale);
-
-        // Restore from offset
         context.restore();
 
-        // If displaying frame rate
         if (this.model.displayFPS) {
+            context.save();
+            context.scale(this.pixelRatio, this.pixelRatio);
             context.fillStyle = 'cornflowerblue';
             context.font = '16px monospace';
             context.fillText(this.calculateFPS().toFixed() + ' fps', 20, 20);
+            context.restore();
         }
 
         // Clear redraw flag
@@ -1333,6 +1335,74 @@ export class ViewController implements IController {
         this.draw();
         this.model.controllerAttached.trigger(this.model, this);
         return this;
+    }
+
+    /**
+     * Enables or disables automatic device-pixel-ratio sizing.
+     * @param enabled - True to auto-detect device pixel ratio
+     * @param pixelRatio - Optional manual ratio when disabling auto mode
+     */
+    public setAutoPixelRatio(enabled: boolean, pixelRatio?: number): void {
+        this.autoPixelRatio = enabled;
+        if (enabled) {
+            this.pixelRatio = getDevicePixelRatio();
+        }
+        else {
+            this.pixelRatio = pixelRatio !== undefined && pixelRatio > 0 ? pixelRatio : 1;
+        }
+        this.refreshPixelRatio(true);
+        if (this.canvas && this.model) {
+            this.draw();
+        }
+    }
+
+    /**
+     * Sets a manual backing-store pixel ratio and disables auto-detection.
+     * @param pixelRatio - Manual backing-store ratio
+     */
+    public setPixelRatio(pixelRatio: number): void {
+        this.autoPixelRatio = false;
+        this.pixelRatio = Number.isFinite(pixelRatio) && pixelRatio > 0 ? pixelRatio : 1;
+        this.refreshPixelRatio(true);
+        if (this.canvas && this.model) {
+            this.draw();
+        }
+    }
+
+    private onWindowResize(): void {
+        if (!this.autoPixelRatio || !this.canvas || !this.model) {
+            return;
+        }
+        const changed = this.refreshPixelRatio();
+        if (changed) {
+            this.draw();
+        }
+    }
+
+    private refreshPixelRatio(force?: boolean): boolean {
+        const nextPixelRatio = this.autoPixelRatio ? getDevicePixelRatio() : this.pixelRatio;
+        const changed = force || nextPixelRatio !== this.pixelRatio;
+        this.pixelRatio = nextPixelRatio;
+        return this.resizeCanvas() || changed;
+    }
+
+    private resizeCanvas(): boolean {
+        if (!this.canvas || !this.model) {
+            return false;
+        }
+        const size = this.model.getSize();
+        if (!size) {
+            throw new Error(ErrorMessages.SizeUndefined);
+        }
+        const cssWidth = size.width * this.scale;
+        const cssHeight = size.height * this.scale;
+        const changed = applyCanvasDisplaySize(this.canvas, cssWidth, cssHeight, this.pixelRatio);
+        const element = this.canvas.parentElement;
+        if (element) {
+            element.style.width = cssWidth + 'px';
+            element.style.height = cssHeight + 'px';
+        }
+        return changed;
     }
 
     /**

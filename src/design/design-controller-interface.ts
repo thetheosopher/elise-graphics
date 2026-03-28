@@ -1,13 +1,16 @@
+import type { IControllerEvent } from '../controller/controller-event';
 import type { Point } from '../core/point';
 import type { Size } from '../core/size';
 import type { ElementBase } from '../elements/element-base';
 import type { Model } from '../core/model';
+import type { DesignContextMenuEventArgs } from './design-context-menu-event-args';
 
 /**
  * Shared interface for design controller used by renderers, handles, and tools
  */
 export interface IDesignController {
     model?: Model;
+    contextMenuRequested?: IControllerEvent<DesignContextMenuEventArgs>;
     isMoving: boolean;
     isResizing: boolean;
     isMovingPoint: boolean;

@@ -6,6 +6,7 @@ import { TimerParameters } from '../core/timer-parameters';
 import { ElementBase } from '../elements/element-base';
 import { SpriteElement } from '../elements/sprite-element';
 import { BitmapResource } from '../resource/bitmap-resource';
+import { AnimationEasing, animationEasingNames } from '../animation/animation-easing';
 
 export type TransitionRenderFunction = (
     context: CanvasRenderingContext2D,
@@ -80,21 +81,10 @@ export class TransitionRenderer {
         { name: 'radar', render: TransitionRenderer.renderRadar }
     ];
 
-    public static easingFunctions: INamedEasingFunction[] = [
-        { name: 'easeLinear', ease: TransitionRenderer.easeLinear },
-        { name: 'easeInQuad', ease: TransitionRenderer.easeInQuad },
-        { name: 'easeOutQuad', ease: TransitionRenderer.easeOutQuad },
-        { name: 'easeInOutQuad', ease: TransitionRenderer.easeInOutQuad },
-        { name: 'easeInCubic', ease: TransitionRenderer.easeInCubic },
-        { name: 'easeOutCubic', ease: TransitionRenderer.easeOutCubic },
-        { name: 'easeInOutCubic', ease: TransitionRenderer.easeInOutCubic },
-        { name: 'easeInQuart', ease: TransitionRenderer.easeInQuart },
-        { name: 'easeOutQuart', ease: TransitionRenderer.easeOutQuart },
-        { name: 'easeInOutQuart', ease: TransitionRenderer.easeInOutQuart },
-        { name: 'easeInQuint', ease: TransitionRenderer.easeInQuint },
-        { name: 'easeOutQuint', ease: TransitionRenderer.easeOutQuint },
-        { name: 'easeInOutQuint', ease: TransitionRenderer.easeInOutQuint }
-    ];
+    public static easingFunctions: INamedEasingFunction[] = animationEasingNames.map(name => ({
+        name,
+        ease: AnimationEasing.get(name),
+    }));
 
     public static transitionSprite(
         controller: IController,
@@ -1048,6 +1038,78 @@ export class TransitionRenderer {
     // Acceleration until halfway, then deceleration
     public static easeInOutQuint(t: number) {
         return t < 0.5 ? 16 * t * t * t * t * t : 1 + 16 * --t * t * t * t * t;
+    }
+
+    public static easeInSine(t: number) {
+        return AnimationEasing.easeInSine(t);
+    }
+
+    public static easeOutSine(t: number) {
+        return AnimationEasing.easeOutSine(t);
+    }
+
+    public static easeInOutSine(t: number) {
+        return AnimationEasing.easeInOutSine(t);
+    }
+
+    public static easeInExpo(t: number) {
+        return AnimationEasing.easeInExpo(t);
+    }
+
+    public static easeOutExpo(t: number) {
+        return AnimationEasing.easeOutExpo(t);
+    }
+
+    public static easeInOutExpo(t: number) {
+        return AnimationEasing.easeInOutExpo(t);
+    }
+
+    public static easeInCirc(t: number) {
+        return AnimationEasing.easeInCirc(t);
+    }
+
+    public static easeOutCirc(t: number) {
+        return AnimationEasing.easeOutCirc(t);
+    }
+
+    public static easeInOutCirc(t: number) {
+        return AnimationEasing.easeInOutCirc(t);
+    }
+
+    public static easeInBack(t: number) {
+        return AnimationEasing.easeInBack(t);
+    }
+
+    public static easeOutBack(t: number) {
+        return AnimationEasing.easeOutBack(t);
+    }
+
+    public static easeInOutBack(t: number) {
+        return AnimationEasing.easeInOutBack(t);
+    }
+
+    public static easeInElastic(t: number) {
+        return AnimationEasing.easeInElastic(t);
+    }
+
+    public static easeOutElastic(t: number) {
+        return AnimationEasing.easeOutElastic(t);
+    }
+
+    public static easeInOutElastic(t: number) {
+        return AnimationEasing.easeInOutElastic(t);
+    }
+
+    public static easeInBounce(t: number) {
+        return AnimationEasing.easeInBounce(t);
+    }
+
+    public static easeOutBounce(t: number) {
+        return AnimationEasing.easeOutBounce(t);
+    }
+
+    public static easeInOutBounce(t: number) {
+        return AnimationEasing.easeInOutBounce(t);
     }
 
     public static getRenderFunction(name: string): TransitionRenderFunction {

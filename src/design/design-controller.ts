@@ -15,10 +15,12 @@ import { Point } from '../core/point';
 import { PointDepth } from '../core/point-depth';
 import { PointEventParameters } from '../core/point-event-parameters';
 import { Region } from '../core/region';
+import type { SerializedData } from '../core/serialization';
 import { Size } from '../core/size';
 import { TimerParameters } from '../core/timer-parameters';
 import { Utility } from '../core/utility';
 import { ViewDragArgs } from '../core/view-drag-args';
+import { applyCanvasDisplaySize, getDevicePixelRatio, translateClientPointToCanvasPixels } from '../core/canvas-display';
 import { ElementBase } from '../elements/element-base';
 import type { ElementModel } from '../elements/element-base';
 import { ElementCreationProps } from '../elements/element-creation-props';
@@ -34,6 +36,7 @@ import { TextElement, type TextRunStyle } from '../elements/text-element';
 import { Component } from './component/component';
 import { ComponentElement } from './component/component-element';
 import { ComponentRegistry } from './component/component-registry';
+import { DesignContextMenuEventArgs } from './design-context-menu-event-args';
 import { DesignRenderer } from './design-renderer';
 import { GridType } from './grid-type';
 import { Handle } from './handle';
@@ -57,6 +60,34 @@ interface DesignUndoSnapshot {
     signature: string;
 }
 
+export interface DesignClipboardData {
+    format: string;
+    version: number;
+    resources: SerializedData[];
+    elements: SerializedData[];
+}
+
+interface DesignClipboardState {
+    payload: DesignClipboardData;
+    text: string;
+    pasteCount: number;
+}
+
+interface SmartAlignmentGuides {
+    vertical: number[];
+    horizontal: number[];
+}
+
+interface MovableSelectionEntry {
+    element: ElementBase;
+    bounds: Region;
+    location: Point;
+}
+
+const DESIGN_CLIPBOARD_FORMAT = 'application/x-elise-design-surface+json';
+const DESIGN_CLIPBOARD_VERSION = 1;
+const DESIGN_CLIPBOARD_PASTE_OFFSET = 10;
+
 /**
  * Design controller for interactive element creation
  */
@@ -65,6 +96,11 @@ export class DesignController implements IController {
      * Global captured DesignController when mouse is down
      */
     public static captured?: DesignController;
+
+    /**
+     * Shared clipboard state used when system clipboard access is unavailable.
+     */
+    public static clipboardState?: DesignClipboardState;
 
     /**
      * Determines if a location and size are within the bounds of a model.
@@ -149,11 +185,8 @@ export class DesignController implements IController {
             hostDiv.id = Utility.guid();
         }
 
-        // Disable arrow/navigation keys to prevent scrolling
-        // and allow handling in contained canvas
         const ar = [37, 38, 39, 40];
 
-        // Change to use DOM 0 Style binding to prevent multiples
         hostDiv.onkeydown = (e) => {
             const key = e.which;
             ar.forEach((k) => {
@@ -243,6 +276,11 @@ export class DesignController implements IController {
      * Fired when mouse is pressed and released over an element
      */
     public elementClicked: IControllerEvent<ElementBase> = new ControllerEvent<ElementBase>();
+
+    /**
+     * Fired when a context menu is requested over the design surface.
+     */
+    public contextMenuRequested: IControllerEvent<DesignContextMenuEventArgs> = new ControllerEvent<DesignContextMenuEventArgs>();
 
     /**
      * Period animation event timer fired when timer is enabled
@@ -625,6 +663,16 @@ export class DesignController implements IController {
     public gridSpacing: number;
 
     /**
+     * Enables smart alignment snapping and guide overlays while moving selections.
+     */
+    public smartAlignmentEnabled: boolean;
+
+    /**
+     * Smart alignment snapping threshold in screen pixels.
+     */
+    public smartAlignmentThreshold: number;
+
+    /**
      * Lock aspect ratio of resized items
      */
     public lockAspect: boolean;
@@ -670,6 +718,16 @@ export class DesignController implements IController {
     public scale: number;
 
     /**
+     * True when canvas backing store should follow device pixel ratio automatically.
+     */
+    public autoPixelRatio: boolean;
+
+    /**
+     * Current backing-store pixel ratio.
+     */
+    public pixelRatio: number;
+
+    /**
      * True when redraw is required
      */
     public needsRedraw: boolean;
@@ -712,6 +770,7 @@ export class DesignController implements IController {
     private undoManager: UndoManager<DesignUndoSnapshot>;
     private restoringUndoState: boolean;
     private pendingToolHistoryBaseline?: string;
+    private smartAlignmentGuides: SmartAlignmentGuides = { vertical: [], horizontal: [] };
 
     /**
      * Manages rendering and interaction with rendered model content
@@ -739,6 +798,7 @@ export class DesignController implements IController {
         this.onCanvasMouseEnter = this.onCanvasMouseEnter.bind(this);
         this.onCanvasMouseLeave = this.onCanvasMouseLeave.bind(this);
         this.onCanvasMouseDown = this.onCanvasMouseDown.bind(this);
+        this.onCanvasContextMenu = this.onCanvasContextMenu.bind(this);
         this.onCanvasMouseMove = this.onCanvasMouseMove.bind(this);
         this.onCanvasMouseUp = this.onCanvasMouseUp.bind(this);
         this.onCanvasTouchStart = this.onCanvasTouchStart.bind(this);
@@ -795,6 +855,8 @@ export class DesignController implements IController {
         this.bringForward = this.bringForward.bind(this);
         this.alignSelectedHorizontally = this.alignSelectedHorizontally.bind(this);
         this.alignSelectedVertically = this.alignSelectedVertically.bind(this);
+        this.distributeSelectedHorizontally = this.distributeSelectedHorizontally.bind(this);
+        this.distributeSelectedVertically = this.distributeSelectedVertically.bind(this);
         this.resizeSelectedToSameWidth = this.resizeSelectedToSameWidth.bind(this);
         this.resizeSelectedToSameHeight = this.resizeSelectedToSameHeight.bind(this);
         this.resizeSelectedToSameSize = this.resizeSelectedToSameSize.bind(this);
@@ -824,9 +886,20 @@ export class DesignController implements IController {
         this.commitUndoSnapshot = this.commitUndoSnapshot.bind(this);
         this.beginToolHistorySession = this.beginToolHistorySession.bind(this);
         this.finalizeToolHistorySession = this.finalizeToolHistorySession.bind(this);
+        this.setAutoPixelRatio = this.setAutoPixelRatio.bind(this);
+        this.setPixelRatio = this.setPixelRatio.bind(this);
+        this.onWindowResize = this.onWindowResize.bind(this);
+        this.refreshPixelRatio = this.refreshPixelRatio.bind(this);
+        this.resizeCanvas = this.resizeCanvas.bind(this);
+        this.drawSmartAlignmentGuides = this.drawSmartAlignmentGuides.bind(this);
+        this.copySelectedToClipboard = this.copySelectedToClipboard.bind(this);
+        this.cutSelectedToClipboard = this.cutSelectedToClipboard.bind(this);
+        this.pasteFromClipboard = this.pasteFromClipboard.bind(this);
 
         this.enabled = true;
         this.scale = 1.0;
+        this.autoPixelRatio = true;
+        this.pixelRatio = 1;
         this.lastDeltaX = -1;
         this.lastDeltaY = -1;
         this.isDirty = false;
@@ -846,6 +919,8 @@ export class DesignController implements IController {
         this.rubberBandActive = false;
         this.snapToGrid = false;
         this.gridSpacing = 8;
+        this.smartAlignmentEnabled = true;
+        this.smartAlignmentThreshold = 6;
         this.lockAspect = true;
         this.constrainToBounds = true;
         this.gridColor = 'Black';
@@ -919,19 +994,7 @@ export class DesignController implements IController {
         if (!this.canvas) {
             this.createCanvas();
         } else {
-            const size = model.getSize();
-            if (!size) {
-                throw new Error(ErrorMessages.SizeUndefined);
-            }
-            const width = size.width * this.scale;
-            const height = size.height * this.scale;
-            this.canvas.width = width;
-            this.canvas.height = height;
-            const element = this.canvas.parentElement;
-            if (element) {
-                element.style.width = width + 'px';
-                element.style.height = height + 'px';
-            }
+            this.refreshPixelRatio(true);
         }
 
         if (this.model.elements) {
@@ -1109,6 +1172,7 @@ export class DesignController implements IController {
         if (!this.canvas) {
             this.createCanvas();
         }
+        this.refreshPixelRatio(true);
         return this.canvas;
     }
 
@@ -1136,14 +1200,13 @@ export class DesignController implements IController {
             throw new Error(ErrorMessages.SizeUndefined);
         }
         const canvas = document.createElement('canvas');
-        canvas.width = size.width * self.scale;
-        canvas.height = size.height * self.scale;
         canvas.setAttribute('tabindex', '0');
         canvas.style.touchAction = 'none';
 
         canvas.addEventListener('mouseenter', self.onCanvasMouseEnter);
         canvas.addEventListener('mouseleave', self.onCanvasMouseLeave);
         canvas.addEventListener('mousedown', self.onCanvasMouseDown);
+        canvas.addEventListener('contextmenu', self.onCanvasContextMenu);
         canvas.addEventListener('mousemove', self.onCanvasMouseMove);
         canvas.addEventListener('touchstart', self.onCanvasTouchStart, { passive: false });
         canvas.addEventListener('touchmove', self.onCanvasTouchMove, { passive: false });
@@ -1157,6 +1220,10 @@ export class DesignController implements IController {
 
         self.canvas = canvas;
         self.renderer = new DesignRenderer(self);
+        self.refreshPixelRatio(true);
+        if (typeof window !== 'undefined' && window.addEventListener) {
+            window.addEventListener('resize', self.onWindowResize, true);
+        }
     }
 
     /**
@@ -1174,6 +1241,7 @@ export class DesignController implements IController {
         window.removeEventListener('touchend', this.windowTouchEnd, true);
         window.removeEventListener('touchmove', this.windowTouchMove, true);
         window.removeEventListener('touchcancel', this.windowTouchCancel, true);
+        window.removeEventListener('resize', this.onWindowResize, true);
         if (!this.canvas) {
             return;
         }
@@ -1181,6 +1249,7 @@ export class DesignController implements IController {
         this.canvas.removeEventListener('mouseenter', this.onCanvasMouseEnter);
         this.canvas.removeEventListener('mouseleave', this.onCanvasMouseLeave);
         this.canvas.removeEventListener('mousedown', this.onCanvasMouseDown);
+        this.canvas.removeEventListener('contextmenu', this.onCanvasContextMenu);
         this.canvas.removeEventListener('mousemove', this.onCanvasMouseMove);
         this.canvas.removeEventListener('touchstart', this.onCanvasTouchStart);
         this.canvas.removeEventListener('touchmove', this.onCanvasTouchMove);
@@ -1207,6 +1276,7 @@ export class DesignController implements IController {
         this.mouseDownElement.clear();
         this.mouseUpElement.clear();
         this.elementClicked.clear();
+        this.contextMenuRequested.clear();
         this.timer.clear();
         this.selectionChanged.clear();
         this.elementCreated.clear();
@@ -1269,19 +1339,7 @@ export class DesignController implements IController {
         this.scale = scale;
         if (this.canvas) {
             if (this.model) {
-                const size = this.model.getSize();
-                if (!size) {
-                    throw new Error(ErrorMessages.SizeUndefined);
-                }
-                const width = size.width * scale;
-                const height = size.height * scale;
-                this.canvas.width = width;
-                this.canvas.height = height;
-                const element = this.canvas.parentElement;
-                if (element) {
-                    element.style.width = width + 'px';
-                    element.style.height = height + 'px';
-                }
+                this.refreshPixelRatio(true);
                 this.draw();
             }
         }
@@ -1327,10 +1385,11 @@ export class DesignController implements IController {
         if (!this.canvas) {
             return new Point(x, y);
         }
-        const bounds = this.canvas.getBoundingClientRect();
+        const translated = translateClientPointToCanvasPixels(this.canvas, x, y);
+        const effectiveScale = this.scale * this.pixelRatio;
         return new Point(
-            Math.round((x - bounds.left * (this.canvas.width / bounds.width)) / this.scale),
-            Math.round((y - bounds.top * (this.canvas.height / bounds.height)) / this.scale),
+            Math.round(translated.x / effectiveScale),
+            Math.round(translated.y / effectiveScale),
         );
     }
 
@@ -1436,13 +1495,32 @@ export class DesignController implements IController {
             return;
         }
         log(`Canvas mouse down ${e.clientX}:${e.clientY}`);
-        DesignController.captured = this;
-        window.addEventListener('mouseup', this.windowMouseUp, true);
-        window.addEventListener('mousemove', this.windowMouseMove, true);
         if (!this.enabled) {
             return;
         }
         const p = this.windowToCanvas(e.clientX, e.clientY);
+        const button = e.button || 0;
+
+        if (button === 2) {
+            if (this.activeTool && this.activeTool.isCreating) {
+                this.activeTool.cancel();
+                this.finalizeToolHistorySession();
+                e.preventDefault?.();
+                e.stopPropagation?.();
+                this.isMouseDown = false;
+                this.draw();
+                return;
+            }
+
+            if (this.mouseDownView.hasListeners()) {
+                this.mouseDownView.trigger(this, new PointEventParameters(e, new Point(p.x, p.y)));
+            }
+            return;
+        }
+
+        DesignController.captured = this;
+        window.addEventListener('mouseup', this.windowMouseUp, true);
+        window.addEventListener('mousemove', this.windowMouseMove, true);
         const context = this.canvas.getContext('2d');
         if (!context) {
             return;
@@ -1455,9 +1533,6 @@ export class DesignController implements IController {
         this.currentHeight = 0;
         this.mouseDownPosition = new Point(p.x, p.y);
         this.isMouseDown = true;
-
-        // Get button clicked (0 = Left)
-        const button = e.button;
 
         // If we have an active tool
         if (this.activeTool) {
@@ -1984,85 +2059,43 @@ export class DesignController implements IController {
                 }
             });
         } else if (this.isMoving) {
-            // Ensure no moves will result in out of bounds
-            let allOkay = true;
-            if (this.constrainToBounds) {
-                for (const selectedElement of this.selectedElements) {
-                    if (selectedElement.canMove()) {
-                        const b = selectedElement.getBounds();
-                        if (!b) {
-                            continue;
-                        }
-                        const moveSize = this.getElementResizeSize(selectedElement);
-                        const moveLocation = new Point(Math.round(b.x + deltaX), Math.round(b.y + deltaY));
-                        if (!DesignController.isInBounds(moveLocation, moveSize, this.model, selectedElement.transform)) {
-                            allOkay = false;
-                            break;
-                        }
+            const movableEntries = this.getSelectedMovableEntries();
+            if (movableEntries.length > 0) {
+                const constrainedDelta = this.constrainMoveDeltaToBounds(movableEntries, deltaX, deltaY);
+                let moveDeltaX = constrainedDelta.x;
+                let moveDeltaY = constrainedDelta.y;
+                const smartAligned = this.getSmartAlignmentDelta(movableEntries, moveDeltaX, moveDeltaY);
+                if (
+                    Math.abs(smartAligned.deltaX - moveDeltaX) > EPSILON ||
+                    Math.abs(smartAligned.deltaY - moveDeltaY) > EPSILON
+                ) {
+                    const reclampedDelta = this.constrainMoveDeltaToBounds(
+                        movableEntries,
+                        smartAligned.deltaX,
+                        smartAligned.deltaY,
+                    );
+                    if (
+                        Math.abs(reclampedDelta.x - smartAligned.deltaX) <= EPSILON &&
+                        Math.abs(reclampedDelta.y - smartAligned.deltaY) <= EPSILON
+                    ) {
+                        moveDeltaX = smartAligned.deltaX;
+                        moveDeltaY = smartAligned.deltaY;
+                        this.smartAlignmentGuides = smartAligned.guides;
+                    } else {
+                        this.smartAlignmentGuides = { vertical: [], horizontal: [] };
+                        moveDeltaX = reclampedDelta.x;
+                        moveDeltaY = reclampedDelta.y;
                     }
+                } else {
+                    this.smartAlignmentGuides = smartAligned.guides;
                 }
-            }
-            if (allOkay) {
-                for (const selectedElement of this.selectedElements) {
-                    if (selectedElement.canMove()) {
-                        const b = selectedElement.getBounds();
-                        if (b) {
-                            const moveSize = this.getElementResizeSize(selectedElement);
-                            const moveLocation = new Point(Math.round(b.x + deltaX), Math.round(b.y + deltaY));
-                            this.setElementMoveLocation(selectedElement, moveLocation, moveSize);
-                            this.invalidate();
-                        }
-                    }
+
+                for (const entry of movableEntries) {
+                    const moveSize = this.getElementResizeSize(entry.element);
+                    const moveLocation = new Point(Math.round(entry.bounds.x + moveDeltaX), Math.round(entry.bounds.y + moveDeltaY));
+                    this.setElementMoveLocation(entry.element, moveLocation, moveSize);
                 }
-            } else {
-                // Determine maximum we can move and set new diffX/diffY
-                let x1 = Number.POSITIVE_INFINITY;
-                let x2 = Number.NEGATIVE_INFINITY;
-                let y1 = Number.POSITIVE_INFINITY;
-                let y2 = Number.NEGATIVE_INFINITY;
-                for (const selectedElement of this.selectedElements) {
-                    if (selectedElement.canMove()) {
-                        const b = selectedElement.getBounds();
-                        if (b) {
-                            if (b.x < x1) {
-                                x1 = b.x;
-                            }
-                            if (b.x + b.width > x2) {
-                                x2 = b.x + b.width;
-                            }
-                            if (b.y < y1) {
-                                y1 = b.y;
-                            }
-                            if (b.y + b.height > y2) {
-                                y2 = b.y + b.height;
-                            }
-                        }
-                    }
-                }
-                const size = this.model.getSize();
-                if (size) {
-                    if (deltaX < 0 && x1 + deltaX < 0) {
-                        deltaX = -x1;
-                    } else if (deltaX > 0 && x2 + deltaX > size.width) {
-                        deltaX = size.width - x2;
-                    }
-                    if (deltaY < 0 && y1 + deltaY < 0) {
-                        deltaY = -y1;
-                    } else if (deltaY > 0 && y2 + deltaY > size.height) {
-                        deltaY = size.height - y2;
-                    }
-                }
-                for (const selectedElement of this.selectedElements) {
-                    if (selectedElement.canMove()) {
-                        const b = selectedElement.getBounds();
-                        if (b) {
-                            const moveSize = this.getElementResizeSize(selectedElement);
-                            const moveLocation = new Point(Math.round(b.x + deltaX), Math.round(b.y + deltaY));
-                            this.setElementMoveLocation(selectedElement, moveLocation, moveSize);
-                            this.invalidate();
-                        }
-                    }
-                }
+                this.invalidate();
             }
         } else if (this.isMovingPoint && this.movingPointIndex !== undefined) {
             const pointHolder = this.selectedElements[0];
@@ -2721,6 +2754,31 @@ export class DesignController implements IController {
                 }
                 return false;
 
+            case 67: // 'C' key
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return this.copySelectedToClipboard();
+                }
+                return false;
+
+            case 88: // 'X' key
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return this.cutSelectedToClipboard();
+                }
+                return false;
+
+            case 86: // 'V' key
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    void this.pasteFromClipboard();
+                    return true;
+                }
+                return false;
+
             case 37: // Left Arrow
                 if ((e.ctrlKey || e.metaKey) && e.shiftKey) {
                     this.nudgeSize(-this.largeJump, 0);
@@ -3038,6 +3096,37 @@ export class DesignController implements IController {
     }
 
     /**
+     * Handles design-surface context menu requests.
+     * @param e - Mouse event
+     */
+    public onCanvasContextMenu(e: MouseEvent | IMouseEvent): void {
+        if (!this.enabled || !this.model || !this.canvas) {
+            return;
+        }
+        if (this.activeTool && this.activeTool.isCreating) {
+            e.preventDefault?.();
+            e.stopPropagation?.();
+            return;
+        }
+
+        const context = this.canvas.getContext('2d');
+        if (!context) {
+            return;
+        }
+
+        const point = this.windowToCanvas(e.clientX, e.clientY);
+        const element = this.model.firstActiveElementAt(context, point.x, point.y);
+        const args = new DesignContextMenuEventArgs(e, new Point(point.x, point.y), element, this.selectedElements);
+
+        if (this.contextMenuRequested.hasListeners()) {
+            e.preventDefault?.();
+            e.stopPropagation?.();
+        }
+
+        this.contextMenuRequested.trigger(this, args);
+    }
+
+    /**
      * Sets current mouse over element
      * @param el - Mouse over element
      */
@@ -3210,6 +3299,42 @@ export class DesignController implements IController {
         this.invalidate();
     }
 
+    private getSelectedTextRange(): { start: number; end: number } | undefined {
+        if (!this.editingTextElement || this.selectedElements.indexOf(this.editingTextElement) === -1) {
+            return undefined;
+        }
+
+        return {
+            start: Math.min(this.textSelectionStart, this.textSelectionEnd),
+            end: Math.max(this.textSelectionStart, this.textSelectionEnd),
+        };
+    }
+
+    private async copySelectedTextToClipboard(cut?: boolean): Promise<boolean> {
+        const textElement = this.editingTextElement;
+        const range = this.getSelectedTextRange();
+        if (!textElement || !range || range.start === range.end) {
+            return false;
+        }
+
+        const textValue = textElement.getResolvedText() || '';
+        const success = await this.writeClipboardText(textValue.slice(range.start, range.end));
+        if (success && cut) {
+            this.deleteSelectedText(true);
+        }
+
+        return success;
+    }
+
+    private async pasteTextFromClipboard(): Promise<boolean> {
+        const text = await this.readClipboardText();
+        if (!text || this.parseClipboardPayload(text)) {
+            return false;
+        }
+
+        return this.replaceSelectedText(text);
+    }
+
     private replaceSelectedText(content: string): boolean {
         const textElement = this.ensureTextEditTarget();
         if (!textElement) {
@@ -3362,6 +3487,21 @@ export class DesignController implements IController {
                 this.textSelectionStart = 0;
                 this.textSelectionEnd = textElement.getTextLength();
                 this.invalidate();
+                return true;
+            }
+            if (lowerKey === 'c') {
+                e.preventDefault();
+                void this.copySelectedTextToClipboard(false);
+                return true;
+            }
+            if (lowerKey === 'x') {
+                e.preventDefault();
+                void this.copySelectedTextToClipboard(true);
+                return true;
+            }
+            if (lowerKey === 'v') {
+                e.preventDefault();
+                void this.pasteTextFromClipboard();
                 return true;
             }
         }
@@ -3841,6 +3981,31 @@ export class DesignController implements IController {
         this.drawDashedLine(c, x, y + 1 / _scale, x, y + 4 / _scale, 2);
     }
 
+    private drawSmartAlignmentGuides(c: CanvasRenderingContext2D): void {
+        if (this.smartAlignmentGuides.vertical.length === 0 && this.smartAlignmentGuides.horizontal.length === 0) {
+            return;
+        }
+
+        c.save();
+        c.strokeStyle = new Color(166, 0, 0, 0).toStyleString();
+        c.lineWidth = 1.0 / this.scale;
+        for (const x of this.smartAlignmentGuides.vertical) {
+            this.drawVerticalLine(c, x);
+        }
+        for (const y of this.smartAlignmentGuides.horizontal) {
+            this.drawHorizontalLine(c, y);
+        }
+
+        c.strokeStyle = new Color(204, 255, 255, 255).toStyleString();
+        for (const x of this.smartAlignmentGuides.vertical) {
+            this.drawDashedVerticalLine(c, x);
+        }
+        for (const y of this.smartAlignmentGuides.horizontal) {
+            this.drawDashedHorizontalLine(c, y);
+        }
+        c.restore();
+    }
+
     /**
      * Formats an overlay indicator numeric value.
      * @param value - Value to format
@@ -4032,6 +4197,8 @@ export class DesignController implements IController {
             return;
         }
 
+        this.refreshPixelRatio();
+
         const context = this.canvas.getContext('2d');
         if (!context) {
             return;
@@ -4040,20 +4207,14 @@ export class DesignController implements IController {
             return;
         }
         this.model.context = context;
-        let w = size.width;
-        let h = size.height;
-
-        // Clear context
-        if (this.scale !== 1.0) {
-            context.clearRect(0, 0, w * this.scale, h * this.scale);
-        } else {
-            context.clearRect(0, 0, w, h);
+        if (typeof context.setTransform === 'function') {
+            context.setTransform(1, 0, 0, 1, 0, 0);
         }
+        context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
+        context.save();
+        context.scale(this.pixelRatio, this.pixelRatio);
         if (this.scale !== 1.0) {
-            w *= this.scale;
-            h *= this.scale;
-            context.save();
             context.scale(this.scale, this.scale);
         }
 
@@ -4181,9 +4342,8 @@ export class DesignController implements IController {
                 const el = this.selectedElements[0];
                 const visualBounds = this.getVisualInteractionBoundsForElement(el);
                 if (!visualBounds) {
-                    if (this.scale !== 1.0) {
-                        context.restore();
-                    }
+                    this.needsRedraw = false;
+                    context.restore();
                     return;
                 }
                 const s = visualBounds.size;
@@ -4223,6 +4383,10 @@ export class DesignController implements IController {
                     context.restore();
                 }
             }
+
+            if (this.isMoving) {
+                this.drawSmartAlignmentGuides(context);
+            }
         }
 
         if (this.model.displayFPS) {
@@ -4237,9 +4401,7 @@ export class DesignController implements IController {
             context.fillRect(0, 0, size.width, size.height);
         }
 
-        if (this.scale !== 1.0) {
-            context.restore();
-        }
+        context.restore();
 
         // Clear redraw flag
         this.needsRedraw = false;
@@ -4424,6 +4586,95 @@ export class DesignController implements IController {
         this.duplicateSelected();
     }
 
+    /**
+     * Copies the current selection to the internal clipboard and, when available, the system clipboard.
+     * @returns True when a clipboard payload was created
+     */
+    public copySelectedToClipboard(): boolean {
+        const text = this.exportSelectionClipboardText();
+        if (!text) {
+            return false;
+        }
+
+        this.setInternalClipboardText(text);
+        void this.writeClipboardText(text);
+        return true;
+    }
+
+    /**
+     * Copies the current selection to the clipboard and removes it from the model.
+     * @returns True when the selection was cut
+     */
+    public cutSelectedToClipboard(): boolean {
+        if (!this.copySelectedToClipboard()) {
+            return false;
+        }
+
+        this.removeSelected();
+        return true;
+    }
+
+    /**
+     * Pastes the most recent Elise clipboard payload.
+     * @returns Promise resolving true when elements were pasted
+     */
+    public async pasteFromClipboard(): Promise<boolean> {
+        if (!this.model) {
+            return false;
+        }
+
+        const clipboardState = await this.resolveClipboardState();
+        if (!clipboardState) {
+            return false;
+        }
+
+        clipboardState.pasteCount += 1;
+        const offset = DESIGN_CLIPBOARD_PASTE_OFFSET * clipboardState.pasteCount;
+        return this.applyClipboardPayload(clipboardState.payload, offset, offset);
+    }
+
+    /**
+     * Exports the current selection as a structured clipboard payload.
+     * @returns Clipboard payload or undefined when nothing is selected
+     */
+    public exportSelectionClipboardData(): DesignClipboardData | undefined {
+        const payload = this.createClipboardPayload();
+        if (!payload) {
+            return undefined;
+        }
+        return JSON.parse(JSON.stringify(payload)) as DesignClipboardData;
+    }
+
+    /**
+     * Exports the current selection as clipboard JSON text.
+     * @returns Clipboard JSON text or undefined when nothing is selected
+     */
+    public exportSelectionClipboardText(): string | undefined {
+        const payload = this.exportSelectionClipboardData();
+        if (!payload) {
+            return undefined;
+        }
+        return JSON.stringify(payload);
+    }
+
+    /**
+     * Pastes Elise clipboard data directly without going through browser clipboard APIs.
+     * @param data - Clipboard data object or serialized clipboard JSON
+     * @param offsetX - Optional x offset applied to pasted elements. Default is 0.
+     * @param offsetY - Optional y offset applied to pasted elements. Default is 0.
+     * @returns True when elements were pasted
+     */
+    public pasteClipboardData(data: string | DesignClipboardData, offsetX?: number, offsetY?: number): boolean {
+        const payload = typeof data === 'string' ? this.parseClipboardPayload(data) : data;
+        if (!payload) {
+            return false;
+        }
+
+        const text = typeof data === 'string' ? data : JSON.stringify(payload);
+        this.setInternalClipboardText(text, payload);
+        return this.applyClipboardPayload(payload, offsetX || 0, offsetY || 0);
+    }
+
     public onElementsReordered() {
         this.elementsReordered.trigger(this, this.selectedElements);
         this.onModelUpdated();
@@ -4542,21 +4793,10 @@ export class DesignController implements IController {
                 targetX = bounds.x + bounds.width - elementBounds.width;
             }
 
-            if (Math.abs(targetX - elementBounds.x) > EPSILON) {
-                selectedElement.setLocation(new Point(targetX, elementBounds.y));
-                const newLocation = selectedElement.getLocation();
-                if (newLocation) {
-                    this.onElementMoved(selectedElement, newLocation);
-                }
-                changed = true;
-            }
+            changed = this.moveElementToBoundPosition(selectedElement, elementBounds, targetX, elementBounds.y) || changed;
         }
 
-        if (changed) {
-            this.onModelUpdated();
-            this.commitUndoSnapshot();
-            this.drawIfNeeded();
-        }
+        this.finalizeSelectionLayoutChange(changed);
     }
 
     /**
@@ -4590,21 +4830,62 @@ export class DesignController implements IController {
                 targetY = bounds.y + bounds.height - elementBounds.height;
             }
 
-            if (Math.abs(targetY - elementBounds.y) > EPSILON) {
-                selectedElement.setLocation(new Point(elementBounds.x, targetY));
-                const newLocation = selectedElement.getLocation();
-                if (newLocation) {
-                    this.onElementMoved(selectedElement, newLocation);
-                }
-                changed = true;
-            }
+            changed = this.moveElementToBoundPosition(selectedElement, elementBounds, elementBounds.x, targetY) || changed;
         }
 
-        if (changed) {
-            this.onModelUpdated();
-            this.commitUndoSnapshot();
-            this.drawIfNeeded();
+        this.finalizeSelectionLayoutChange(changed);
+    }
+
+    /**
+     * Distributes selected movable elements horizontally with equal spacing.
+     */
+    public distributeSelectedHorizontally(): void {
+        const entries = this.getSelectedMovableEntries().sort((left, right) => left.bounds.x - right.bounds.x);
+        if (entries.length < 3) {
+            return;
         }
+
+        const first = entries[0];
+        const last = entries[entries.length - 1];
+        const totalWidth = entries.reduce((sum, entry) => sum + entry.bounds.width, 0);
+        const available = (last.bounds.x + last.bounds.width) - first.bounds.x - totalWidth;
+        const gap = available / (entries.length - 1);
+
+        let cursor = first.bounds.x + first.bounds.width + gap;
+        let changed = false;
+        for (let index = 1; index < entries.length - 1; index++) {
+            const entry = entries[index];
+            changed = this.moveElementToBoundPosition(entry.element, entry.bounds, cursor, entry.bounds.y) || changed;
+            cursor += entry.bounds.width + gap;
+        }
+
+        this.finalizeSelectionLayoutChange(changed);
+    }
+
+    /**
+     * Distributes selected movable elements vertically with equal spacing.
+     */
+    public distributeSelectedVertically(): void {
+        const entries = this.getSelectedMovableEntries().sort((top, bottom) => top.bounds.y - bottom.bounds.y);
+        if (entries.length < 3) {
+            return;
+        }
+
+        const first = entries[0];
+        const last = entries[entries.length - 1];
+        const totalHeight = entries.reduce((sum, entry) => sum + entry.bounds.height, 0);
+        const available = (last.bounds.y + last.bounds.height) - first.bounds.y - totalHeight;
+        const gap = available / (entries.length - 1);
+
+        let cursor = first.bounds.y + first.bounds.height + gap;
+        let changed = false;
+        for (let index = 1; index < entries.length - 1; index++) {
+            const entry = entries[index];
+            changed = this.moveElementToBoundPosition(entry.element, entry.bounds, entry.bounds.x, cursor) || changed;
+            cursor += entry.bounds.height + gap;
+        }
+
+        this.finalizeSelectionLayoutChange(changed);
     }
 
     /**
@@ -4797,6 +5078,7 @@ export class DesignController implements IController {
      */
     public clearElementMoveLocations(): void {
         this.elementMoveLocations = [];
+        this.smartAlignmentGuides = { vertical: [], horizontal: [] };
     }
 
     /**
@@ -5277,32 +5559,241 @@ export class DesignController implements IController {
     }
 
     private getSelectedMovableBounds(): Region | undefined {
-        let minX = Number.POSITIVE_INFINITY;
-        let minY = Number.POSITIVE_INFINITY;
-        let maxX = Number.NEGATIVE_INFINITY;
-        let maxY = Number.NEGATIVE_INFINITY;
-        let found = false;
+        return this.getBoundsForMovableEntries(this.getSelectedMovableEntries());
+    }
 
+    private getSelectedMovableEntries(): MovableSelectionEntry[] {
+        const entries: MovableSelectionEntry[] = [];
         for (const selectedElement of this.selectedElements) {
             if (!selectedElement.canMove()) {
                 continue;
             }
+
             const bounds = selectedElement.getBounds();
             if (!bounds) {
                 continue;
             }
-            found = true;
-            minX = Math.min(minX, bounds.x);
-            minY = Math.min(minY, bounds.y);
-            maxX = Math.max(maxX, bounds.x + bounds.width);
-            maxY = Math.max(maxY, bounds.y + bounds.height);
+
+            const location = selectedElement.getLocation() || bounds.location;
+            entries.push({
+                element: selectedElement,
+                bounds,
+                location: new Point(location.x, location.y),
+            });
         }
 
-        if (!found) {
+        return entries;
+    }
+
+    private getBoundsForMovableEntries(entries: MovableSelectionEntry[]): Region | undefined {
+        if (entries.length === 0) {
             return undefined;
         }
 
+        let minX = Number.POSITIVE_INFINITY;
+        let minY = Number.POSITIVE_INFINITY;
+        let maxX = Number.NEGATIVE_INFINITY;
+        let maxY = Number.NEGATIVE_INFINITY;
+
+        for (const entry of entries) {
+            minX = Math.min(minX, entry.bounds.x);
+            minY = Math.min(minY, entry.bounds.y);
+            maxX = Math.max(maxX, entry.bounds.x + entry.bounds.width);
+            maxY = Math.max(maxY, entry.bounds.y + entry.bounds.height);
+        }
+
         return new Region(minX, minY, maxX - minX, maxY - minY);
+    }
+
+    private moveElementToBoundPosition(
+        element: ElementBase,
+        currentBounds: Region,
+        targetBoundsX: number,
+        targetBoundsY: number,
+    ): boolean {
+        const currentLocation = element.getLocation() || currentBounds.location;
+        const targetLocation = new Point(
+            currentLocation.x + (targetBoundsX - currentBounds.x),
+            currentLocation.y + (targetBoundsY - currentBounds.y),
+        );
+
+        if (
+            Math.abs(targetLocation.x - currentLocation.x) <= EPSILON &&
+            Math.abs(targetLocation.y - currentLocation.y) <= EPSILON
+        ) {
+            return false;
+        }
+
+        const nextSize = element.getSize() || currentBounds.size;
+        const constrainedLocation = this.getConstrainedMoveLocation(element, targetLocation, nextSize);
+        if (
+            Math.abs(constrainedLocation.x - currentLocation.x) <= EPSILON &&
+            Math.abs(constrainedLocation.y - currentLocation.y) <= EPSILON
+        ) {
+            return false;
+        }
+
+        element.setLocation(constrainedLocation);
+        const newLocation = element.getLocation();
+        if (newLocation) {
+            this.onElementMoved(element, newLocation);
+        }
+        return true;
+    }
+
+    private finalizeSelectionLayoutChange(changed: boolean): void {
+        if (!changed) {
+            return;
+        }
+
+        this.onModelUpdated();
+        this.commitUndoSnapshot();
+        this.drawIfNeeded();
+    }
+
+    private getConstrainedMoveLocation(el: ElementBase, location: Point, size: Size): Point {
+        if (!el.model) {
+            return location;
+        }
+
+        let newX = location.x;
+        let newY = location.y;
+        if (this.constrainToBounds) {
+            const modelSize = el.model.getSize();
+            if (!modelSize) {
+                return location;
+            }
+            if (newX < 0) {
+                newX = 0;
+            }
+            else if (newX + size.width > modelSize.width) {
+                newX = modelSize.width - size.width;
+            }
+            if (newY < 0) {
+                newY = 0;
+            }
+            else if (newY + size.height > modelSize.height) {
+                newY = modelSize.height - size.height;
+            }
+        }
+
+        return new Point(newX, newY);
+    }
+
+    private constrainMoveDeltaToBounds(entries: MovableSelectionEntry[], deltaX: number, deltaY: number): Point {
+        if (!this.constrainToBounds || !this.model) {
+            return new Point(deltaX, deltaY);
+        }
+
+        const bounds = this.getBoundsForMovableEntries(entries);
+        const modelSize = this.model.getSize();
+        if (!bounds || !modelSize) {
+            return new Point(deltaX, deltaY);
+        }
+
+        let constrainedX = deltaX;
+        let constrainedY = deltaY;
+        if (constrainedX < 0 && bounds.x + constrainedX < 0) {
+            constrainedX = -bounds.x;
+        }
+        else if (constrainedX > 0 && bounds.x + bounds.width + constrainedX > modelSize.width) {
+            constrainedX = modelSize.width - (bounds.x + bounds.width);
+        }
+
+        if (constrainedY < 0 && bounds.y + constrainedY < 0) {
+            constrainedY = -bounds.y;
+        }
+        else if (constrainedY > 0 && bounds.y + bounds.height + constrainedY > modelSize.height) {
+            constrainedY = modelSize.height - (bounds.y + bounds.height);
+        }
+
+        return new Point(constrainedX, constrainedY);
+    }
+
+    private getSmartAlignmentDelta(
+        entries: MovableSelectionEntry[],
+        deltaX: number,
+        deltaY: number,
+    ): { deltaX: number; deltaY: number; guides: SmartAlignmentGuides } {
+        const guides: SmartAlignmentGuides = { vertical: [], horizontal: [] };
+        if (!this.smartAlignmentEnabled || !this.model || entries.length === 0 || this.smartAlignmentThreshold < 0) {
+            return { deltaX, deltaY, guides };
+        }
+
+        const selectionBounds = this.getBoundsForMovableEntries(entries);
+        if (!selectionBounds) {
+            return { deltaX, deltaY, guides };
+        }
+
+        const movingXs = [
+            selectionBounds.x + deltaX,
+            selectionBounds.x + deltaX + selectionBounds.width / 2,
+            selectionBounds.x + deltaX + selectionBounds.width,
+        ];
+        const movingYs = [
+            selectionBounds.y + deltaY,
+            selectionBounds.y + deltaY + selectionBounds.height / 2,
+            selectionBounds.y + deltaY + selectionBounds.height,
+        ];
+        const selected = new Set(entries.map((entry) => entry.element));
+
+        let bestXAdjustment: number | undefined;
+        let bestYAdjustment: number | undefined;
+        let bestXGuide: number | undefined;
+        let bestYGuide: number | undefined;
+        let bestXDistance = this.smartAlignmentThreshold + EPSILON;
+        let bestYDistance = this.smartAlignmentThreshold + EPSILON;
+
+        for (const element of this.model.elements) {
+            if (selected.has(element)) {
+                continue;
+            }
+
+            const bounds = element.getBounds();
+            if (!bounds) {
+                continue;
+            }
+
+            const targetXs = [bounds.x, bounds.x + bounds.width / 2, bounds.x + bounds.width];
+            const targetYs = [bounds.y, bounds.y + bounds.height / 2, bounds.y + bounds.height];
+
+            for (const movingX of movingXs) {
+                for (const targetX of targetXs) {
+                    const diff = targetX - movingX;
+                    const distance = Math.abs(diff);
+                    if (distance <= this.smartAlignmentThreshold && distance < bestXDistance) {
+                        bestXDistance = distance;
+                        bestXAdjustment = diff;
+                        bestXGuide = targetX;
+                    }
+                }
+            }
+
+            for (const movingY of movingYs) {
+                for (const targetY of targetYs) {
+                    const diff = targetY - movingY;
+                    const distance = Math.abs(diff);
+                    if (distance <= this.smartAlignmentThreshold && distance < bestYDistance) {
+                        bestYDistance = distance;
+                        bestYAdjustment = diff;
+                        bestYGuide = targetY;
+                    }
+                }
+            }
+        }
+
+        let nextDeltaX = deltaX;
+        let nextDeltaY = deltaY;
+        if (bestXAdjustment !== undefined && bestXGuide !== undefined) {
+            nextDeltaX += bestXAdjustment;
+            guides.vertical.push(bestXGuide);
+        }
+        if (bestYAdjustment !== undefined && bestYGuide !== undefined) {
+            nextDeltaY += bestYAdjustment;
+            guides.horizontal.push(bestYGuide);
+        }
+
+        return { deltaX: nextDeltaX, deltaY: nextDeltaY, guides };
     }
 
     private getReferenceResizeSize(): Size | undefined {
@@ -5469,6 +5960,170 @@ export class DesignController implements IController {
         }
     }
 
+    private createClipboardPayload(): DesignClipboardData | undefined {
+        if (!this.model || this.selectedElements.length === 0) {
+            return undefined;
+        }
+
+        const orderedElements = this.model.elements.filter((element) => this.selectedElements.indexOf(element) !== -1);
+        if (orderedElements.length === 0) {
+            return undefined;
+        }
+
+        const referencedKeys = new Set<string>();
+        orderedElements.forEach((element) => {
+            const keys = element.getResourceKeys ? element.getResourceKeys() : [];
+            keys.forEach((key) => referencedKeys.add(key));
+        });
+
+        const resources = this.model.resources
+            .filter((resource) => resource.key && referencedKeys.has(resource.key))
+            .map((resource) => JSON.parse(JSON.stringify(resource.serialize())) as SerializedData);
+        const elements = orderedElements
+            .map((element) => JSON.parse(JSON.stringify(element.serialize())) as SerializedData);
+
+        return {
+            format: DESIGN_CLIPBOARD_FORMAT,
+            version: DESIGN_CLIPBOARD_VERSION,
+            resources,
+            elements,
+        };
+    }
+
+    private setInternalClipboardText(text: string, payload?: DesignClipboardData): void {
+        const resolvedPayload = payload || this.parseClipboardPayload(text);
+        if (!resolvedPayload) {
+            return;
+        }
+        DesignController.clipboardState = {
+            payload: resolvedPayload,
+            text,
+            pasteCount: 0,
+        };
+    }
+
+    private async resolveClipboardState(): Promise<DesignClipboardState | undefined> {
+        const clipboardText = await this.readClipboardText();
+        if (clipboardText) {
+            const payload = this.parseClipboardPayload(clipboardText);
+            if (payload) {
+                if (!DesignController.clipboardState || DesignController.clipboardState.text !== clipboardText) {
+                    DesignController.clipboardState = {
+                        payload,
+                        text: clipboardText,
+                        pasteCount: 0,
+                    };
+                }
+                return DesignController.clipboardState;
+            }
+        }
+
+        return DesignController.clipboardState;
+    }
+
+    private parseClipboardPayload(text: string): DesignClipboardData | undefined {
+        try {
+            const parsed = JSON.parse(text) as Partial<DesignClipboardData>;
+            if (parsed.format !== DESIGN_CLIPBOARD_FORMAT || parsed.version !== DESIGN_CLIPBOARD_VERSION) {
+                return undefined;
+            }
+            if (!Array.isArray(parsed.elements) || !Array.isArray(parsed.resources)) {
+                return undefined;
+            }
+            return {
+                format: parsed.format,
+                version: parsed.version,
+                resources: parsed.resources,
+                elements: parsed.elements,
+            };
+        }
+        catch (_error) {
+            return undefined;
+        }
+    }
+
+    private applyClipboardPayload(payload: DesignClipboardData, offsetX: number, offsetY: number): boolean {
+        const pastedElements = this.pasteClipboardPayload(payload, offsetX, offsetY);
+        if (pastedElements.length === 0) {
+            return false;
+        }
+
+        this.selectedElements = pastedElements;
+        this.onSelectionChanged();
+        this.onModelUpdated();
+        this.commitUndoSnapshot();
+        this.drawIfNeeded();
+        return true;
+    }
+
+    private pasteClipboardPayload(payload: DesignClipboardData, offsetX: number, offsetY: number): ElementBase[] {
+        if (!this.model || payload.elements.length === 0) {
+            return [];
+        }
+
+        const clipboardModel = Model.parse(JSON.stringify({
+            type: 'model',
+            size: this.model.size || '1,1',
+            resources: payload.resources,
+            elements: payload.elements,
+        }));
+
+        clipboardModel.resources.forEach((resource) => {
+            this.model?.resourceManager.merge(resource.clone());
+        });
+
+        const pastedElements: ElementBase[] = [];
+        clipboardModel.elements.forEach((element) => {
+            if (offsetX !== 0 || offsetY !== 0) {
+                try {
+                    element.translate(offsetX, offsetY);
+                }
+                catch (_error) {
+                    // Ignore elements that do not support translation.
+                }
+            }
+            element.setInteractive(true);
+            this.model?.add(element);
+            this.onElementAdded(element);
+            pastedElements.push(element);
+        });
+
+        void this.model.prepareResources(undefined, () => {
+            this.invalidate();
+            this.drawIfNeeded();
+        });
+
+        return pastedElements;
+    }
+
+    private async readClipboardText(): Promise<string | undefined> {
+        if (typeof navigator === 'undefined' || !navigator.clipboard || !navigator.clipboard.readText) {
+            return undefined;
+        }
+
+        try {
+            const text = await navigator.clipboard.readText();
+            return text || undefined;
+        }
+        catch (_error) {
+            return undefined;
+        }
+    }
+
+    private async writeClipboardText(text: string): Promise<boolean> {
+        if (typeof navigator === 'undefined' || !navigator.clipboard || !navigator.clipboard.writeText) {
+            return false;
+        }
+
+        try {
+            await navigator.clipboard.writeText(text);
+            return true;
+        }
+        catch (_error) {
+            return false;
+        }
+    }
+
     private restoreModelState(target: Model, source: Model): void {
         target.type = source.type;
         target.id = source.id;
@@ -5619,6 +6274,74 @@ export class DesignController implements IController {
             this.model.controllerAttached.trigger(this.model, this);
         }
         return this;
+    }
+
+    /**
+     * Enables or disables automatic device-pixel-ratio sizing.
+     * @param enabled - True to auto-detect device pixel ratio
+     * @param pixelRatio - Optional manual ratio when disabling auto mode
+     */
+    public setAutoPixelRatio(enabled: boolean, pixelRatio?: number): void {
+        this.autoPixelRatio = enabled;
+        if (enabled) {
+            this.pixelRatio = getDevicePixelRatio();
+        }
+        else {
+            this.pixelRatio = pixelRatio !== undefined && pixelRatio > 0 ? pixelRatio : 1;
+        }
+        this.refreshPixelRatio(true);
+        if (this.canvas && this.model) {
+            this.draw();
+        }
+    }
+
+    /**
+     * Sets a manual backing-store pixel ratio and disables auto-detection.
+     * @param pixelRatio - Manual backing-store ratio
+     */
+    public setPixelRatio(pixelRatio: number): void {
+        this.autoPixelRatio = false;
+        this.pixelRatio = Number.isFinite(pixelRatio) && pixelRatio > 0 ? pixelRatio : 1;
+        this.refreshPixelRatio(true);
+        if (this.canvas && this.model) {
+            this.draw();
+        }
+    }
+
+    private onWindowResize(): void {
+        if (!this.autoPixelRatio || !this.canvas || !this.model) {
+            return;
+        }
+        const changed = this.refreshPixelRatio();
+        if (changed) {
+            this.draw();
+        }
+    }
+
+    private refreshPixelRatio(force?: boolean): boolean {
+        const nextPixelRatio = this.autoPixelRatio ? getDevicePixelRatio() : this.pixelRatio;
+        const changed = force || nextPixelRatio !== this.pixelRatio;
+        this.pixelRatio = nextPixelRatio;
+        return this.resizeCanvas() || changed;
+    }
+
+    private resizeCanvas(): boolean {
+        if (!this.canvas || !this.model) {
+            return false;
+        }
+        const size = this.model.getSize();
+        if (!size) {
+            throw new Error(ErrorMessages.SizeUndefined);
+        }
+        const cssWidth = size.width * this.scale;
+        const cssHeight = size.height * this.scale;
+        const changed = applyCanvasDisplaySize(this.canvas, cssWidth, cssHeight, this.pixelRatio);
+        const element = this.canvas.parentElement;
+        if (element) {
+            element.style.width = cssWidth + 'px';
+            element.style.height = cssHeight + 'px';
+        }
+        return changed;
     }
 
     /**

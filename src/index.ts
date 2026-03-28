@@ -172,6 +172,7 @@ export { ControllerEvent } from './controller/controller-event';
 export { ControllerEventArgs } from './controller/controller-event-args';
 export { Color } from './core/color';
 export { CommonEvent } from './core/common-event';
+export type { SerializedData } from './core/serialization';
 export { ErrorMessages } from './core/error-messages';
 export { LocationArgs } from './core/location-args';
 export { Logging } from './core/logging';
@@ -225,6 +226,8 @@ export { TextTool } from './design/tools/text-tool';
 export { WedgeTool } from './design/tools/wedge-tool';
 
 export { DesignController } from './design/design-controller';
+export type { DesignClipboardData } from './design/design-controller';
+export { DesignContextMenuEventArgs } from './design/design-context-menu-event-args';
 export { DesignRenderer } from './design/design-renderer';
 export { GridType } from './design/grid-type';
 export { Handle } from './design/handle';
