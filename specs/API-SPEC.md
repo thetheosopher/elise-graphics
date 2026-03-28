@@ -16,7 +16,7 @@ Elise is a retained-mode 2D graphics library built on the HTML5 Canvas API. It p
 | Module | Purpose |
 |--------|---------|
 | **Core** | Fundamental types (Point, Size, Region, Color, Matrix2D), Model container, event system |
-| **Elements** | Visual primitives (Rectangle, Ellipse, Line, Path, Polygon, Polyline, Text, Image, Sprite, ModelElement) |
+| **Elements** | Visual primitives (Rectangle, Ellipse, Line, Path, Arc, RegularPolygon, Arrow, Wedge, Ring, Polygon, Polyline, Text, Image, Sprite, ModelElement) |
 | **Resources** | Shared assets (BitmapResource, ModelResource, TextResource) with locale support |
 | **Fills** | Fill strategies (solid, gradient, image/model patterns) |
 | **View** | Read-only model rendering with mouse interaction |
@@ -1296,7 +1296,7 @@ SVG export is accessed through `Model.toSVG()`:
 toSVG(): string;                                           // Returns complete SVG markup string
 ```
 
-**Exported element types:** `RectangleElement`, `EllipseElement`, `LineElement`, `PathElement`, `PolygonElement`, `PolylineElement`, `TextElement`, `ImageElement`, `ModelElement`.
+**Exported element types:** `RectangleElement`, `EllipseElement`, `LineElement`, `PathElement`, `ArcElement`, `RegularPolygonElement`, `ArrowElement`, `WedgeElement`, `RingElement`, `PolygonElement`, `PolylineElement`, `TextElement`, `ImageElement`, `ModelElement`.
 
 **ModelElement export:** Resource-backed `ModelElement`s are exported as `<symbol>` + `<use>` pairs with deduplication. Embedded source models are exported as nested `<g>` groups.
 

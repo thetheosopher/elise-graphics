@@ -1,13 +1,18 @@
+import { ArcElement } from '../../elements/arc-element';
+import { ArrowElement } from '../../elements/arrow-element';
 import { RectangleElement } from '../../elements/rectangle-element';
 import { EllipseElement } from '../../elements/ellipse-element';
 import { LineElement } from '../../elements/line-element';
 import { PathElement } from '../../elements/path-element';
 import { PolygonElement } from '../../elements/polygon-element';
 import { PolylineElement } from '../../elements/polyline-element';
+import { RegularPolygonElement } from '../../elements/regular-polygon-element';
+import { RingElement } from '../../elements/ring-element';
 import { TextElement } from '../../elements/text-element';
 import { ImageElement } from '../../elements/image-element';
 import { SpriteElement } from '../../elements/sprite-element';
 import { ModelElement } from '../../elements/model-element';
+import { WedgeElement } from '../../elements/wedge-element';
 import { Point } from '../../core/point';
 import { PointDepth } from '../../core/point-depth';
 import { Size } from '../../core/size';
@@ -917,4 +922,139 @@ test('sprite create', () => {
     const spr = SpriteElement.create(10, 20, 64, 64);
     expect(spr.type).toBe('sprite');
     expect(spr.frames!.length).toBe(0);
+});
+
+test('arc serialize/parse round-trip', () => {
+    const arc = ArcElement.create(10, 20, 100, 60);
+    arc.setStroke('Black,3');
+    arc.startAngle = 30;
+    arc.endAngle = 240;
+
+    const serialized = arc.serialize();
+    const parsed = new ArcElement();
+    parsed.parse(serialized);
+
+    expect(serialized.type).toBe('arc');
+    expect(parsed.startAngle).toBe(30);
+    expect(parsed.endAngle).toBe(240);
+    expect(parsed.canEditPoints()).toBe(true);
+    expect(parsed.pointCount()).toBe(3);
+});
+
+test('arc clearBounds preserves frame for edit points', () => {
+    const arc = ArcElement.create(10, 20, 100, 60);
+
+    arc.clearBounds();
+
+    expect(arc.getLocation()?.toString()).toBe('10,20');
+    expect(arc.getSize()?.width).toBe(100);
+    expect(arc.getSize()?.height).toBe(60);
+    expect(() => arc.getPointAt(0)).not.toThrow();
+});
+
+test('path-backed primitive clearBounds preserves frame for edit points', () => {
+    const primitives = [
+        ArcElement.create(10, 20, 100, 60),
+        RegularPolygonElement.create(11, 21, 101, 61),
+        ArrowElement.create(12, 22, 102, 62),
+        WedgeElement.create(13, 23, 103, 63),
+        RingElement.create(14, 24, 104, 64),
+    ];
+
+    primitives.forEach((element, index) => {
+        element.clearBounds();
+
+        expect(element.getLocation()?.x).toBe(10 + index);
+        expect(element.getLocation()?.y).toBe(20 + index);
+        expect(element.getSize()?.width).toBe(100 + index);
+        expect(element.getSize()?.height).toBe(60 + index);
+        expect(() => element.getPointAt(0)).not.toThrow();
+    });
+});
+
+test('path-backed primitive getBounds preserves semantic frame', () => {
+    const primitives = [
+        ArcElement.create(10, 20, 100, 60),
+        RegularPolygonElement.create(11, 21, 101, 61),
+        ArrowElement.create(12, 22, 102, 62),
+        WedgeElement.create(13, 23, 103, 63),
+        RingElement.create(14, 24, 104, 64),
+    ];
+
+    primitives.forEach((element, index) => {
+        const bounds = element.getBounds();
+
+        expect(bounds).toBeDefined();
+        expect(element.getLocation()?.x).toBe(10 + index);
+        expect(element.getLocation()?.y).toBe(20 + index);
+        expect(element.getSize()?.width).toBe(100 + index);
+        expect(element.getSize()?.height).toBe(60 + index);
+    });
+});
+
+test('regular polygon serialize/parse round-trip preserves star settings', () => {
+    const polygon = RegularPolygonElement.create(5, 6, 80, 80);
+    polygon.sides = 7;
+    polygon.innerRadiusScale = 0.45;
+    polygon.rotation = -75;
+    polygon.setFill('Gold').setStroke('Black,2');
+
+    const serialized = polygon.serialize();
+    const parsed = new RegularPolygonElement();
+    parsed.parse(serialized);
+
+    expect(serialized.type).toBe('regularPolygon');
+    expect(parsed.sides).toBe(7);
+    expect(parsed.innerRadiusScale).toBeCloseTo(0.45);
+    expect(parsed.rotation).toBe(-75);
+    expect(parsed.pointCount()).toBe(14);
+});
+
+test('arrow serialize/parse round-trip preserves head and shaft settings', () => {
+    const arrow = ArrowElement.create(4, 5, 90, 30);
+    arrow.headLengthScale = 0.4;
+    arrow.headWidthScale = 0.8;
+    arrow.shaftWidthScale = 0.25;
+    arrow.setFill('Orange').setStroke('Black,2');
+
+    const serialized = arrow.serialize();
+    const parsed = new ArrowElement();
+    parsed.parse(serialized);
+
+    expect(serialized.type).toBe('arrow');
+    expect(parsed.headLengthScale).toBeCloseTo(0.4);
+    expect(parsed.headWidthScale).toBeCloseTo(0.8);
+    expect(parsed.shaftWidthScale).toBeCloseTo(0.25);
+    expect(parsed.pointCount()).toBe(3);
+});
+
+test('wedge serialize/parse round-trip preserves sweep', () => {
+    const wedge = WedgeElement.create(0, 0, 100, 100);
+    wedge.startAngle = 300;
+    wedge.endAngle = 120;
+    wedge.setFill('Blue').setStroke('Navy,2');
+
+    const serialized = wedge.serialize();
+    const parsed = new WedgeElement();
+    parsed.parse(serialized);
+
+    expect(serialized.type).toBe('wedge');
+    expect(parsed.startAngle).toBe(300);
+    expect(parsed.endAngle).toBe(120);
+    expect(parsed.canFill()).toBe(true);
+    expect(parsed.pointCount()).toBe(3);
+});
+
+test('ring serialize/parse round-trip preserves inner radius scale', () => {
+    const ring = RingElement.create(10, 10, 120, 120);
+    ring.innerRadiusScale = 0.35;
+    ring.setFill('Purple').setStroke('Black,1');
+
+    const serialized = ring.serialize();
+    const parsed = new RingElement();
+    parsed.parse(serialized);
+
+    expect(serialized.type).toBe('ring');
+    expect(parsed.innerRadiusScale).toBeCloseTo(0.35);
+    expect(parsed.pointCount()).toBe(2);
 });

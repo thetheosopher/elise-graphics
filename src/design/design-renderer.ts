@@ -2,6 +2,8 @@ import { ErrorMessages } from '../core/error-messages';
 import { Point } from '../core/point';
 import { PointDepth } from '../core/point-depth';
 import { Size } from '../core/size';
+import { ArcElement } from '../elements/arc-element';
+import { ArrowElement } from '../elements/arrow-element';
 import { WindingMode } from '../core/winding-mode';
 import { ElementBase } from '../elements/element-base';
 import { EllipseElement } from '../elements/ellipse-element';
@@ -11,9 +13,12 @@ import { ModelElement } from '../elements/model-element';
 import { PathElement } from '../elements/path-element';
 import { PolygonElement } from '../elements/polygon-element';
 import { PolylineElement } from '../elements/polyline-element';
+import { RegularPolygonElement } from '../elements/regular-polygon-element';
 import { RectangleElement } from '../elements/rectangle-element';
+import { RingElement } from '../elements/ring-element';
 import { SpriteElement } from '../elements/sprite-element';
 import { TextElement } from '../elements/text-element';
+import { WedgeElement } from '../elements/wedge-element';
 import { tracePathCommands } from '../elements/path-command-utils';
 import { FillFactory } from '../fill/fill-factory';
 import { BitmapResource } from '../resource/bitmap-resource';
@@ -44,6 +49,11 @@ export class DesignRenderer {
         this.renderPolylineElement = this.renderPolylineElement.bind(this);
         this.renderPolygonElement = this.renderPolygonElement.bind(this);
         this.renderPathElement = this.renderPathElement.bind(this);
+        this.renderArcElement = this.renderArcElement.bind(this);
+        this.renderRegularPolygonElement = this.renderRegularPolygonElement.bind(this);
+        this.renderArrowElement = this.renderArrowElement.bind(this);
+        this.renderWedgeElement = this.renderWedgeElement.bind(this);
+        this.renderRingElement = this.renderRingElement.bind(this);
         this.renderEllipseElement = this.renderEllipseElement.bind(this);
         this.renderTextElement = this.renderTextElement.bind(this);
         this.renderModelElement = this.renderModelElement.bind(this);
@@ -141,6 +151,26 @@ export class DesignRenderer {
 
             case 'path':
                 this.renderPathElement(c, el as PathElement);
+                break;
+
+            case 'arc':
+                this.renderArcElement(c, el as ArcElement);
+                break;
+
+            case 'regularPolygon':
+                this.renderRegularPolygonElement(c, el as RegularPolygonElement);
+                break;
+
+            case 'arrow':
+                this.renderArrowElement(c, el as ArrowElement);
+                break;
+
+            case 'wedge':
+                this.renderWedgeElement(c, el as WedgeElement);
+                break;
+
+            case 'ring':
+                this.renderRingElement(c, el as RingElement);
                 break;
 
             case 'ellipse':
@@ -686,6 +716,57 @@ export class DesignRenderer {
             c.stroke();
         }
         c.restore();
+    }
+
+    private renderEditablePrimitive<T extends ElementBase>(c: CanvasRenderingContext2D, element: T & { clone(): T }): void {
+        const model = element.model;
+        if (!model) {
+            throw new Error(ErrorMessages.ModelUndefined);
+        }
+
+        let preview: T & { clone(): T } = element;
+        if (
+            (this.controller.isMoving || this.controller.isResizing || this.controller.isMovingPoint)
+            && this.controller.isSelected(element)
+        ) {
+            preview = element.clone() as T & { clone(): T };
+            preview.model = model;
+            if (this.controller.isMoving || this.controller.isResizing) {
+                preview.setLocation(this.controller.getElementMoveLocation(element));
+            }
+            if (this.controller.isResizing) {
+                preview.setSize(this.controller.getElementResizeSize(element));
+            }
+            if (this.controller.isMovingPoint && this.controller.movingPointIndex !== undefined && this.controller.movingPointLocation) {
+                preview.setPointAt(
+                    this.controller.movingPointIndex,
+                    this.controller.movingPointLocation,
+                    this.controller.selectedElementCount() === 1 ? PointDepth.Full : PointDepth.Simple,
+                );
+            }
+        }
+
+        preview.draw(c);
+    }
+
+    public renderArcElement(c: CanvasRenderingContext2D, arc: ArcElement) {
+        this.renderEditablePrimitive(c, arc);
+    }
+
+    public renderRegularPolygonElement(c: CanvasRenderingContext2D, polygon: RegularPolygonElement) {
+        this.renderEditablePrimitive(c, polygon);
+    }
+
+    public renderArrowElement(c: CanvasRenderingContext2D, arrow: ArrowElement) {
+        this.renderEditablePrimitive(c, arrow);
+    }
+
+    public renderWedgeElement(c: CanvasRenderingContext2D, wedge: WedgeElement) {
+        this.renderEditablePrimitive(c, wedge);
+    }
+
+    public renderRingElement(c: CanvasRenderingContext2D, ring: RingElement) {
+        this.renderEditablePrimitive(c, ring);
     }
 
     /**

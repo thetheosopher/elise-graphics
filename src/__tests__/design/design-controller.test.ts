@@ -1,8 +1,14 @@
+import { ArcTool } from '../../design/tools/arc-tool';
 import { DesignController } from '../../design/design-controller';
+import { ArcElement } from '../../elements/arc-element';
+import { ArrowElement } from '../../elements/arrow-element';
 import { EllipseElement } from '../../elements/ellipse-element';
 import { Model } from '../../core/model';
 import { RectangleElement } from '../../elements/rectangle-element';
+import { RegularPolygonElement } from '../../elements/regular-polygon-element';
+import { RingElement } from '../../elements/ring-element';
 import { TextElement } from '../../elements/text-element';
+import { WedgeElement } from '../../elements/wedge-element';
 import { Size } from '../../core/size';
 import { Point } from '../../core/point';
 import { Region } from '../../core/region';
@@ -119,6 +125,7 @@ function installInteractiveCanvas(controller: DesignController, context?: Partia
         moveTo: jest.fn(),
         lineTo: jest.fn(),
         quadraticCurveTo: jest.fn(),
+        bezierCurveTo: jest.fn(),
         rect: jest.fn(),
         closePath: jest.fn(),
         fillText: jest.fn(),
@@ -460,6 +467,261 @@ describe('design controller undo and redo', () => {
         expect(model.elements).toHaveLength(0);
 
         fakeWindowScope.restore();
+    });
+
+    test('arc tool-created elements become undoable when creation commits', () => {
+        const controller = new DesignController();
+        const model = Model.create(100, 100);
+        installCanvasOnly(controller);
+        controller.setModel(model);
+        const fakeWindowScope = installFakeWindow();
+
+        controller.setActiveTool(new ArcTool());
+        controller.onCanvasMouseDown({ button: 0, clientX: 8, clientY: 8 });
+        controller.onCanvasMouseMove({ button: 0, clientX: 60, clientY: 40 });
+        controller.onCanvasMouseUp({ button: 0, clientX: 60, clientY: 40 });
+
+        expect(model.elements).toHaveLength(1);
+        expect(model.elements[0].type).toBe('arc');
+        expect(controller.canUndo).toBe(true);
+
+        controller.undo();
+
+        expect(model.elements).toHaveLength(0);
+
+        fakeWindowScope.restore();
+    });
+
+    test('shift-click on a selected primitive enters edit mode', () => {
+        const controller = new DesignController();
+        const model = Model.create(100, 100);
+        const wedge = WedgeElement.create(10, 10, 40, 40).setInteractive(true);
+        const fakeWindowScope = installFakeWindow();
+        model.add(wedge);
+        installInteractiveCanvas(controller);
+        controller.setModel(model);
+        controller.selectElement(wedge);
+
+        model.elementsAt = jest.fn(() => [wedge]);
+        jest.spyOn(controller, 'getElementHandles').mockReturnValue([]);
+
+        controller.onCanvasMouseDown({
+            button: 0,
+            clientX: 25,
+            clientY: 25,
+            shiftKey: true,
+            ctrlKey: false,
+            metaKey: false,
+        });
+
+        expect(wedge.editPoints).toBe(true);
+
+        fakeWindowScope.restore();
+    });
+
+    test('getting handles for a selected wedge does not rewrite its frame', () => {
+        const controller = new DesignController();
+        const model = Model.create(100, 100);
+        const wedge = WedgeElement.create(10, 10, 40, 60).setInteractive(true);
+
+        model.add(wedge);
+        installInteractiveCanvas(controller);
+        controller.setModel(model);
+        controller.selectElement(wedge);
+
+        const initialLocation = wedge.getLocation();
+        const initialSize = wedge.getSize();
+        const selectionHandles = controller.getElementHandles(wedge);
+
+        expect(selectionHandles.length).toBeGreaterThan(0);
+        expect(wedge.getLocation()?.x).toBe(initialLocation?.x);
+        expect(wedge.getLocation()?.y).toBe(initialLocation?.y);
+        expect(wedge.getSize()?.width).toBe(initialSize?.width);
+        expect(wedge.getSize()?.height).toBe(initialSize?.height);
+
+        wedge.editPoints = true;
+        const editHandles = controller.getElementHandles(wedge);
+
+        expect(editHandles.length).toBe(3);
+        expect(wedge.getLocation()?.x).toBe(initialLocation?.x);
+        expect(wedge.getLocation()?.y).toBe(initialLocation?.y);
+        expect(wedge.getSize()?.width).toBe(initialSize?.width);
+        expect(wedge.getSize()?.height).toBe(initialSize?.height);
+    });
+
+    test('path-backed primitives expose semantic edit handles', () => {
+        const controller = new DesignController();
+        const model = Model.create(200, 200);
+        const arc = ArcElement.create(10, 10, 60, 40).setInteractive(true);
+        const polygon = RegularPolygonElement.create(20, 20, 70, 70).setInteractive(true);
+        const star = RegularPolygonElement.create(30, 30, 80, 80).setInteractive(true);
+        const arrow = ArrowElement.create(40, 40, 90, 50).setInteractive(true);
+        const wedge = WedgeElement.create(50, 50, 100, 60).setInteractive(true);
+        const ring = RingElement.create(60, 60, 110, 70).setInteractive(true);
+        star.innerRadiusScale = 0.5;
+
+        [arc, polygon, star, arrow, wedge, ring].forEach((element) => model.add(element));
+        installInteractiveCanvas(controller);
+        controller.setModel(model);
+
+        arc.editPoints = true;
+        expect(controller.getElementHandles(arc).map((handle) => handle.handleId)).toEqual(['arc-start', 'arc-end', 'arc-extent']);
+
+        polygon.editPoints = true;
+        expect(controller.getElementHandles(polygon).map((handle) => handle.handleId)).toEqual(['regularPolygon-outer']);
+
+        star.editPoints = true;
+        expect(controller.getElementHandles(star).map((handle) => handle.handleId)).toEqual(['regularPolygon-outer', 'regularPolygon-inner']);
+
+        arrow.editPoints = true;
+        expect(controller.getElementHandles(arrow).map((handle) => handle.handleId)).toEqual(['arrow-headLength', 'arrow-headWidth', 'arrow-shaftWidth']);
+
+        wedge.editPoints = true;
+        expect(controller.getElementHandles(wedge).map((handle) => handle.handleId)).toEqual(['wedge-start', 'wedge-end', 'wedge-extent']);
+
+        ring.editPoints = true;
+        expect(controller.getElementHandles(ring).map((handle) => handle.handleId)).toEqual(['ring-outerRadius', 'ring-innerRadius']);
+    });
+
+    test('dragging a semantic primitive handle enters point-drag mode instead of resize mode', () => {
+        const controller = new DesignController();
+        const model = Model.create(200, 200);
+        const wedge = WedgeElement.create(20, 20, 80, 60).setInteractive(true);
+        const fakeWindowScope = installFakeWindow();
+
+        model.add(wedge);
+        installInteractiveCanvas(controller);
+        controller.setModel(model);
+        controller.selectElement(wedge);
+        wedge.editPoints = true;
+
+        const startHandle = controller.getElementHandles(wedge).find((handle) => handle.handleId === 'wedge-start');
+        expect(startHandle).toBeDefined();
+        expect(wedge.canResize()).toBe(false);
+
+        controller.onCanvasMouseDown({
+            button: 0,
+            clientX: startHandle!.x,
+            clientY: startHandle!.y,
+            shiftKey: false,
+            ctrlKey: false,
+            metaKey: false,
+        });
+
+        expect(controller.isMovingPoint).toBe(true);
+        expect(controller.isResizing).toBe(false);
+        expect(controller.movingPointIndex).toBe(startHandle!.handleIndex);
+
+        fakeWindowScope.restore();
+    });
+
+    test('moving path-backed primitives preserves their semantic size', () => {
+        const primitives = [
+            ArcElement.create(10, 10, 60, 40),
+            RegularPolygonElement.create(12, 12, 62, 42),
+            ArrowElement.create(14, 14, 64, 44),
+            WedgeElement.create(16, 16, 66, 46),
+            RingElement.create(18, 18, 68, 48),
+        ];
+        const fakeWindowScope = installFakeWindow();
+
+        primitives.forEach((primitive) => {
+            const controller = new DesignController();
+            const model = Model.create(200, 200);
+            const element = primitive.setInteractive(true);
+            const initialLocation = element.getLocation();
+            const initialSize = element.getSize();
+
+            model.add(element);
+            installInteractiveCanvas(controller);
+            controller.setModel(model);
+            controller.selectElement(element);
+
+            model.elementsAt = jest.fn(() => [element]);
+
+            controller.onCanvasMouseDown({
+                button: 0,
+                clientX: 30,
+                clientY: 30,
+                shiftKey: false,
+                ctrlKey: false,
+                metaKey: false,
+            });
+            controller.onCanvasMouseMove({
+                button: 0,
+                clientX: 51,
+                clientY: 56,
+                shiftKey: false,
+                ctrlKey: false,
+                metaKey: false,
+            });
+            controller.onCanvasMouseMove({
+                button: 0,
+                clientX: 50,
+                clientY: 55,
+                shiftKey: false,
+                ctrlKey: false,
+                metaKey: false,
+            });
+            controller.onCanvasMouseUp({
+                button: 0,
+                clientX: 50,
+                clientY: 55,
+                shiftKey: false,
+                ctrlKey: false,
+                metaKey: false,
+            });
+
+            expect(element.getLocation()?.x).not.toBe(initialLocation!.x);
+            expect(element.getLocation()?.y).not.toBe(initialLocation!.y);
+            expect(element.getSize()?.width).toBe(initialSize!.width);
+            expect(element.getSize()?.height).toBe(initialSize!.height);
+        });
+
+        fakeWindowScope.restore();
+    });
+
+    test('moving wedge keeps drag handles and indicator aligned with resting bounds', () => {
+        const controller = new DesignController();
+        const model = Model.create(200, 200);
+        const wedge = WedgeElement.create(20, 30, 80, 60).setInteractive(true);
+
+        model.add(wedge);
+        installInteractiveCanvas(controller);
+        controller.setModel(model);
+        controller.selectElement(wedge);
+
+        const initialBounds = wedge.getBounds();
+        const initialHandles = controller.getElementHandles(wedge);
+
+        expect(initialBounds).toBeDefined();
+
+        controller.setElementMoveLocation(wedge, new Point(45, 55), wedge.getSize()!);
+        controller.isMoving = true;
+
+        const movedHandles = controller.getElementHandles(wedge);
+        const movedIndicator = controller.getInteractionIndicatorBounds();
+        const deltaX = 45 - wedge.getLocation()!.x;
+        const deltaY = 55 - wedge.getLocation()!.y;
+        const initialRotateTopLeft = initialHandles.find((handle) => handle.handleId === 'rotate-topLeft');
+        const movedRotateTopLeft = movedHandles.find((handle) => handle.handleId === 'rotate-topLeft');
+        const initialPivot = initialHandles.find((handle) => handle.handleId === 'pivot');
+        const movedPivot = movedHandles.find((handle) => handle.handleId === 'pivot');
+
+        expect(movedHandles[0].x).toBeCloseTo(initialHandles[0].x + deltaX);
+        expect(movedHandles[0].y).toBeCloseTo(initialHandles[0].y + deltaY);
+        expect(initialRotateTopLeft).toBeDefined();
+        expect(movedRotateTopLeft).toBeDefined();
+        expect(initialPivot).toBeDefined();
+        expect(movedPivot).toBeDefined();
+        expect(movedRotateTopLeft!.x).toBeCloseTo(initialRotateTopLeft!.x + deltaX);
+        expect(movedRotateTopLeft!.y).toBeCloseTo(initialRotateTopLeft!.y + deltaY);
+        expect(movedPivot!.x).toBeCloseTo(initialPivot!.x + deltaX);
+        expect(movedPivot!.y).toBeCloseTo(initialPivot!.y + deltaY);
+        expect(movedIndicator?.x).toBeCloseTo(initialBounds!.x + deltaX);
+        expect(movedIndicator?.y).toBeCloseTo(initialBounds!.y + deltaY);
+        expect(movedIndicator?.width).toBeCloseTo(initialBounds!.width);
+        expect(movedIndicator?.height).toBeCloseTo(initialBounds!.height);
     });
 
     test('keyboard shortcuts route to undo and redo', () => {
@@ -1112,6 +1374,42 @@ describe('design controller interaction indicators', () => {
 
         expect(context.fillText).toHaveBeenCalledWith('x 12 y 18', expect.any(Number), expect.any(Number));
         expect(context.fillText).toHaveBeenCalledWith('w 45 h 55', expect.any(Number), expect.any(Number));
+    });
+
+    test('draw uses translated rendered bounds for move guide lines on a wedge', () => {
+        const controller = new DesignController();
+        const model = Model.create(200, 200);
+        const context = createOverlayContext();
+        const wedge = WedgeElement.create(20, 30, 80, 60).setInteractive(true);
+        const initialBounds = wedge.getBounds()!;
+        const deltaX = 25;
+        const deltaY = 18;
+
+        model.add(wedge);
+        installDrawCanvas(controller, context);
+        controller.model = model;
+        controller.renderer = { renderToContext: jest.fn() } as never;
+        controller.selectedElements = [wedge];
+        controller.isMoving = true;
+        controller.setElementMoveLocation(wedge, new Point(wedge.getLocation()!.x + deltaX, wedge.getLocation()!.y + deltaY), wedge.getSize()!);
+
+        jest.spyOn(controller, 'renderGrid').mockImplementation(() => undefined);
+        jest.spyOn(controller, 'getElementHandles').mockReturnValue([]);
+        const horizontalSpy = jest.spyOn(controller, 'drawHorizontalLine');
+        const verticalSpy = jest.spyOn(controller, 'drawVerticalLine');
+        const dashedHorizontalSpy = jest.spyOn(controller, 'drawDashedHorizontalLine');
+        const dashedVerticalSpy = jest.spyOn(controller, 'drawDashedVerticalLine');
+
+        controller.draw();
+
+        expect(horizontalSpy).toHaveBeenCalledWith(context, initialBounds.y + deltaY);
+        expect(horizontalSpy).toHaveBeenCalledWith(context, initialBounds.y + deltaY + initialBounds.height);
+        expect(verticalSpy).toHaveBeenCalledWith(context, initialBounds.x + deltaX);
+        expect(verticalSpy).toHaveBeenCalledWith(context, initialBounds.x + deltaX + initialBounds.width);
+        expect(dashedHorizontalSpy).toHaveBeenCalledWith(context, initialBounds.y + deltaY);
+        expect(dashedHorizontalSpy).toHaveBeenCalledWith(context, initialBounds.y + deltaY + initialBounds.height);
+        expect(dashedVerticalSpy).toHaveBeenCalledWith(context, initialBounds.x + deltaX);
+        expect(dashedVerticalSpy).toHaveBeenCalledWith(context, initialBounds.x + deltaX + initialBounds.width);
     });
 
     test('draw shows point drag indicator with point coordinates', () => {

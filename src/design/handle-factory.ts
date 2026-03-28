@@ -1,11 +1,17 @@
 import { Matrix2D } from '../core/matrix-2d';
 import { Point } from '../core/point';
 import { PointDepth } from '../core/point-depth';
+import { Region } from '../core/region';
 import { Size } from '../core/size';
+import { ArcElement } from '../elements/arc-element';
+import { ArrowElement } from '../elements/arrow-element';
 import { ElementBase } from '../elements/element-base';
 import { PathElement } from '../elements/path-element';
 import { iteratePathCommands } from '../elements/path-command-utils';
+import { RegularPolygonElement } from '../elements/regular-polygon-element';
 import { RectangleElement } from '../elements/rectangle-element';
+import { RingElement } from '../elements/ring-element';
+import { WedgeElement } from '../elements/wedge-element';
 import { Handle } from './handle';
 import type { IDesignController } from './design-controller-interface';
 
@@ -44,6 +50,201 @@ function rotatedCursor(baseCursor: string, angleRad: number): string {
  * Creates design mode manipulation handles for supported elements
  */
 export class HandleFactory {
+    private static getMoveDelta(el: ElementBase, c: IDesignController, bounds: { x: number; y: number }): Point {
+        const moveLocation = c.getElementMoveLocation(el);
+        const frameLocation = el.getLocation();
+        if (frameLocation) {
+            return new Point(moveLocation.x - frameLocation.x, moveLocation.y - frameLocation.y);
+        }
+        return new Point(moveLocation.x - bounds.x, moveLocation.y - bounds.y);
+    }
+
+    private static getPointDepth(c: IDesignController): PointDepth {
+        return c.selectedElementCount() === 1 ? PointDepth.Full : PointDepth.Simple;
+    }
+
+    private static getPreviewFrame(el: ElementBase, c: IDesignController): { location: Point; size: Size } | undefined {
+        const location = el.getLocation();
+        const size = el.getSize();
+        if (!location || !size) {
+            return undefined;
+        }
+
+        let previewLocation = location;
+        let previewSize = size;
+
+        if (c.isMoving) {
+            const bounds = el.getBounds();
+            if (bounds) {
+                const moveDelta = HandleFactory.getMoveDelta(el, c, bounds);
+                previewLocation = new Point(location.x + moveDelta.x, location.y + moveDelta.y);
+            }
+            else {
+                previewLocation = c.getElementMoveLocation(el);
+            }
+        }
+        else if (c.isResizing) {
+            previewLocation = c.getElementMoveLocation(el);
+            previewSize = c.getElementResizeSize(el);
+        }
+
+        return {
+            location: previewLocation,
+            size: new Size(previewSize.width, previewSize.height),
+        };
+    }
+
+    private static getPreviewPoint(el: ElementBase, c: IDesignController, pointIndex: number): Point | undefined {
+        let point = el.getPointAt(pointIndex, HandleFactory.getPointDepth(c));
+
+        if (c.isMovingPoint && c.movingPointIndex === pointIndex && c.movingPointLocation) {
+            point = c.movingPointLocation;
+        }
+
+        if (c.isMoving) {
+            const bounds = el.getBounds();
+            if (bounds) {
+                const moveDelta = HandleFactory.getMoveDelta(el, c, bounds);
+                point = new Point(point.x + moveDelta.x, point.y + moveDelta.y);
+            }
+        }
+
+        return point;
+    }
+
+    private static createSemanticHandle(
+        el: ElementBase,
+        c: IDesignController,
+        scale: number,
+        pointIndex: number,
+        handleId: string,
+        options?: {
+            shape?: string;
+            cursor?: string;
+            barRegion?: Region;
+        },
+    ): Handle | undefined {
+        const point = HandleFactory.getPreviewPoint(el, c, pointIndex);
+        if (!point) {
+            return undefined;
+        }
+
+        const handle = new Handle(point.x, point.y, el, c);
+        handle.scale = scale;
+        handle.handleId = handleId;
+        handle.handleIndex = pointIndex;
+        handle.handleMoved = Handle.movePointContainerPoint;
+        handle.canMoveHorizontal = true;
+        handle.canMoveVertical = true;
+        handle.shape = options?.shape;
+        handle.cursor = options?.cursor || 'move';
+        handle.region = handle.getBounds();
+        handle.barRegion = options?.barRegion;
+        return handle;
+    }
+
+    private static createVerticalBarRegion(x: number, y1: number, y2: number, scale: number): Region {
+        const halfWidth = 6 / scale;
+        return new Region(x - halfWidth, Math.min(y1, y2), halfWidth * 2, Math.abs(y2 - y1));
+    }
+
+    private static arcElementHandles(el: ArcElement, c: IDesignController, scale: number): Handle[] {
+        const start = HandleFactory.createSemanticHandle(el, c, scale, 0, 'arc-start', { shape: 'circle', cursor: 'crosshair' });
+        const end = HandleFactory.createSemanticHandle(el, c, scale, 1, 'arc-end', { shape: 'circle', cursor: 'crosshair' });
+        const extent = HandleFactory.createSemanticHandle(el, c, scale, 2, 'arc-extent', { cursor: 'move' });
+        const handles = [start, end, extent].filter((handle): handle is Handle => !!handle);
+
+        if (start && extent) {
+            start.connectedHandles = [extent];
+        }
+        if (end && extent) {
+            end.connectedHandles = [extent];
+        }
+
+        return handles;
+    }
+
+    private static wedgeElementHandles(el: WedgeElement, c: IDesignController, scale: number): Handle[] {
+        const start = HandleFactory.createSemanticHandle(el, c, scale, 0, 'wedge-start', { shape: 'circle', cursor: 'crosshair' });
+        const end = HandleFactory.createSemanticHandle(el, c, scale, 1, 'wedge-end', { shape: 'circle', cursor: 'crosshair' });
+        const extent = HandleFactory.createSemanticHandle(el, c, scale, 2, 'wedge-extent', { cursor: 'move' });
+        const handles = [start, end, extent].filter((handle): handle is Handle => !!handle);
+
+        if (start && extent) {
+            start.connectedHandles = [extent];
+        }
+        if (end && extent) {
+            end.connectedHandles = [extent];
+        }
+
+        return handles;
+    }
+
+    private static ringElementHandles(el: RingElement, c: IDesignController, scale: number): Handle[] {
+        const outer = HandleFactory.createSemanticHandle(el, c, scale, 0, 'ring-outerRadius', { cursor: 'ew-resize' });
+        const inner = HandleFactory.createSemanticHandle(el, c, scale, 1, 'ring-innerRadius', { shape: 'circle', cursor: 'ew-resize' });
+        const handles = [outer, inner].filter((handle): handle is Handle => !!handle);
+
+        if (inner && outer) {
+            inner.connectedHandles = [outer];
+        }
+
+        return handles;
+    }
+
+    private static arrowElementHandles(el: ArrowElement, c: IDesignController, scale: number): Handle[] {
+        const frame = HandleFactory.getPreviewFrame(el, c);
+        const centerY = frame ? frame.location.y + frame.size.height / 2 : undefined;
+
+        const headLength = HandleFactory.createSemanticHandle(el, c, scale, 0, 'arrow-headLength', { cursor: 'ew-resize' });
+        const headWidthPoint = HandleFactory.getPreviewPoint(el, c, 1);
+        const shaftWidthPoint = HandleFactory.getPreviewPoint(el, c, 2);
+
+        const headWidth = headWidthPoint
+            ? HandleFactory.createSemanticHandle(el, c, scale, 1, 'arrow-headWidth', {
+                shape: 'circle',
+                cursor: 'ns-resize',
+                barRegion: centerY !== undefined ? HandleFactory.createVerticalBarRegion(headWidthPoint.x, headWidthPoint.y, centerY * 2 - headWidthPoint.y, scale) : undefined,
+            })
+            : undefined;
+
+        const shaftWidth = shaftWidthPoint
+            ? HandleFactory.createSemanticHandle(el, c, scale, 2, 'arrow-shaftWidth', {
+                shape: 'circle',
+                cursor: 'ns-resize',
+                barRegion: centerY !== undefined ? HandleFactory.createVerticalBarRegion(shaftWidthPoint.x, shaftWidthPoint.y, centerY * 2 - shaftWidthPoint.y, scale) : undefined,
+            })
+            : undefined;
+
+        const handles = [headLength, headWidth, shaftWidth].filter((handle): handle is Handle => !!handle);
+
+        if (headWidth && headLength) {
+            headWidth.connectedHandles = [headLength];
+        }
+        if (shaftWidth && headLength) {
+            shaftWidth.connectedHandles = [headLength];
+        }
+
+        return handles;
+    }
+
+    private static regularPolygonElementHandles(el: RegularPolygonElement, c: IDesignController, scale: number): Handle[] {
+        const outer = HandleFactory.createSemanticHandle(el, c, scale, 0, 'regularPolygon-outer', { cursor: 'move' });
+        const handles = outer ? [outer] : [];
+
+        if (el.innerRadiusScale < 0.999) {
+            const inner = HandleFactory.createSemanticHandle(el, c, scale, 1, 'regularPolygon-inner', { shape: 'circle', cursor: 'move' });
+            if (inner) {
+                if (outer) {
+                    inner.connectedHandles = [outer];
+                }
+                handles.push(inner);
+            }
+        }
+
+        return handles;
+    }
+
     /**
      * Creates array of handles for element
      * @param el - Element
@@ -63,7 +264,35 @@ export class HandleFactory {
                 return HandleFactory.pathShapeHandles(el as PathElement, c, scale);
             }
             handles = HandleFactory.rectangularElementHandles(el, c, scale);
-        } else if (el.type === 'polyline' || el.type === 'polygon') {
+        } else if (el.type === 'arc') {
+            if (el.editPoints) {
+                return HandleFactory.arcElementHandles(el as ArcElement, c, scale);
+            }
+            handles = HandleFactory.rectangularElementHandles(el, c, scale);
+        } else if (el.type === 'regularPolygon') {
+            if (el.editPoints) {
+                return HandleFactory.regularPolygonElementHandles(el as RegularPolygonElement, c, scale);
+            }
+            handles = HandleFactory.rectangularElementHandles(el, c, scale);
+        } else if (el.type === 'arrow') {
+            if (el.editPoints) {
+                return HandleFactory.arrowElementHandles(el as ArrowElement, c, scale);
+            }
+            handles = HandleFactory.rectangularElementHandles(el, c, scale);
+        } else if (el.type === 'wedge') {
+            if (el.editPoints) {
+                return HandleFactory.wedgeElementHandles(el as WedgeElement, c, scale);
+            }
+            handles = HandleFactory.rectangularElementHandles(el, c, scale);
+        } else if (el.type === 'ring') {
+            if (el.editPoints) {
+                return HandleFactory.ringElementHandles(el as RingElement, c, scale);
+            }
+            handles = HandleFactory.rectangularElementHandles(el, c, scale);
+        } else if (
+            el.type === 'polyline'
+            || el.type === 'polygon'
+        ) {
             if (el.editPoints) {
                 return HandleFactory.pointContainerHandles(el, c, scale);
             }
@@ -137,7 +366,6 @@ export class HandleFactory {
      */
     public static rectangularElementHandles(el: ElementBase, c: IDesignController, scale: number): Handle[] {
         const handles: Handle[] = [];
-        let moveLocation: Point;
         let resizeSize: Size;
         const b = el.getBounds();
         if (!b) {
@@ -148,12 +376,12 @@ export class HandleFactory {
 
         if (c.isMoving) {
             if (c.isSelected(el) && el.canMove()) {
-                moveLocation = c.getElementMoveLocation(el);
-                location = new Point(moveLocation.x, moveLocation.y);
+                const moveDelta = HandleFactory.getMoveDelta(el, c, b);
+                location = new Point(b.x + moveDelta.x, b.y + moveDelta.y);
             }
         } else if (c.isResizing) {
             if (c.isSelected(el) && el.canResize()) {
-                moveLocation = c.getElementMoveLocation(el);
+                const moveLocation = c.getElementMoveLocation(el);
                 location = new Point(moveLocation.x, moveLocation.y);
                 resizeSize = c.getElementResizeSize(el);
                 size = new Size(resizeSize.width, resizeSize.height);
@@ -283,8 +511,8 @@ export class HandleFactory {
         let size = b.size;
 
         if (c.isMoving && c.isSelected(el) && el.canMove()) {
-            const ml = c.getElementMoveLocation(el);
-            location = new Point(ml.x, ml.y);
+            const moveDelta = HandleFactory.getMoveDelta(el, c, b);
+            location = new Point(b.x + moveDelta.x, b.y + moveDelta.y);
         } else if (c.isResizing && c.isSelected(el) && el.canResize()) {
             const ml = c.getElementMoveLocation(el);
             location = new Point(ml.x, ml.y);
@@ -568,13 +796,13 @@ export class HandleFactory {
         let offsetX = 0;
         let offsetY = 0;
         if (c.isMoving) {
-            const offset = c.getElementMoveLocation(el);
             const b = el.getBounds();
             if (!b) {
                 return handles;
             }
-            offsetX = offset.x - b.x;
-            offsetY = offset.y - b.y;
+            const moveDelta = HandleFactory.getMoveDelta(el, c, b);
+            offsetX = moveDelta.x;
+            offsetY = moveDelta.y;
         }
         let previous: Handle | undefined;
         const l = el.pointCount();

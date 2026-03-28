@@ -1,3 +1,5 @@
+import { ArcElement } from '../../elements/arc-element';
+import { ArrowElement } from '../../elements/arrow-element';
 import { Model } from '../../core/model';
 import { WindingMode } from '../../core/winding-mode';
 import { EllipseElement } from '../../elements/ellipse-element';
@@ -7,8 +9,11 @@ import { ModelElement } from '../../elements/model-element';
 import { PathElement } from '../../elements/path-element';
 import { PolygonElement } from '../../elements/polygon-element';
 import { PolylineElement } from '../../elements/polyline-element';
+import { RegularPolygonElement } from '../../elements/regular-polygon-element';
 import { RectangleElement } from '../../elements/rectangle-element';
+import { RingElement } from '../../elements/ring-element';
 import { TextElement } from '../../elements/text-element';
+import { WedgeElement } from '../../elements/wedge-element';
 import { LinearGradientFill } from '../../fill/linear-gradient-fill';
 import { BitmapResource } from '../../resource/bitmap-resource';
 import { ModelResource } from '../../resource/model-resource';
@@ -90,6 +95,36 @@ test('Model.toSVG exports basic shape elements', () => {
     expect(svgMarkup).toContain('<line x1="5" y1="6" x2="25" y2="30"');
     expect(svgMarkup).toContain('<polygon points="0 0 20 0 10 15"');
     expect(svgMarkup).toContain('<polyline points="40 10 60 20 80 10"');
+});
+
+test('Model.toSVG exports new primitive path-backed elements', () => {
+    const model = Model.create(220, 160);
+    const arc = ArcElement.create(10, 20, 60, 40).setStroke('#112233,2') as ArcElement;
+    arc.startAngle = 20;
+    arc.endAngle = 220;
+    const regularPolygon = RegularPolygonElement.create(80, 10, 50, 50).setFill('#abcdef') as RegularPolygonElement;
+    regularPolygon.innerRadiusScale = 0.5;
+    const arrow = ArrowElement.create(10, 80, 90, 30).setFill('#ff8800') as ArrowElement;
+    const wedge = WedgeElement.create(120, 70, 60, 60).setFill('#0088aa') as WedgeElement;
+    wedge.startAngle = 270;
+    wedge.endAngle = 30;
+    const ring = RingElement.create(160, 10, 50, 50).setFill('#663399') as RingElement;
+    ring.innerRadiusScale = 0.4;
+    model.add(arc);
+    model.add(regularPolygon);
+    model.add(arrow);
+    model.add(wedge);
+    model.add(ring);
+
+    const svgMarkup = model.toSVG();
+
+    expect(svgMarkup).toContain('stroke="#112233"');
+    expect(svgMarkup).toContain('fill="none"');
+    expect(svgMarkup).toContain('fill="#abcdef"');
+    expect(svgMarkup).toContain('fill="#ff8800"');
+    expect(svgMarkup).toContain('fill="#0088aa"');
+    expect(svgMarkup).toContain('fill="#663399"');
+    expect(svgMarkup).toContain('<path d="M');
 });
 
 test('Model.toSVG exports non-uniform rounded rectangles as paths', () => {

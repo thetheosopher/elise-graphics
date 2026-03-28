@@ -34,7 +34,6 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 
 - **No automatic HiDPI/Retina rendering** — All competitors auto-detect `devicePixelRatio`; Elise requires manual scale
 - **No system clipboard** — Copy/cut/paste missing from the otherwise-complete design surface
-- No convenience shapes (star, regular polygon, arrow)
 - No WebGL/WebGPU renderer or GPU acceleration path
 - No accessibility layer
 
@@ -47,10 +46,10 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Layer | Purpose | Key Classes |
 | ----- | ------- | ----------- |
 | **Core** | Model, elements, color, transforms, serialization | `Model`, `ElementBase`, `Color`, `Matrix2D`, `Point`, `Region` |
-| **Elements** | Drawing primitives | `RectangleElement`, `EllipseElement`, `LineElement`, `PathElement`, `PolygonElement`, `PolylineElement`, `TextElement`, `ImageElement`, `SpriteElement`, `ModelElement` |
+| **Elements** | Drawing primitives | `RectangleElement`, `EllipseElement`, `LineElement`, `PathElement`, `ArcElement`, `RegularPolygonElement`, `ArrowElement`, `WedgeElement`, `RingElement`, `PolygonElement`, `PolylineElement`, `TextElement`, `ImageElement`, `SpriteElement`, `ModelElement` |
 | **Fill** | Fill/stroke system with gradients and patterns | `LinearGradientFill`, `RadialGradientFill`, `FillFactory` |
 | **View** | Read-only model rendering | `ViewController`, `ViewRenderer` |
-| **Design** | Interactive editing surface | `DesignController`, `DesignRenderer`, 9 design tools, `HandleFactory` |
+| **Design** | Interactive editing surface | `DesignController`, `DesignRenderer`, creation/edit tools for rectangles, ellipses, lines, paths, polygons, polylines, arc, regular polygon, arrow, wedge, ring, text, image, and model elements, `HandleFactory` |
 | **Command** | Element-level command/event dispatch | `ElementCommand`, `ElementCommandHandler` |
 | **Resource** | Bitmap/text/model resource management | `ResourceManager`, `BitmapResource`, `TextResource`, `ModelResource` |
 | **Surface** | Application framework with panes, layers, video, HTML | `Surface`, `SurfacePane`, `SurfaceVideoLayer`, `SurfaceHtmlLayer`, `SurfaceAnimationLayer` |
@@ -65,6 +64,11 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Ellipse | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
 | Line | ✅ | ❌ | ✅ | ✅ | ❌ | ✅ | ✅ |
 | Path | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Arc | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Regular polygon / Star | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Arrow | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Wedge / Sector | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Ring / Annulus | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Polygon | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Polyline | ✅ | ❌ | ✅ | ✅ | ❌ | ✅ | ✅ |
 | Text | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ |
@@ -103,11 +107,11 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Polygon | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Path (cubic Bézier) | ✅ | ✅ | ❌ (custom) | ✅ | ✅ |
 | Path (quadratic Bézier) | ✅ | ✅ | ❌ | ✅ | ✅ |
-| Path (arc) | ⚠️ (normalized import/export) | ✅ | ✅ | ✅ | ✅ |
-| Star/Regular polygon | ❌ | ✅ | ✅ | ✅ | ✅ |
-| Arrow | ❌ | ❌ | ✅ | ❌ | ❌ |
-| Wedge/Sector | ❌ | ❌ | ✅ | ❌ | ❌ |
-| Ring/Annulus | ❌ | ❌ | ✅ | ❌ | ❌ |
+| Path (arc) | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Star/Regular polygon | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Arrow | ✅ | ❌ | ✅ | ❌ | ❌ |
+| Wedge/Sector | ✅ | ❌ | ✅ | ❌ | ❌ |
+| Ring/Annulus | ✅ | ❌ | ✅ | ❌ | ❌ |
 | Rounded rectangle | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Text | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Rich/multi-style text | ✅ | ✅ | ❌ | ❌ | ❌ |
@@ -115,7 +119,7 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Sprite | ✅ | ✅ | ✅ | ❌ | ✅ |
 | Group/Container | ✅ (Model) | ✅ | ✅ | ✅ | ✅ |
 
-**Analysis:** Elise covers the essential primitives well. The main remaining path-related gaps are **first-class persisted arc editing commands** and exact SVG path round-trip fidelity, alongside remaining **convenience shapes** (star, wedge, ring). Fabric.js still leads in primitive variety.
+**Analysis:** Elise now covers the common primitive set well, including first-class arc, regular polygon/star, arrow, wedge/sector, and ring/annulus shapes with design-surface editing handles and SVG export support. The remaining geometry gaps are mostly higher-level operations such as Boolean path tooling, simplification, and exact fidelity under transforms that cannot preserve native SVG arc parameters.
 
 ### 3.3 Path System
 
@@ -322,7 +326,7 @@ Elise now has **substantial SVG capability**:
 
 - ❌ No SVG rendering backend (canvas-only)
 - ✅ SVG import covers `<path>`, `<rect>`, `<ellipse>`, `<circle>`, `<line>`, `<polygon>`, `<polyline>`, `<text>`, `<image>`, `<g>`, `<symbol>`, and `<use>`, including hierarchy-preserving container import, `use` reference resolution, inherited basic styles, gradient fills and clip paths from `<defs>`, `viewBox` origin offset handling, and SVG transform import via normalized matrix transforms
-- ✅ SVG export supports the base `Model`, `PathElement`, `RectangleElement`, `EllipseElement`, `LineElement`, `PolygonElement`, `PolylineElement`, `TextElement`, `ImageElement`, and `ModelElement`, with nested group export for embedded models and `<symbol>`/`<use>` export for reusable `ModelResource`-backed elements
+- ✅ SVG export supports the base `Model`, `PathElement`, `ArcElement`, `RegularPolygonElement`, `ArrowElement`, `WedgeElement`, `RingElement`, `RectangleElement`, `EllipseElement`, `LineElement`, `PolygonElement`, `PolylineElement`, `TextElement`, `ImageElement`, and `ModelElement`, with nested group export for embedded models and `<symbol>`/`<use>` export for reusable `ModelResource`-backed elements
 - ✅ Standard SVG path strings are supported with native persisted arc, shorthand, axis-aligned, cubic, and quadratic commands, while runtime rendering still expands those commands internally where canvas requires explicit segments
 - ⚠️ Elise transform strings are converted to valid SVG matrix transforms during export, but Elise still does not use native SVG transform syntax as its internal authoring format
 
@@ -351,6 +355,11 @@ Elise now has **substantial SVG capability**:
 - Status: Completed
 - `Model.toSVG()` is implemented
 - Export currently maps these element types to SVG equivalents:
+  - `ArcElement` → `<path>`
+  - `RegularPolygonElement` → `<path>`
+  - `ArrowElement` → `<path>`
+  - `WedgeElement` → `<path>`
+  - `RingElement` → `<path>`
   - `RectangleElement` → `<rect>`
   - `EllipseElement` → `<ellipse>`
   - `LineElement` → `<line>`
@@ -397,7 +406,6 @@ Elise now has **substantial SVG capability**:
 
 | Gap | Impact | Difficulty | Competitors with feature |
 | --- | ------ | ---------- | ------------------------ |
-| No convenience shapes (star, regular polygon, arrow) | Common primitives developers expect alongside rectangles and circles | Low-Medium | Konva.js, Fabric.js, Paper.js, Two.js |
 | No mask/clipping composition beyond clip paths | Cannot apply alpha masks or shape-based masking | Medium | PixiJS, Konva.js, Paper.js |
 | No distribute/smart-alignment tools | Alignment exists, but equal-spacing distribution and snap-to-object guides are missing | Low | Fabric.js (v7 aligning guidelines), Konva.js (snapping plugin) |
 | Limited easing library (13 vs 31+) | Missing elastic, bounce, back, expo, circ easings that are standard in motion design | Low | Fabric.js (31), Konva.js (31) |
@@ -521,19 +529,24 @@ All five competitors automatically detect `window.devicePixelRatio` and scale th
 
 #### R21. Convenience Shape Primitives
 
+**Status:** Completed
+
 **Priority:** High | **Difficulty:** Low-Medium | **Competitors:** Konva.js, Fabric.js, Paper.js, Two.js
 
 Konva.js provides Star, Arrow, Wedge, Ring, Arc, and RegularPolygon as built-in shapes. Fabric.js and Paper.js offer star and regular polygon. These are common enough that their absence is a friction point.
 
+**Delivered scope:**
+
+- First-class `ArcElement`, `RegularPolygonElement`, `ArrowElement`, `WedgeElement`, and `RingElement`
+- Design-surface creation tools and edit-mode parameter handles for each new primitive
+- JSON serialization / clone round-tripping through `ElementFactory` and `Model.parse(...)`
+- SVG export support through path-backed primitive serialization
+
 **Recommended scope:**
 
-- `StarElement` with configurable points, inner/outer radius
-- `RegularPolygonElement` with configurable sides
-- `ArrowElement` (line with arrowhead, configurable head style)
-- Design tool integration for interactive creation
-- SVG and serialization round-trip
+- Optional follow-up: richer public configuration helpers for point count presets, head styles, and annular-sector variants
 
-**Why now:** Low implementation cost relative to competitive perception. These are frequently the first shapes developers look for after rectangles and circles.
+**Why it mattered:** These are among the first primitives developers look for after rectangles and circles, and their absence made Elise feel noticeably behind Konva.js on basic shape coverage.
 
 #### R22. Expanded Easing Library
 
@@ -747,11 +760,11 @@ With the completion of 17 major feature milestones (animation system, touch supp
 1. **Canvas filters/effects** — Every major competitor has them; Elise does not
 2. **Auto HiDPI** — All competitors handle this automatically; Elise requires manual configuration
 3. **System clipboard** — Standard design tool expectation missing from the otherwise-complete design surface
-4. **Convenience shapes** — Stars, polygons, arrows that users expect as built-in primitives
+4. **Advanced vector tooling** — Boolean path ops, richer arc manipulation, and exact non-uniform SVG path fidelity remain behind Paper.js-class tooling
 
 **The recommended path forward:**
 
-1. **Close standard gaps** (R18-R22): Filters, clipboard, HiDPI, convenience shapes, and expanded easings to eliminate the most visible competitive shortcomings
+1. **Close standard gaps** (R18-R20, R22): Filters, clipboard, HiDPI, and expanded easings to eliminate the most visible competitive shortcomings
 2. **Build strategic advantage** (R23-R28): Masking, smart alignment, text on path, timeline animation to extend Elise's unique design surface and animation strengths
 3. **Polish and differentiate** (R29-R38): Accessibility, boolean operations, advanced SVG, PDF export to round out the platform for specialized use cases
 

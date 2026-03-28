@@ -149,7 +149,7 @@ A stroked line segment between two points.
 
 ### Path
 
-An arbitrary shape defined by drawing commands (move, line, bezier curve, close).
+An arbitrary shape defined by drawing commands.
 
 ```json
 {
@@ -175,10 +175,158 @@ An arbitrary shape defined by drawing commands (move, line, bezier curve, close)
 |---------|--------|-------------|
 | Move | `m(x,y)` | Move pen to point |
 | Line | `l(x,y)` | Draw line to point |
+| Horizontal line | `H(x)` | Draw absolute horizontal line to `x` |
+| Vertical line | `V(y)` | Draw absolute vertical line to `y` |
 | Bezier | `c(cx1,cy1,cx2,cy2,x,y)` | Cubic bezier curve with two control points |
+| Smooth bezier | `S(cx2,cy2,x,y)` | Smooth cubic bezier using reflected prior control point |
+| Quadratic | `Q(cx,cy,x,y)` | Quadratic bezier curve |
+| Smooth quadratic | `T(x,y)` | Smooth quadratic using reflected prior control point |
+| Arc | `A(rx,ry,rot,large,sweep,x,y)` | Elliptical arc segment |
 | Close | `z` | Close path back to last move point |
 
 > **Note:** `location` and `size` are not serialized; bounds are computed from the commands.
+
+---
+
+### Arc
+
+An open elliptical arc primitive defined by bounding box and sweep angles.
+
+```json
+{
+  "type": "arc",
+  "location": "10,20",
+  "size": "160x100",
+  "startAngle": 30,
+  "endAngle": 240,
+  "stroke": "Black,2"
+}
+```
+
+**Type string:** `"arc"`
+**Capabilities:** stroke, move, resize, rotate, point editing
+**Cannot:** fill
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `location` | `string` | — | Upper-left bounds origin as `"x,y"` |
+| `size` | `string` | — | Bounding size as `"widthxheight"` |
+| `startAngle` | `number` | `0` | Arc start angle in degrees |
+| `endAngle` | `number` | `90` | Arc end angle in degrees |
+
+---
+
+### Regular Polygon / Star
+
+A regular polygon primitive that becomes a star when `innerRadiusScale` is less than `1`.
+
+```json
+{
+  "type": "regularPolygon",
+  "location": "20,20",
+  "size": "120x120",
+  "sides": 5,
+  "innerRadiusScale": 0.5,
+  "rotation": -90,
+  "fill": "Gold",
+  "stroke": "Black,2"
+}
+```
+
+**Type string:** `"regularPolygon"`
+**Capabilities:** fill, stroke, move, resize, rotate, point editing
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `location` | `string` | — | Upper-left bounds origin as `"x,y"` |
+| `size` | `string` | — | Bounding size as `"widthxheight"` |
+| `sides` | `number` | `5` | Number of outer vertices |
+| `innerRadiusScale` | `number` | `1` | Ratio of inner radius to outer radius; values below `1` produce a star |
+| `rotation` | `number` | `-90` | Outer-vertex rotation in degrees |
+
+---
+
+### Arrow
+
+A filled/stroked arrow primitive parameterized by head and shaft proportions.
+
+```json
+{
+  "type": "arrow",
+  "location": "10,60",
+  "size": "140x40",
+  "headLengthScale": 0.35,
+  "headWidthScale": 0.7,
+  "shaftWidthScale": 0.3,
+  "fill": "Orange",
+  "stroke": "Black,2"
+}
+```
+
+**Type string:** `"arrow"`
+**Capabilities:** fill, stroke, move, resize, rotate, point editing
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `location` | `string` | — | Upper-left bounds origin as `"x,y"` |
+| `size` | `string` | — | Bounding size as `"widthxheight"` |
+| `headLengthScale` | `number` | `0.35` | Fraction of total width used by the arrow head |
+| `headWidthScale` | `number` | `0.7` | Fraction of total height used by the arrow head |
+| `shaftWidthScale` | `number` | `0.3` | Fraction of total height used by the shaft |
+
+---
+
+### Wedge / Sector
+
+A filled/stroked sector primitive defined by an elliptical bounding box and angular sweep.
+
+```json
+{
+  "type": "wedge",
+  "location": "140,20",
+  "size": "120x120",
+  "startAngle": 270,
+  "endAngle": 45,
+  "fill": "Teal",
+  "stroke": "Black,2"
+}
+```
+
+**Type string:** `"wedge"`
+**Capabilities:** fill, stroke, move, resize, rotate, point editing
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `location` | `string` | — | Upper-left bounds origin as `"x,y"` |
+| `size` | `string` | — | Bounding size as `"widthxheight"` |
+| `startAngle` | `number` | `270` | Sector start angle in degrees |
+| `endAngle` | `number` | `90` | Sector end angle in degrees |
+
+---
+
+### Ring / Annulus
+
+A filled/stroked annular shape defined by outer bounds and an inner radius scale.
+
+```json
+{
+  "type": "ring",
+  "location": "200,20",
+  "size": "120x120",
+  "innerRadiusScale": 0.55,
+  "fill": "Purple",
+  "stroke": "Black,1"
+}
+```
+
+**Type string:** `"ring"`
+**Capabilities:** fill, stroke, move, resize, rotate, point editing
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `location` | `string` | — | Upper-left bounds origin as `"x,y"` |
+| `size` | `string` | — | Bounding size as `"widthxheight"` |
+| `innerRadiusScale` | `number` | `0.55` | Ratio of inner radius to outer radius |
 
 ---
 

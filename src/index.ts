@@ -44,6 +44,9 @@ import { NavigateComponentProps } from './design/component/navigate-component-pr
 import { ProgressRectangle } from './design/component/progress-rectangle';
 import { UploadComponentProps } from './design/component/upload-component-props';
 
+import { ArcTool } from './design/tools/arc-tool';
+import { ArrowTool } from './design/tools/arrow-tool';
+import { BoundsPrimitiveTool } from './design/tools/bounds-primitive-tool';
 import { DesignTool } from './design/tools/design-tool';
 import { EllipseTool } from './design/tools/ellipse-tool';
 import { ImageElementTool } from './design/tools/image-element-tool';
@@ -52,8 +55,11 @@ import { ModelElementTool } from './design/tools/model-element-tool';
 import { PenTool } from './design/tools/pen-tool';
 import { PolygonTool } from './design/tools/polygon-tool';
 import { PolylineTool } from './design/tools/polyline-tool';
+import { RegularPolygonTool } from './design/tools/regular-polygon-tool';
 import { RectangleTool } from './design/tools/rectangle-tool';
+import { RingTool } from './design/tools/ring-tool';
 import { TextTool } from './design/tools/text-tool';
+import { WedgeTool } from './design/tools/wedge-tool';
 
 import { DesignController } from './design/design-controller';
 import { DesignRenderer } from './design/design-renderer';
@@ -62,6 +68,8 @@ import { Handle } from './design/handle';
 import { HandleFactory } from './design/handle-factory';
 import { HandleMovedArgs } from './design/handle-moved-args';
 
+import { ArcElement } from './elements/arc-element';
+import { ArrowElement } from './elements/arrow-element';
 import { ElementBase } from './elements/element-base';
 import { ElementCreationProps } from './elements/element-creation-props';
 import { ElementCreatorRegistration } from './elements/element-creator-registration';
@@ -77,17 +85,21 @@ import { InvalidIndexException } from './elements/invalid-index-exception';
 import { LineElement } from './elements/line-element';
 import { ModelElement } from './elements/model-element';
 import { MoveLocation } from './elements/move-location';
+import { PathBackedElementBase } from './elements/path-backed-element-base';
 import { PathElement } from './elements/path-element';
 import { PolygonElement } from './elements/polygon-element';
 import { PolylineElement } from './elements/polyline-element';
+import { RegularPolygonElement } from './elements/regular-polygon-element';
 import { RectangleElement } from './elements/rectangle-element';
 import { ResizeSize } from './elements/resize-size';
+import { RingElement } from './elements/ring-element';
 import { SpriteElement } from './elements/sprite-element';
 import { SpriteFrame } from './elements/sprite-frame';
 import { SpriteState } from './elements/sprite-state';
 import { TextElement } from './elements/text-element';
 import { UploadCompletionProps } from './elements/upload-completion-props';
 import { UploadProgressProps } from './elements/upload-progress-props';
+import { WedgeElement } from './elements/wedge-element';
 
 import { FillFactory } from './fill/fill-factory';
 import { FillInfo } from './fill/fill-info';
@@ -195,6 +207,9 @@ export { NavigateComponentProps } from './design/component/navigate-component-pr
 export { ProgressRectangle } from './design/component/progress-rectangle';
 export { UploadComponentProps } from './design/component/upload-component-props';
 
+export { ArcTool } from './design/tools/arc-tool';
+export { ArrowTool } from './design/tools/arrow-tool';
+export { BoundsPrimitiveTool } from './design/tools/bounds-primitive-tool';
 export { DesignTool } from './design/tools/design-tool';
 export { EllipseTool } from './design/tools/ellipse-tool';
 export { ImageElementTool } from './design/tools/image-element-tool';
@@ -203,8 +218,11 @@ export { ModelElementTool } from './design/tools/model-element-tool';
 export { PenTool } from './design/tools/pen-tool';
 export { PolygonTool } from './design/tools/polygon-tool';
 export { PolylineTool } from './design/tools/polyline-tool';
+export { RegularPolygonTool } from './design/tools/regular-polygon-tool';
 export { RectangleTool } from './design/tools/rectangle-tool';
+export { RingTool } from './design/tools/ring-tool';
 export { TextTool } from './design/tools/text-tool';
+export { WedgeTool } from './design/tools/wedge-tool';
 
 export { DesignController } from './design/design-controller';
 export { DesignRenderer } from './design/design-renderer';
@@ -213,6 +231,8 @@ export { Handle } from './design/handle';
 export { HandleFactory } from './design/handle-factory';
 export { HandleMovedArgs } from './design/handle-moved-args';
 
+export { ArcElement } from './elements/arc-element';
+export { ArrowElement } from './elements/arrow-element';
 export { ElementBase } from './elements/element-base';
 export { ElementCreationProps } from './elements/element-creation-props';
 export { ElementCreatorRegistration } from './elements/element-creator-registration';
@@ -229,17 +249,21 @@ export { InvalidIndexException } from './elements/invalid-index-exception';
 export { LineElement } from './elements/line-element';
 export { ModelElement } from './elements/model-element';
 export { MoveLocation } from './elements/move-location';
+export { PathBackedElementBase } from './elements/path-backed-element-base';
 export { PathElement } from './elements/path-element';
 export { PolygonElement } from './elements/polygon-element';
 export { PolylineElement } from './elements/polyline-element';
+export { RegularPolygonElement } from './elements/regular-polygon-element';
 export { RectangleElement } from './elements/rectangle-element';
 export { ResizeSize } from './elements/resize-size';
+export { RingElement } from './elements/ring-element';
 export { SpriteElement } from './elements/sprite-element';
 export { SpriteFrame } from './elements/sprite-frame';
 export { SpriteState } from './elements/sprite-state';
 export { TextElement } from './elements/text-element';
 export { UploadCompletionProps } from './elements/upload-completion-props';
 export { UploadProgressProps } from './elements/upload-progress-props';
+export { WedgeElement } from './elements/wedge-element';
 
 export { FillFactory } from './fill/fill-factory';
 export { FillInfo } from './fill/fill-info';
@@ -312,6 +336,12 @@ export { design };
 const ellipse = EllipseElement.create;
 export { ellipse };
 
+const arc = ArcElement.create;
+export { arc };
+
+const arrow = ArrowElement.create;
+export { arrow };
+
 const embeddedTextResource = TextResource.createFromText;
 export { embeddedTextResource };
 
@@ -355,6 +385,9 @@ export { point };
 const polygon = PolygonElement.create;
 export { polygon };
 
+const regularPolygon = RegularPolygonElement.create;
+export { regularPolygon };
+
 const polyline = PolylineElement.create;
 export { polyline };
 
@@ -363,6 +396,9 @@ export { radialGradientFill };
 
 const rectangle = RectangleElement.create;
 export { rectangle };
+
+const ring = RingElement.create;
+export { ring };
 
 const region = Region.create;
 export { region };
@@ -381,6 +417,9 @@ export { spriteFrame };
 
 const text = TextElement.create;
 export { text };
+
+const wedge = WedgeElement.create;
+export { wedge };
 
 const uriTextResource = TextResource.createFromUri;
 export { uriTextResource };
@@ -404,6 +443,11 @@ export default {
     ComponentEvent: ComponentEvent,
     ComponentProps: ComponentProps,
     ComponentRegistry: ComponentRegistry,
+    ArcElement: ArcElement,
+    ArcTool: ArcTool,
+    ArrowElement: ArrowElement,
+    ArrowTool: ArrowTool,
+    BoundsPrimitiveTool: BoundsPrimitiveTool,
     ControllerEvent: ControllerEvent,
     ControllerEventArgs: ControllerEventArgs,
     DesignController: DesignController,
@@ -467,6 +511,7 @@ export default {
     PaneTransitionSlide: PaneTransitionSlide,
     PaneTransitionWipe: PaneTransitionWipe,
     PathElement: PathElement,
+    PathBackedElementBase: PathBackedElementBase,
     PenTool: PenTool,
     Point: Point,
     PointDepth: PointDepth,
@@ -477,6 +522,8 @@ export default {
     PolylineTool: PolylineTool,
     ProgressRectangle: ProgressRectangle,
     RadialGradientFill: RadialGradientFill,
+    RegularPolygonElement: RegularPolygonElement,
+    RegularPolygonTool: RegularPolygonTool,
     RectangleElement: RectangleElement,
     RectangleTool: RectangleTool,
     Region: Region,
@@ -488,6 +535,8 @@ export default {
     ResourceManager: ResourceManager,
     ResourceManagerEvent: ResourceManagerEvent,
     ResourceState: ResourceState,
+    RingElement: RingElement,
+    RingTool: RingTool,
     ScalingInfo: ScalingInfo,
     Size: Size,
     SizeArgs: SizeArgs,
@@ -532,8 +581,12 @@ export default {
     ViewController: ViewController,
     ViewDragArgs: ViewDragArgs,
     ViewRenderer: ViewRenderer,
+    WedgeElement: WedgeElement,
+    WedgeTool: WedgeTool,
     WindingMode: WindingMode,
 
+    arc: arc,
+    arrow: arrow,
     bitmapResource: bitmapResource,
     color: color,
     design: design,
@@ -554,14 +607,17 @@ export default {
     polygon: polygon,
     polyline: polyline,
     radialGradientFill: radialGradientFill,
+    regularPolygon: regularPolygon,
     rectangle: rectangle,
     region: region,
     requestAnimationFrame: requestAnimationFrameCompat,
+    ring: ring,
     size: size,
     sketcher: sketcher,
     sprite: sprite,
     spriteFrame: spriteFrame,
     text: text,
     uriTextResource: uriTextResource,
+    wedge: wedge,
     view: view
 };

@@ -77,6 +77,11 @@ describe('design renderer', () => {
         const polylineSpy = jest.spyOn(renderer, 'renderPolylineElement').mockImplementation(() => undefined);
         const polygonSpy = jest.spyOn(renderer, 'renderPolygonElement').mockImplementation(() => undefined);
         const pathSpy = jest.spyOn(renderer, 'renderPathElement').mockImplementation(() => undefined);
+        const arcSpy = jest.spyOn(renderer, 'renderArcElement').mockImplementation(() => undefined);
+        const regularPolygonSpy = jest.spyOn(renderer, 'renderRegularPolygonElement').mockImplementation(() => undefined);
+        const arrowSpy = jest.spyOn(renderer, 'renderArrowElement').mockImplementation(() => undefined);
+        const wedgeSpy = jest.spyOn(renderer, 'renderWedgeElement').mockImplementation(() => undefined);
+        const ringSpy = jest.spyOn(renderer, 'renderRingElement').mockImplementation(() => undefined);
         const ellipseSpy = jest.spyOn(renderer, 'renderEllipseElement').mockImplementation(() => undefined);
         const modelSpy = jest.spyOn(renderer, 'renderModelElement').mockImplementation(() => undefined);
         const textSpy = jest.spyOn(renderer, 'renderTextElement').mockImplementation(() => undefined);
@@ -88,6 +93,11 @@ describe('design renderer', () => {
         renderer.renderElement(c, { type: 'polyline' } as never);
         renderer.renderElement(c, { type: 'polygon' } as never);
         renderer.renderElement(c, { type: 'path' } as never);
+        renderer.renderElement(c, { type: 'arc' } as never);
+        renderer.renderElement(c, { type: 'regularPolygon' } as never);
+        renderer.renderElement(c, { type: 'arrow' } as never);
+        renderer.renderElement(c, { type: 'wedge' } as never);
+        renderer.renderElement(c, { type: 'ring' } as never);
         renderer.renderElement(c, { type: 'ellipse' } as never);
         renderer.renderElement(c, { type: 'model' } as never);
         renderer.renderElement(c, { type: 'text' } as never);
@@ -99,6 +109,11 @@ describe('design renderer', () => {
         expect(polylineSpy).toHaveBeenCalledTimes(1);
         expect(polygonSpy).toHaveBeenCalledTimes(1);
         expect(pathSpy).toHaveBeenCalledTimes(1);
+        expect(arcSpy).toHaveBeenCalledTimes(1);
+        expect(regularPolygonSpy).toHaveBeenCalledTimes(1);
+        expect(arrowSpy).toHaveBeenCalledTimes(1);
+        expect(wedgeSpy).toHaveBeenCalledTimes(1);
+        expect(ringSpy).toHaveBeenCalledTimes(1);
         expect(ellipseSpy).toHaveBeenCalledTimes(1);
         expect(modelSpy).toHaveBeenCalledTimes(1);
         expect(textSpy).toHaveBeenCalledTimes(1);

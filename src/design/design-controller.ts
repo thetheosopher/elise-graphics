@@ -1993,8 +1993,9 @@ export class DesignController implements IController {
                         if (!b) {
                             continue;
                         }
+                        const moveSize = this.getElementResizeSize(selectedElement);
                         const moveLocation = new Point(Math.round(b.x + deltaX), Math.round(b.y + deltaY));
-                        if (!DesignController.isInBounds(moveLocation, b.size, this.model, selectedElement.transform)) {
+                        if (!DesignController.isInBounds(moveLocation, moveSize, this.model, selectedElement.transform)) {
                             allOkay = false;
                             break;
                         }
@@ -2006,8 +2007,9 @@ export class DesignController implements IController {
                     if (selectedElement.canMove()) {
                         const b = selectedElement.getBounds();
                         if (b) {
+                            const moveSize = this.getElementResizeSize(selectedElement);
                             const moveLocation = new Point(Math.round(b.x + deltaX), Math.round(b.y + deltaY));
-                            this.setElementMoveLocation(selectedElement, moveLocation, b.size);
+                            this.setElementMoveLocation(selectedElement, moveLocation, moveSize);
                             this.invalidate();
                         }
                     }
@@ -2054,8 +2056,9 @@ export class DesignController implements IController {
                     if (selectedElement.canMove()) {
                         const b = selectedElement.getBounds();
                         if (b) {
+                            const moveSize = this.getElementResizeSize(selectedElement);
                             const moveLocation = new Point(Math.round(b.x + deltaX), Math.round(b.y + deltaY));
-                            this.setElementMoveLocation(selectedElement, moveLocation, b.size);
+                            this.setElementMoveLocation(selectedElement, moveLocation, moveSize);
                             this.invalidate();
                         }
                     }
@@ -2098,6 +2101,16 @@ export class DesignController implements IController {
                 // Determine if any movable elements selected and if so, initiate move
                 if (this.movableSelectedElementCount() > 0) {
                     if (deltaX * deltaX + deltaY * deltaY > 8) {
+                        this.selectedElements.forEach((selectedElement) => {
+                            if (selectedElement.canMove()) {
+                                const location = selectedElement.getLocation();
+                                const size = selectedElement.getSize();
+                                if (location && size) {
+                                    this.setElementMoveLocation(selectedElement, new Point(location.x, location.y), size);
+                                    this.setElementResizeSize(selectedElement, new Size(size.width, size.height), location);
+                                }
+                            }
+                        });
                         this.isMoving = true;
                         this.invalidate();
                     }
@@ -3856,24 +3869,12 @@ export class DesignController implements IController {
         let maxY = Number.NEGATIVE_INFINITY;
 
         for (const el of this.selectedElements) {
-            const bounds = el.getBounds();
-            if (!bounds) {
+            let indicatorBounds = this.getVisualInteractionBoundsForElement(el);
+            if (!indicatorBounds) {
                 continue;
             }
-
-            let location = bounds.location;
-            let size = bounds.size;
-
-            if (this.isMoving && el.canMove()) {
-                location = this.getElementMoveLocation(el);
-            } else if (this.isResizing && el.canResize()) {
-                location = this.getElementMoveLocation(el);
-                size = this.getElementResizeSize(el);
-            }
-
-            let indicatorBounds = new Region(location.x, location.y, size.width, size.height);
             if (el.transform) {
-                indicatorBounds = DesignController.getTransformedAABB(location, size, el.transform);
+                indicatorBounds = DesignController.getTransformedAABB(indicatorBounds.location, indicatorBounds.size, el.transform);
             }
 
             minX = Math.min(minX, indicatorBounds.x);
@@ -3887,6 +3888,36 @@ export class DesignController implements IController {
         }
 
         return new Region(minX, minY, maxX - minX, maxY - minY);
+    }
+
+    private getVisualInteractionBoundsForElement(el: ElementBase): Region | undefined {
+        const bounds = el.getBounds();
+        if (!bounds) {
+            return undefined;
+        }
+
+        let location = bounds.location;
+        let size = bounds.size;
+
+        if (this.isMoving && el.canMove()) {
+            const moveLocation = this.getElementMoveLocation(el);
+            const frameLocation = el.getLocation();
+            if (frameLocation) {
+                location = new Point(
+                    bounds.x + (moveLocation.x - frameLocation.x),
+                    bounds.y + (moveLocation.y - frameLocation.y),
+                );
+            }
+            else {
+                location = moveLocation;
+            }
+        }
+        else if (this.isResizing && el.canResize()) {
+            location = this.getElementMoveLocation(el);
+            size = this.getElementResizeSize(el);
+        }
+
+        return new Region(location.x, location.y, size.width, size.height);
     }
 
     /**
@@ -4039,23 +4070,22 @@ export class DesignController implements IController {
             if (!b) {
                 continue;
             }
+
             let reference = new Point(b.x, b.y);
             if (this.isMoving && el.canMove()) {
                 reference = this.getElementMoveLocation(el);
-            } else if (this.isResizing && el.canResize()) {
+            }
+            else if (this.isResizing && el.canResize()) {
                 reference = this.getElementMoveLocation(el);
             }
 
-            // Apply element transform
             context.save();
             if (el.transform) {
                 this.model.setRenderTransform(context, el.transform, reference);
             }
 
-            // Get element handles
             const handles = this.getElementHandles(el);
 
-            // Draw connector lines
             for (const handle of handles) {
                 if (handle.connectedHandles) {
                     for (const connected of handle.connectedHandles) {
@@ -4149,8 +4179,15 @@ export class DesignController implements IController {
             } else if ((this.isResizing || this.isMoving) && this.selectedElementCount() === 1) {
                 // If single item being resized, show sizing guides
                 const el = this.selectedElements[0];
-                const s = this.getElementResizeSize(el);
-                const p = this.getElementMoveLocation(el);
+                const visualBounds = this.getVisualInteractionBoundsForElement(el);
+                if (!visualBounds) {
+                    if (this.scale !== 1.0) {
+                        context.restore();
+                    }
+                    return;
+                }
+                const s = visualBounds.size;
+                const p = visualBounds.location;
                 let transformed = false;
 
                 // If element is transformed, apply transform to guide wires
@@ -4744,6 +4781,10 @@ export class DesignController implements IController {
                 return resizeSize.size;
             }
         }
+        const size = el.getSize();
+        if (size) {
+            return new Size(size.width, size.height);
+        }
         const b = el.getBounds();
         if (b) {
             return new Size(b.width, b.height);
@@ -4817,6 +4858,10 @@ export class DesignController implements IController {
             if (moveLocation.element === el) {
                 return moveLocation.location;
             }
+        }
+        const location = el.getLocation();
+        if (location) {
+            return new Point(location.x, location.y);
         }
         const b = el.getBounds();
         if (!b) {

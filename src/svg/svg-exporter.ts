@@ -8,6 +8,7 @@ import { EllipseElement } from '../elements/ellipse-element';
 import { ImageElement } from '../elements/image-element';
 import { LineElement } from '../elements/line-element';
 import { ModelElement } from '../elements/model-element';
+import { PathBackedElementBase } from '../elements/path-backed-element-base';
 import { PathElement } from '../elements/path-element';
 import { iteratePathCommands } from '../elements/path-command-utils';
 import { PolygonElement } from '../elements/polygon-element';
@@ -171,6 +172,13 @@ export class SVGExporter {
             const pathData = SVGExporter.exportPathData(element);
             const attributes = ['d="' + SVGExporter.escapeAttribute(pathData) + '"'];
             SVGExporter.pushCommonAttributes(attributes, element, context, element.getLocation(), true);
+            return '<path ' + attributes.join(' ') + ' />';
+        }
+
+        if (element instanceof PathBackedElementBase) {
+            const pathData = SVGExporter.exportPathDataFromCommands(element.toPathCommands());
+            const attributes = ['d="' + SVGExporter.escapeAttribute(pathData) + '"'];
+            SVGExporter.pushCommonAttributes(attributes, element, context, element.getLocation(), true, !element.canFill());
             return '<path ' + attributes.join(' ') + ' />';
         }
 

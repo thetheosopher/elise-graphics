@@ -1,6 +1,8 @@
 import { ElementBase } from './element-base';
 import { IElementCreator } from './element-creator';
 import { ElementCreatorRegistration } from './element-creator-registration';
+import { ArcElement } from './arc-element';
+import { ArrowElement } from './arrow-element';
 import { EllipseElement } from './ellipse-element';
 import { ImageElement } from './image-element';
 import { LineElement } from './line-element';
@@ -8,9 +10,12 @@ import { ModelElement } from './model-element';
 import { PathElement } from './path-element';
 import { PolygonElement } from './polygon-element';
 import { PolylineElement } from './polyline-element';
+import { RegularPolygonElement } from './regular-polygon-element';
 import { RectangleElement } from './rectangle-element';
+import { RingElement } from './ring-element';
 import { SpriteElement } from './sprite-element';
 import { TextElement } from './text-element';
+import { WedgeElement } from './wedge-element';
 
 /**
  * Central element creator registry
@@ -53,6 +58,11 @@ ElementFactory.registerCreator('line', LineElement);
 ElementFactory.registerCreator('polyline', PolylineElement);
 ElementFactory.registerCreator('polygon', PolygonElement);
 ElementFactory.registerCreator('path', PathElement);
+ElementFactory.registerCreator('arc', ArcElement);
+ElementFactory.registerCreator('regularPolygon', RegularPolygonElement);
+ElementFactory.registerCreator('arrow', ArrowElement);
+ElementFactory.registerCreator('wedge', WedgeElement);
+ElementFactory.registerCreator('ring', RingElement);
 ElementFactory.registerCreator('ellipse', EllipseElement);
 ElementFactory.registerCreator('text', TextElement);
 ElementFactory.registerCreator('model', ModelElement);

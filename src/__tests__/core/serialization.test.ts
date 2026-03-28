@@ -1,3 +1,5 @@
+import { ArcElement } from '../../elements/arc-element';
+import { ArrowElement } from '../../elements/arrow-element';
 import { Model } from '../../core/model';
 import { RectangleElement } from '../../elements/rectangle-element';
 import { EllipseElement } from '../../elements/ellipse-element';
@@ -6,8 +8,11 @@ import { TextElement } from '../../elements/text-element';
 import { PathElement } from '../../elements/path-element';
 import { PolygonElement } from '../../elements/polygon-element';
 import { PolylineElement } from '../../elements/polyline-element';
+import { RegularPolygonElement } from '../../elements/regular-polygon-element';
+import { RingElement } from '../../elements/ring-element';
 import { ImageElement } from '../../elements/image-element';
 import { ModelElement } from '../../elements/model-element';
+import { WedgeElement } from '../../elements/wedge-element';
 import { LinearGradientFill } from '../../fill/linear-gradient-fill';
 import { Point } from '../../core/point';
 
@@ -154,6 +159,47 @@ test('model serialize/parse with polyline', () => {
     expect(pPl.type).toBe('polyline');
     expect(pPl.pointCount()).toBe(3);
     expect(pPl.smoothPoints).toBe(true);
+});
+
+test('model serialize/parse with new primitive shapes', () => {
+    const model = Model.create(400, 300);
+
+    const arc = ArcElement.create(10, 20, 120, 70);
+    arc.startAngle = 15;
+    arc.endAngle = 200;
+    arc.setStroke('Black,2');
+
+    const regularPolygon = RegularPolygonElement.create(40, 40, 80, 80);
+    regularPolygon.sides = 6;
+    regularPolygon.innerRadiusScale = 0.5;
+    regularPolygon.setFill('Gold');
+
+    const arrow = ArrowElement.create(130, 40, 120, 50);
+    arrow.headLengthScale = 0.42;
+    arrow.setFill('Orange');
+
+    const wedge = WedgeElement.create(260, 20, 80, 80);
+    wedge.startAngle = 270;
+    wedge.endAngle = 60;
+    wedge.setFill('Teal');
+
+    const ring = RingElement.create(260, 120, 90, 90);
+    ring.innerRadiusScale = 0.4;
+    ring.setFill('Purple');
+
+    model.add(arc);
+    model.add(regularPolygon);
+    model.add(arrow);
+    model.add(wedge);
+    model.add(ring);
+
+    const parsed = Model.parse(model.rawJSON());
+
+    expect(parsed.elements[0].type).toBe('arc');
+    expect((parsed.elements[1] as RegularPolygonElement).innerRadiusScale).toBeCloseTo(0.5);
+    expect(parsed.elements[2].type).toBe('arrow');
+    expect((parsed.elements[3] as WedgeElement).endAngle).toBe(60);
+    expect((parsed.elements[4] as RingElement).innerRadiusScale).toBeCloseTo(0.4);
 });
 
 test('model serialize/parse with gradient fill', () => {
