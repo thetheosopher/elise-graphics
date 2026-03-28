@@ -761,6 +761,64 @@ test('text applyTextStyle updates only the selected character range', () => {
     ]);
 });
 
+test('text editing layout queries reuse cached measurements for unchanged state', () => {
+    const txt = TextElement.create('Hello world', 0, 0, 200, 50);
+    txt.setTypeface('Arial').setTypesize(16);
+    const context = {
+        measureText: jest.fn((text: string) => ({ width: text.length * 10 })),
+        font: '',
+    } as unknown as CanvasRenderingContext2D;
+
+    txt.getSelectionRegions(context, new Point(0, 0), new Size(200, 50), 0, 5);
+    const initialMeasureCount = (context.measureText as jest.Mock).mock.calls.length;
+
+    txt.getCaretRegion(context, new Point(0, 0), new Size(200, 50), 3);
+    txt.getSelectionRegions(context, new Point(0, 0), new Size(200, 50), 1, 4);
+
+    expect((context.measureText as jest.Mock).mock.calls.length).toBe(initialMeasureCount);
+});
+
+test('text caret and hit testing use insertion indices across explicit line breaks', () => {
+    const txt = TextElement.create('a\nb', 0, 0, 200, 50);
+    txt.setTypesize(10);
+    const context = {
+        measureText: jest.fn((text: string) => ({ width: text.length * 10 })),
+        font: '',
+    } as unknown as CanvasRenderingContext2D;
+
+    const caretAfterFirstLine = txt.getCaretRegion(context, new Point(0, 0), new Size(200, 50), 1);
+    const caretBeforeSecondLine = txt.getCaretRegion(context, new Point(0, 0), new Size(200, 50), 2);
+    const hitSecondLine = txt.getTextIndexAtPoint(context, new Point(0, 0), new Size(200, 50), new Point(1, 15));
+    const selection = txt.getSelectionRegions(context, new Point(0, 0), new Size(200, 50), 0, 3);
+
+    expect(caretAfterFirstLine.x).toBe(10);
+    expect(caretAfterFirstLine.y).toBe(0);
+    expect(caretBeforeSecondLine.x).toBe(0);
+    expect(caretBeforeSecondLine.y).toBe(10);
+    expect(hitSecondLine).toBe(2);
+    expect(selection).toEqual([
+        expect.objectContaining({ x: 0, y: 0, width: 10, height: 10 }),
+        expect.objectContaining({ x: 0, y: 10, width: 10, height: 10 }),
+    ]);
+});
+
+test('text caret tracks blank visual lines created by consecutive newlines', () => {
+    const txt = TextElement.create('a\n\nb', 0, 0, 200, 60);
+    txt.setTypesize(10);
+    const context = {
+        measureText: jest.fn((text: string) => ({ width: text.length * 10 })),
+        font: '',
+    } as unknown as CanvasRenderingContext2D;
+
+    const caretOnBlankLine = txt.getCaretRegion(context, new Point(0, 0), new Size(200, 60), 2);
+    const caretBeforeThirdLine = txt.getCaretRegion(context, new Point(0, 0), new Size(200, 60), 3);
+
+    expect(caretOnBlankLine.x).toBe(0);
+    expect(caretOnBlankLine.y).toBe(10);
+    expect(caretBeforeThirdLine.x).toBe(0);
+    expect(caretBeforeThirdLine.y).toBe(20);
+});
+
 // --- ImageElement ---
 
 test('image create', () => {

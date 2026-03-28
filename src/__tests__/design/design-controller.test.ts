@@ -150,6 +150,8 @@ function createOverlayContext() {
         save: jest.fn(),
         restore: jest.fn(),
         scale: jest.fn(),
+        translate: jest.fn(),
+        rotate: jest.fn(),
         beginPath: jest.fn(),
         moveTo: jest.fn(),
         lineTo: jest.fn(),
@@ -170,6 +172,7 @@ function createOverlayContext() {
         textAlign: 'left',
         textBaseline: 'top',
         globalAlpha: 1,
+        measureText: jest.fn((text: string) => ({ width: text.length * 10 })),
     } as unknown as CanvasRenderingContext2D;
 }
 
@@ -531,6 +534,71 @@ describe('design controller undo and redo', () => {
         ]);
     });
 
+    test('text editing keyboard interactions redraw immediately', () => {
+        const controller = new DesignController();
+        const model = Model.create(200, 100);
+        const text = TextElement.create('Hello', 10, 10, 120, 30).setInteractive(true) as TextElement;
+        model.add(text);
+        installInteractiveCanvas(controller);
+        controller.setModel(model);
+        controller.selectElement(text);
+        controller.beginTextEdit(text, 5);
+        (controller.draw as jest.Mock).mockClear();
+
+        const arrowLeft = {
+            key: 'ArrowLeft',
+            keyCode: 37,
+            ctrlKey: false,
+            metaKey: false,
+            altKey: false,
+            shiftKey: false,
+            preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+        } as unknown as KeyboardEvent;
+        const typeEvent = {
+            key: '!',
+            keyCode: 49,
+            ctrlKey: false,
+            metaKey: false,
+            altKey: false,
+            shiftKey: true,
+            preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+        } as unknown as KeyboardEvent;
+
+        expect(controller.onCanvasKeyDown(arrowLeft)).toBe(true);
+        expect(controller.draw).toHaveBeenCalledTimes(1);
+
+        expect(controller.onCanvasKeyDown(typeEvent)).toBe(true);
+        expect(controller.draw).toHaveBeenCalledTimes(2);
+    });
+
+    test('arrow keys nudge a selected text element when not in text edit mode', () => {
+        const controller = new DesignController();
+        const model = Model.create(200, 100);
+        const text = TextElement.create('Hello', 10, 10, 120, 30).setInteractive(true) as TextElement;
+        model.add(text);
+        installCanvasOnly(controller);
+        controller.setModel(model);
+        controller.selectElement(text);
+
+        const arrowRight = {
+            key: 'ArrowRight',
+            keyCode: 39,
+            ctrlKey: false,
+            metaKey: false,
+            altKey: false,
+            shiftKey: false,
+            preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+        } as unknown as KeyboardEvent;
+
+        expect(controller.onCanvasKeyDown(arrowRight)).toBe(true);
+        expect(text.getLocation()!.x).toBe(11);
+        expect(text.getLocation()!.y).toBe(10);
+        expect(controller.editingTextElement).toBeUndefined();
+    });
+
     test('arrow up and down move the caret between visual text lines', () => {
         const controller = new DesignController();
         const model = Model.create(200, 100);
@@ -563,15 +631,40 @@ describe('design controller undo and redo', () => {
         } as unknown as KeyboardEvent;
 
         expect(controller.onCanvasKeyDown(arrowDown)).toBe(true);
-        expect(controller.textSelectionStart).toBe(3);
-        expect(controller.textSelectionEnd).toBe(3);
+        expect(controller.textSelectionStart).toBe(4);
+        expect(controller.textSelectionEnd).toBe(4);
 
         expect(controller.onCanvasKeyDown(arrowUp)).toBe(true);
         expect(controller.textSelectionStart).toBe(1);
         expect(controller.textSelectionEnd).toBe(1);
     });
 
-    test('double-clicking a selected text element enters edit mode and selects the clicked word', () => {
+    test('single click on a selected text element does not enter edit mode', () => {
+        const controller = new DesignController();
+        const model = Model.create(200, 100);
+        const text = TextElement.create('Hello world', 10, 10, 140, 30).setInteractive(true) as TextElement;
+        const fakeWindowScope = installFakeWindow();
+        model.add(text);
+        installInteractiveCanvas(controller);
+        controller.setModel(model);
+        controller.selectElement(text);
+
+        controller.onCanvasMouseDown({
+            button: 0,
+            clientX: 75,
+            clientY: 20,
+            detail: 1,
+            shiftKey: false,
+            preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+        } as unknown as MouseEvent);
+
+        expect(controller.editingTextElement).toBeUndefined();
+
+        fakeWindowScope.restore();
+    });
+
+    test('shift-double-clicking a selected text element enters edit mode and selects the clicked word', () => {
         const controller = new DesignController();
         const model = Model.create(200, 100);
         const text = TextElement.create('Hello world', 10, 10, 140, 30).setInteractive(true) as TextElement;
@@ -586,6 +679,7 @@ describe('design controller undo and redo', () => {
             clientX: 75,
             clientY: 20,
             detail: 2,
+            shiftKey: true,
             preventDefault: jest.fn(),
             stopPropagation: jest.fn(),
         } as unknown as MouseEvent);
@@ -594,8 +688,53 @@ describe('design controller undo and redo', () => {
         expect(controller.textSelectionStart).toBe(6);
         expect(controller.textSelectionEnd).toBe(11);
         expect(controller.isSelectingText).toBe(false);
+        expect(controller.draw).toHaveBeenCalled();
 
         fakeWindowScope.restore();
+    });
+
+    test('shift-click enters text edit mode for transformed text using transformed coordinates', () => {
+        const controller = new DesignController();
+        const model = Model.create(400, 120);
+        const text = TextElement.create('Hello', 10, 10, 120, 30).setInteractive(true).setTransform('translate(150,0)') as TextElement;
+        const fakeWindowScope = installFakeWindow();
+        model.add(text);
+        installInteractiveCanvas(controller);
+        controller.setModel(model);
+        controller.selectElement(text);
+
+        controller.onCanvasMouseDown({
+            button: 0,
+            clientX: 165,
+            clientY: 20,
+            detail: 1,
+            shiftKey: true,
+            preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+        } as unknown as MouseEvent);
+
+        expect(controller.editingTextElement).toBe(text);
+
+        fakeWindowScope.restore();
+    });
+
+    test('text editing overlay applies the text transform', () => {
+        const controller = new DesignController();
+        const model = Model.create(200, 100);
+        const text = TextElement.create('Hello', 10, 10, 120, 30).setInteractive(true).setTransform('rotate(15)') as TextElement;
+        const context = createOverlayContext();
+        installDrawCanvas(controller, context);
+        controller.setModel(model);
+        model.add(text);
+        controller.selectElement(text);
+        controller.beginTextEdit(text, 1);
+        controller.renderer = { renderToContext: jest.fn() } as unknown as any;
+        jest.spyOn(controller, 'getElementHandles').mockReturnValue([]);
+        const transformSpy = jest.spyOn(model, 'setRenderTransform');
+
+        controller.draw();
+
+        expect(transformSpy).toHaveBeenCalledWith(context, 'rotate(15)', expect.any(Point));
     });
 
     test('setSelectedRectangleCornerRadius updates selected rectangles and supports undo', () => {

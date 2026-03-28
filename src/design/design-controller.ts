@@ -1493,16 +1493,52 @@ export class DesignController implements IController {
             this.mouseDownView.trigger(this, new PointEventParameters(e, new Point(p.x, p.y)));
         }
 
-        const selectedTextElement = this.editingTextElement || this.getSelectedTextElement();
-        if (selectedTextElement) {
+        if (this.editingTextElement && this.selectedElements.indexOf(this.editingTextElement) !== -1) {
+            const editingBounds = this.editingTextElement.getBounds();
+            const clickCount = typeof (e as MouseEvent).detail === 'number' ? (e as MouseEvent).detail : 1;
+            const localPoint = editingBounds
+                ? this.resolveTextEditInteractionPoint(this.editingTextElement, editingBounds, new Point(p.x, p.y))
+                : undefined;
+            if (editingBounds && localPoint && editingBounds.containsCoordinate(localPoint.x, localPoint.y)) {
+                const caretIndex = this.editingTextElement.getTextIndexAtPoint(
+                    context,
+                    editingBounds.location,
+                    editingBounds.size,
+                    localPoint,
+                );
+                this.textCaretPreferredX = undefined;
+                if (clickCount >= 2) {
+                    const [start, end] = this.editingTextElement.getWordRangeAt(caretIndex);
+                    this.textSelectionAnchor = start;
+                    this.textSelectionStart = start;
+                    this.textSelectionEnd = end;
+                    this.isSelectingText = false;
+                }
+                else {
+                    this.textSelectionAnchor = caretIndex;
+                    this.textSelectionStart = caretIndex;
+                    this.textSelectionEnd = caretIndex;
+                    this.isSelectingText = true;
+                }
+                this.invalidate();
+                this.drawIfNeeded();
+                return;
+            }
+        }
+
+        const selectedTextElement = this.getSelectedTextElement();
+        if (selectedTextElement && e.shiftKey) {
             const editingBounds = selectedTextElement.getBounds();
             const clickCount = typeof (e as MouseEvent).detail === 'number' ? (e as MouseEvent).detail : 1;
-            if (editingBounds && editingBounds.containsCoordinate(p.x, p.y)) {
+            const localPoint = editingBounds
+                ? this.resolveTextEditInteractionPoint(selectedTextElement, editingBounds, new Point(p.x, p.y))
+                : undefined;
+            if (editingBounds && localPoint && editingBounds.containsCoordinate(localPoint.x, localPoint.y)) {
                 const caretIndex = selectedTextElement.getTextIndexAtPoint(
                     context,
                     editingBounds.location,
                     editingBounds.size,
-                    new Point(p.x, p.y),
+                    localPoint,
                 );
                 this.beginTextEdit(selectedTextElement, caretIndex);
                 this.textCaretPreferredX = undefined;
@@ -1520,24 +1556,7 @@ export class DesignController implements IController {
                     this.isSelectingText = true;
                 }
                 this.invalidate();
-                return;
-            }
-        }
-
-        if (this.editingTextElement && this.selectedElements.indexOf(this.editingTextElement) !== -1) {
-            const editingBounds = this.editingTextElement.getBounds();
-            if (editingBounds && editingBounds.containsCoordinate(p.x, p.y)) {
-                const caretIndex = this.editingTextElement.getTextIndexAtPoint(
-                    context,
-                    editingBounds.location,
-                    editingBounds.size,
-                    new Point(p.x, p.y),
-                );
-                this.textSelectionAnchor = caretIndex;
-                this.textSelectionStart = caretIndex;
-                this.textSelectionEnd = caretIndex;
-                this.isSelectingText = true;
-                this.invalidate();
+                this.drawIfNeeded();
                 return;
             }
         }
@@ -1857,16 +1876,20 @@ export class DesignController implements IController {
         if (this.isSelectingText && this.editingTextElement) {
             const editingBounds = this.editingTextElement.getBounds();
             const canvasContext = this.canvas.getContext('2d');
-            if (editingBounds && canvasContext) {
+            const localPoint = editingBounds
+                ? this.resolveTextEditInteractionPoint(this.editingTextElement, editingBounds, new Point(p.x, p.y))
+                : undefined;
+            if (editingBounds && canvasContext && localPoint) {
                 const caretIndex = this.editingTextElement.getTextIndexAtPoint(
                     canvasContext,
                     editingBounds.location,
                     editingBounds.size,
-                    new Point(p.x, p.y),
+                    localPoint,
                 );
                 this.textSelectionStart = this.textSelectionAnchor;
                 this.textSelectionEnd = caretIndex;
                 this.invalidate();
+                this.drawIfNeeded();
                 return;
             }
         }
@@ -2240,6 +2263,7 @@ export class DesignController implements IController {
         if (this.isSelectingText) {
             this.isSelectingText = false;
             this.invalidate();
+            this.drawIfNeeded();
             return;
         }
 
@@ -2660,6 +2684,7 @@ export class DesignController implements IController {
         }
 
         if (this.handleTextEditingKeyDown(e)) {
+            this.drawIfNeeded();
             return true;
         }
 
@@ -3289,11 +3314,20 @@ export class DesignController implements IController {
 
     private handleTextEditingKeyDown(e: KeyboardEvent): boolean {
         const selectedText = this.getSelectedTextElement();
-        if (!selectedText && !this.editingTextElement) {
+        const isEditing = Boolean(this.editingTextElement && this.selectedElements.indexOf(this.editingTextElement) !== -1);
+        if (!selectedText && !isEditing) {
             return false;
         }
 
         const isModifier = e.ctrlKey || e.metaKey;
+        if (!isEditing) {
+            if (!isModifier && !e.altKey && e.key.length === 1) {
+                e.preventDefault();
+                return this.replaceSelectedText(e.key);
+            }
+            return false;
+        }
+
         if (isModifier) {
             const lowerKey = e.key.toLowerCase();
             if (lowerKey === 'b') {
@@ -3308,7 +3342,7 @@ export class DesignController implements IController {
                 e.preventDefault();
                 return this.applySelectedTextStyle({ decoration: 'underline' });
             }
-            if (lowerKey === 'a' && this.ensureTextEditTarget()) {
+            if (lowerKey === 'a') {
                 e.preventDefault();
                 const textElement = this.editingTextElement!;
                 this.textSelectionAnchor = 0;
@@ -3349,7 +3383,7 @@ export class DesignController implements IController {
                 return this.moveTextCaret(0, e.shiftKey);
             case 'End':
                 e.preventDefault();
-                return this.moveTextCaret(this.ensureTextEditTarget()?.getTextLength() || 0, e.shiftKey);
+                return this.moveTextCaret(this.editingTextElement?.getTextLength() || 0, e.shiftKey);
             default:
                 break;
         }
@@ -3360,6 +3394,15 @@ export class DesignController implements IController {
         }
 
         return false;
+    }
+
+    private resolveTextEditInteractionPoint(textElement: TextElement, bounds: Region, point: Point): Point {
+        if (!textElement.transform) {
+            return point;
+        }
+
+        const inverse = Matrix2D.fromTransformString(textElement.transform, bounds.location).inverse();
+        return inverse.transformPoint(point);
     }
 
     private drawTextEditingOverlay(c: CanvasRenderingContext2D): void {
@@ -3376,6 +3419,9 @@ export class DesignController implements IController {
         const start = Math.min(this.textSelectionStart, this.textSelectionEnd);
         const end = Math.max(this.textSelectionStart, this.textSelectionEnd);
         c.save();
+        if (textElement.transform && this.model) {
+            this.model.setRenderTransform(c, textElement.transform, bounds.location);
+        }
         c.fillStyle = 'rgba(80, 140, 255, 0.28)';
         c.strokeStyle = 'rgba(0, 90, 255, 0.9)';
         c.lineWidth = 1 / this.scale;

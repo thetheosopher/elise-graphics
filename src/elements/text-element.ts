@@ -37,12 +37,15 @@ interface TextLayoutSegment {
     text: string;
     width: number;
     style: ResolvedTextRunStyle;
+    startIndex: number;
 }
 
 interface TextLayoutLine {
     segments: TextLayoutSegment[];
     width: number;
     height: number;
+    startIndex: number;
+    endIndex: number;
 }
 
 interface TextCharacterLayout {
@@ -52,10 +55,34 @@ interface TextCharacterLayout {
     lineIndex: number;
 }
 
+interface TextInsertionLayout {
+    index: number;
+    x: number;
+    y: number;
+    height: number;
+    lineIndex: number;
+}
+
+interface CachedTextLayout {
+    revision: number;
+    lineWidth: number;
+    layout: TextLayoutLine[];
+    alignment: { horizontal: 'left' | 'center' | 'right'; vertical: 'top' | 'middle' | 'bottom' };
+    totalHeight: number;
+}
+
 /**
  * Renders a stroked and filled text element
  */
 export class TextElement extends ElementBase {
+    private _textLayoutRevision: number = 0;
+    private _layoutCache?: CachedTextLayout;
+    private _characterLayoutCache?: { revision: number; x: number; y: number; width: number; height: number; characters: TextCharacterLayout[] };
+    private _insertionLayoutCache?: { revision: number; x: number; y: number; width: number; height: number; positions: TextInsertionLayout[] };
+    private _textMeasureCache: Map<string, number> = new Map<string, number>();
+    private _resolvedPlainTextCache?: string;
+    private _resolvedRunsCache?: TextRun[];
+
     /**
      * Text element factory function
      * @param text - Text string or text resource key to render
@@ -176,6 +203,7 @@ export class TextElement extends ElementBase {
         if (!this._location) {
             this._location = new Point(0, 0);
         }
+        this.invalidateTextLayoutCache();
     }
 
     /**
@@ -290,6 +318,7 @@ export class TextElement extends ElementBase {
         this.text = text;
         this.source = undefined;
         this.richText = undefined;
+        this.invalidateTextLayoutCache();
         return this;
     }
 
@@ -302,6 +331,7 @@ export class TextElement extends ElementBase {
         this.source = source;
         this.text = undefined;
         this.richText = undefined;
+        this.invalidateTextLayoutCache();
         return this;
     }
 
@@ -312,6 +342,7 @@ export class TextElement extends ElementBase {
      */
     public setTypeface(typeface: string) {
         this.typeface = typeface;
+        this.invalidateTextLayoutCache();
         return this;
     }
 
@@ -322,6 +353,7 @@ export class TextElement extends ElementBase {
      */
     public setTypesize(typesize: number) {
         this.typesize = typesize;
+        this.invalidateTextLayoutCache();
         return this;
     }
 
@@ -332,6 +364,7 @@ export class TextElement extends ElementBase {
      */
     public setTypestyle(typestyle: string) {
         this.typestyle = typestyle;
+        this.invalidateTextLayoutCache();
         return this;
     }
 
@@ -342,6 +375,7 @@ export class TextElement extends ElementBase {
      */
     public setLetterSpacing(letterSpacing: number) {
         this.letterSpacing = Number(letterSpacing) || 0;
+        this.invalidateTextLayoutCache();
         return this;
     }
 
@@ -352,6 +386,7 @@ export class TextElement extends ElementBase {
      */
     public setTextDecoration(decoration?: string) {
         this.textDecoration = TextElement.normalizeTextDecoration(decoration);
+        this.invalidateTextLayoutCache();
         return this;
     }
 
@@ -364,6 +399,7 @@ export class TextElement extends ElementBase {
         this.richText = TextElement.cloneTextRuns(richText);
         this.text = undefined;
         this.source = undefined;
+        this.invalidateTextLayoutCache();
         return this;
     }
 
@@ -374,6 +410,7 @@ export class TextElement extends ElementBase {
      */
     public setAlignment(alignment: string) {
         this.alignment = alignment;
+        this.invalidateTextLayoutCache();
         return this;
     }
 
@@ -447,25 +484,24 @@ export class TextElement extends ElementBase {
      * @returns Text index
      */
     public getTextIndexAtPoint(c: CanvasRenderingContext2D, location: Point, size: Size, point: Point): number {
-        const characters = this.getCharacterLayout(c, location, size);
-        if (characters.length === 0) {
+        const positions = this.getInsertionLayout(c, location, size);
+        if (positions.length === 0) {
             return 0;
         }
 
-        let nearest = characters.length;
+        let nearest = 0;
         let bestDistance = Number.POSITIVE_INFINITY;
-        for (const character of characters) {
-            const region = character.region;
-            const centerX = region.x + region.width / 2;
-            const centerY = region.y + region.height / 2;
-            const distance = Math.abs(point.y - centerY) * 1000 + Math.abs(point.x - centerX);
+        for (const position of positions) {
+            const centerY = position.y + position.height / 2;
+            const distance = Math.abs(point.y - centerY) * 1000 + Math.abs(point.x - position.x);
             if (distance < bestDistance) {
                 bestDistance = distance;
-                nearest = point.x <= centerX ? character.index : character.index + 1;
+                nearest = position.index;
             }
         }
 
-        if (point.y > characters[characters.length - 1].region.y + characters[characters.length - 1].region.height) {
+        const last = positions[positions.length - 1];
+        if (point.y > last.y + last.height) {
             return this.getTextLength();
         }
 
@@ -481,29 +517,15 @@ export class TextElement extends ElementBase {
      * @returns Caret region
      */
     public getCaretRegion(c: CanvasRenderingContext2D, location: Point, size: Size, index: number): Region {
-        const characters = this.getCharacterLayout(c, location, size);
-        if (characters.length === 0) {
+        const positions = this.getInsertionLayout(c, location, size);
+        if (positions.length === 0) {
             const lineHeight = this.typesize || 10;
             return new Region(location.x, location.y, 1, lineHeight);
         }
 
         const normalizedIndex = Math.max(0, Math.min(index, this.getTextLength()));
-        if (normalizedIndex === 0) {
-            const first = characters[0].region;
-            return new Region(first.x, first.y, 1, first.height);
-        }
-        if (normalizedIndex >= this.getTextLength()) {
-            const last = characters[characters.length - 1].region;
-            return new Region(last.x + last.width, last.y, 1, last.height);
-        }
-
-        const character = characters.find((item) => item.index === normalizedIndex);
-        if (character) {
-            return new Region(character.region.x, character.region.y, 1, character.region.height);
-        }
-
-        const previous = characters.find((item) => item.index + 1 === normalizedIndex) || characters[characters.length - 1];
-        return new Region(previous.region.x + previous.region.width, previous.region.y, 1, previous.region.height);
+        const position = positions[normalizedIndex] || positions[positions.length - 1];
+        return new Region(position.x, position.y, 1, position.height);
     }
 
     /**
@@ -524,16 +546,18 @@ export class TextElement extends ElementBase {
     ): Region[] {
         const characters = this.getCharacterLayout(c, location, size);
         const normalizedStart = Math.max(0, Math.min(start, end));
-        const normalizedEnd = Math.max(normalizedStart, Math.max(start, end));
-        const selected = characters.filter((character) => character.index >= normalizedStart && character.index < normalizedEnd);
-        if (selected.length === 0) {
+        const normalizedEnd = Math.min(this.getTextLength(), Math.max(normalizedStart, Math.max(start, end)));
+        if (normalizedStart >= normalizedEnd) {
             return [];
         }
 
         const regions: Region[] = [];
         let current: Region | undefined;
         let currentLine = -1;
-        for (const character of selected) {
+        for (const character of characters) {
+            if (character.index < normalizedStart || character.index >= normalizedEnd) {
+                continue;
+            }
             if (!current || character.lineIndex !== currentLine) {
                 current = new Region(character.region.x, character.region.y, character.region.width, character.region.height);
                 regions.push(current);
@@ -571,28 +595,28 @@ export class TextElement extends ElementBase {
         direction: -1 | 1,
         preferredX?: number,
     ): number {
-        const characters = this.getCharacterLayout(c, location, size);
-        if (characters.length === 0) {
+        const positions = this.getInsertionLayout(c, location, size);
+        if (positions.length === 0) {
             return 0;
         }
 
         const normalizedIndex = Math.max(0, Math.min(index, this.getTextLength()));
-        const currentCharacter = this.resolveCharacterForIndex(characters, normalizedIndex);
-        const currentLine = currentCharacter.lineIndex;
+        const currentPosition = positions[normalizedIndex] || positions[positions.length - 1];
+        const currentLine = currentPosition.lineIndex;
         const targetLine = currentLine + direction;
         if (targetLine < 0) {
             return 0;
         }
 
-        const targetCharacters = characters.filter((character) => character.lineIndex === targetLine);
-        if (targetCharacters.length === 0) {
+        const targetPositions = positions.filter((position) => position.lineIndex === targetLine);
+        if (targetPositions.length === 0) {
             return this.getTextLength();
         }
 
         const targetX = preferredX !== undefined
             ? preferredX
-            : this.getCaretRegion(c, location, size, normalizedIndex).x;
-        return this.resolveInsertionIndexForLine(targetCharacters, targetX);
+            : currentPosition.x;
+        return this.resolveInsertionIndexForLine(targetPositions, targetX);
     }
 
     /**
@@ -632,14 +656,17 @@ export class TextElement extends ElementBase {
      * @returns Resolved text content
      */
     public getResolvedText(): string | undefined {
-        if (this.richText && this.richText.length > 0) {
-            return this.richText.map((run) => run.text).join('');
-        }
         if (this.source && this.model) {
             const res = this.model.resourceManager.get(this.source) as TextResource;
             if (res) {
                 return res.text;
             }
+        }
+        if (this.richText && this.richText.length > 0) {
+            if (this._resolvedPlainTextCache === undefined) {
+                this._resolvedPlainTextCache = this.richText.map((run) => run.text).join('');
+            }
+            return this._resolvedPlainTextCache;
         }
         return this.text;
     }
@@ -649,14 +676,26 @@ export class TextElement extends ElementBase {
      * @returns Text runs
      */
     public getResolvedTextRuns(): TextRun[] {
+        const runs = this.getResolvedTextRunsInternal();
+        if (runs.length === 0) {
+            return [];
+        }
+        return TextElement.cloneTextRuns(runs);
+    }
+
+    private getResolvedTextRunsInternal(): TextRun[] {
         if (this.richText && this.richText.length > 0) {
-            return TextElement.cloneTextRuns(this.richText);
+            return this.richText;
+        }
+        if (this._resolvedRunsCache) {
+            return this._resolvedRunsCache;
         }
         const text = this.getResolvedText();
         if (!text) {
             return [];
         }
-        return [{ text }];
+        this._resolvedRunsCache = [{ text }];
+        return this._resolvedRunsCache;
     }
 
     /**
@@ -671,7 +710,7 @@ export class TextElement extends ElementBase {
             throw new Error(ErrorMessages.ModelUndefined);
         }
 
-        const runs = this.getResolvedTextRuns();
+        const runs = this.getResolvedTextRunsInternal();
         if (runs.length === 0) {
             return;
         }
@@ -686,13 +725,13 @@ export class TextElement extends ElementBase {
             c.rect(location.x, location.y, size.width + 10, size.height);
             c.clip();
 
-            const layout = this.layoutRuns(c, runs, size.width);
-            if (layout.length === 0) {
+            const textLayout = this.getCachedTextLayout(c, runs, size.width);
+            if (textLayout.layout.length === 0) {
                 return;
             }
 
-            const alignment = this.resolveAlignment();
-            const totalHeight = layout.reduce((sum, line) => sum + line.height, 0);
+            const alignment = textLayout.alignment;
+            const totalHeight = textLayout.totalHeight;
             let startY = location.y;
             if (alignment.vertical === 'middle') {
                 startY = location.y + size.height / 2 - totalHeight / 2;
@@ -708,10 +747,10 @@ export class TextElement extends ElementBase {
             const hasStroke = model.setElementStroke(c, this);
 
             if (hasFill) {
-                this.renderLayoutPass(c, layout, location, size, startY, alignment.horizontal, true, false);
+                this.renderLayoutPass(c, textLayout.layout, location, size, startY, alignment.horizontal, true, false);
             }
             if (hasStroke) {
-                this.renderLayoutPass(c, layout, location, size, startY, alignment.horizontal, false, !hasFill);
+                this.renderLayoutPass(c, textLayout.layout, location, size, startY, alignment.horizontal, false, !hasFill);
             }
         });
         c.restore();
@@ -726,7 +765,7 @@ export class TextElement extends ElementBase {
      * @returns Split text lines
      */
     public getLines(c: CanvasRenderingContext2D, text: string, lineWidth: number): string[] {
-        return this.layoutRuns(c, [{ text }], lineWidth).map((line) => line.segments.map((segment) => segment.text).join(''));
+        return this.getCachedTextLayout(c, [{ text }], lineWidth).layout.map((line) => line.segments.map((segment) => segment.text).join(''));
     }
 
     /**
@@ -747,15 +786,18 @@ export class TextElement extends ElementBase {
 
     private layoutRuns(c: CanvasRenderingContext2D, runs: TextRun[], lineWidth: number): TextLayoutLine[] {
         const lines: TextLayoutLine[] = [];
-        let currentLine = this.createEmptyLine();
+        let currentLine = this.createEmptyLine(0);
+        let textIndex = 0;
 
         for (const run of runs) {
             const style = this.resolveRunStyle(run);
             const tokens = TextElement.tokenize(run.text);
             for (const token of tokens) {
                 if (token === '\n') {
+                    currentLine.endIndex = textIndex;
                     lines.push(currentLine);
-                    currentLine = this.createEmptyLine();
+                    textIndex += 1;
+                    currentLine = this.createEmptyLine(textIndex);
                     continue;
                 }
 
@@ -770,8 +812,9 @@ export class TextElement extends ElementBase {
                     lineWidth > 0 &&
                     currentLine.width + width > lineWidth
                 ) {
+                    currentLine.endIndex = textIndex;
                     lines.push(currentLine);
-                    currentLine = this.createEmptyLine();
+                    currentLine = this.createEmptyLine(textIndex);
                 }
 
                 if (token.trim().length === 0 && currentLine.segments.length === 0) {
@@ -779,13 +822,15 @@ export class TextElement extends ElementBase {
                 }
                 if (token.trim().length === 0 && lineWidth > 0 && currentLine.width + width > lineWidth) {
                     lines.push(currentLine);
-                    currentLine = this.createEmptyLine();
+                    currentLine = this.createEmptyLine(textIndex);
                     continue;
                 }
 
-                currentLine.segments.push({ text: token, width, style });
+                currentLine.segments.push({ text: token, width, style, startIndex: textIndex });
                 currentLine.width += width;
                 currentLine.height = Math.max(currentLine.height, style.typesize);
+                textIndex += token.length;
+                currentLine.endIndex = textIndex;
             }
         }
 
@@ -861,7 +906,7 @@ export class TextElement extends ElementBase {
             else {
                 c.strokeText(character, currentX, y);
             }
-            currentX += c.measureText(character).width;
+            currentX += this.measureCharacterWidth(c, character, segment.style);
             if (index < segment.text.length - 1) {
                 currentX += segment.style.letterSpacing;
             }
@@ -933,9 +978,26 @@ export class TextElement extends ElementBase {
         if (!text) {
             return 0;
         }
-        c.font = this.buildFontString(style);
+        const font = this.buildFontString(style);
         const spacing = Math.max(0, text.length - 1) * style.letterSpacing;
-        return c.measureText(text).width + spacing;
+        return this.measureRawTextWidth(c, text, font) + spacing;
+    }
+
+    private measureCharacterWidth(c: CanvasRenderingContext2D, character: string, style: ResolvedTextRunStyle): number {
+        return this.measureRawTextWidth(c, character, this.buildFontString(style));
+    }
+
+    private measureRawTextWidth(c: CanvasRenderingContext2D, text: string, font: string): number {
+        const cacheKey = font + '|' + text;
+        const cached = this._textMeasureCache.get(cacheKey);
+        if (cached !== undefined) {
+            return cached;
+        }
+
+        c.font = font;
+        const width = c.measureText(text).width;
+        this._textMeasureCache.set(cacheKey, width);
+        return width;
     }
 
     private resolveRunStyle(run: TextRun): ResolvedTextRunStyle {
@@ -980,27 +1042,149 @@ export class TextElement extends ElementBase {
         return { horizontal, vertical };
     }
 
-    private createEmptyLine(): TextLayoutLine {
+    private createEmptyLine(startIndex: number): TextLayoutLine {
         return {
             segments: [],
             width: 0,
             height: this.typesize !== undefined ? this.typesize : 10,
+            startIndex,
+            endIndex: startIndex,
         };
     }
 
-    private getCharacterLayout(c: CanvasRenderingContext2D, location: Point, size: Size): TextCharacterLayout[] {
-        const runs = this.getResolvedTextRuns();
+    private getCachedTextLayout(c: CanvasRenderingContext2D, runs: TextRun[], lineWidth: number): CachedTextLayout {
+        if (this._layoutCache && this._layoutCache.revision === this._textLayoutRevision && this._layoutCache.lineWidth === lineWidth) {
+            return this._layoutCache;
+        }
+
+        const layout = this.layoutRuns(c, runs, lineWidth);
+        const alignment = this.resolveAlignment();
+        const totalHeight = layout.reduce((sum, line) => sum + line.height, 0);
+        this._layoutCache = { revision: this._textLayoutRevision, lineWidth, layout, alignment, totalHeight };
+        return this._layoutCache;
+    }
+
+    private invalidateTextLayoutCache(): void {
+        this._textLayoutRevision++;
+        this._layoutCache = undefined;
+        this._characterLayoutCache = undefined;
+        this._insertionLayoutCache = undefined;
+        this._textMeasureCache.clear();
+        this._resolvedPlainTextCache = undefined;
+        this._resolvedRunsCache = undefined;
+    }
+
+    private getInsertionLayout(c: CanvasRenderingContext2D, location: Point, size: Size): TextInsertionLayout[] {
+        const runs = this.getResolvedTextRunsInternal();
         if (runs.length === 0) {
             return [];
         }
 
-        const layout = this.layoutRuns(c, runs, size.width);
+        if (
+            this._insertionLayoutCache &&
+            this._insertionLayoutCache.revision === this._textLayoutRevision &&
+            this._insertionLayoutCache.x === location.x &&
+            this._insertionLayoutCache.y === location.y &&
+            this._insertionLayoutCache.width === size.width &&
+            this._insertionLayoutCache.height === size.height
+        ) {
+            return this._insertionLayoutCache.positions;
+        }
+
+        const textLayout = this.getCachedTextLayout(c, runs, size.width);
+        const layout = textLayout.layout;
         if (layout.length === 0) {
             return [];
         }
 
-        const alignment = this.resolveAlignment();
-        const totalHeight = layout.reduce((sum, line) => sum + line.height, 0);
+        const textLength = this.getTextLength();
+        const positions: TextInsertionLayout[] = new Array(Math.max(1, textLength + 1));
+        const alignment = textLayout.alignment;
+        const totalHeight = textLayout.totalHeight;
+        let startY = location.y;
+        if (alignment.vertical === 'middle') {
+            startY = location.y + size.height / 2 - totalHeight / 2;
+        }
+        else if (alignment.vertical === 'bottom') {
+            startY = location.y + size.height - totalHeight;
+        }
+
+        let y = startY;
+        for (let lineIndex = 0; lineIndex < layout.length; lineIndex++) {
+            const line = layout[lineIndex];
+            let x = location.x;
+            if (alignment.horizontal === 'center') {
+                x += size.width / 2 - line.width / 2;
+            }
+            else if (alignment.horizontal === 'right') {
+                x += size.width - line.width;
+            }
+
+            positions[line.startIndex] = { index: line.startIndex, x, y, height: line.height, lineIndex };
+            let currentX = x;
+            for (const segment of line.segments) {
+                for (let index = 0; index < segment.text.length; index++) {
+                    const rawIndex = segment.startIndex + index;
+                    const character = segment.text.charAt(index);
+                    const characterWidth = this.measureCharacterWidth(c, character, segment.style);
+                    const advanceWidth = characterWidth + (index < segment.text.length - 1 ? segment.style.letterSpacing : 0);
+                    positions[rawIndex] = { index: rawIndex, x: currentX, y, height: line.height, lineIndex };
+                    currentX += advanceWidth;
+                    positions[rawIndex + 1] = { index: rawIndex + 1, x: currentX, y, height: line.height, lineIndex };
+                }
+            }
+            positions[line.endIndex] = { index: line.endIndex, x: currentX, y, height: line.height, lineIndex };
+            y += line.height;
+        }
+
+        for (let index = 0; index < positions.length; index++) {
+            if (!positions[index]) {
+                positions[index] = positions[Math.max(0, index - 1)] || {
+                    index,
+                    x: location.x,
+                    y: startY,
+                    height: this.typesize !== undefined ? this.typesize : 10,
+                    lineIndex: 0,
+                };
+            }
+        }
+
+        this._insertionLayoutCache = {
+            revision: this._textLayoutRevision,
+            x: location.x,
+            y: location.y,
+            width: size.width,
+            height: size.height,
+            positions,
+        };
+        return positions;
+    }
+
+    private getCharacterLayout(c: CanvasRenderingContext2D, location: Point, size: Size): TextCharacterLayout[] {
+        const runs = this.getResolvedTextRunsInternal();
+        if (runs.length === 0) {
+            return [];
+        }
+
+        const textLayout = this.getCachedTextLayout(c, runs, size.width);
+        if (
+            this._characterLayoutCache &&
+            this._characterLayoutCache.revision === this._textLayoutRevision &&
+            this._characterLayoutCache.x === location.x &&
+            this._characterLayoutCache.y === location.y &&
+            this._characterLayoutCache.width === size.width &&
+            this._characterLayoutCache.height === size.height
+        ) {
+            return this._characterLayoutCache.characters;
+        }
+
+        const layout = textLayout.layout;
+        if (layout.length === 0) {
+            return [];
+        }
+
+        const alignment = textLayout.alignment;
+        const totalHeight = textLayout.totalHeight;
         let startY = location.y;
         if (alignment.vertical === 'middle') {
             startY = location.y + size.height / 2 - totalHeight / 2;
@@ -1023,55 +1207,48 @@ export class TextElement extends ElementBase {
             }
 
             for (const segment of line.segments) {
-                c.font = this.buildFontString(segment.style);
                 for (let index = 0; index < segment.text.length; index++) {
                     const character = segment.text.charAt(index);
-                    const characterWidth = c.measureText(character).width;
+                    const characterWidth = this.measureCharacterWidth(c, character, segment.style);
                     const advanceWidth = characterWidth + (index < segment.text.length - 1 ? segment.style.letterSpacing : 0);
                     characters.push({
-                        index: textIndex,
+                        index: segment.startIndex + index,
                         character,
                         region: new Region(x, y, Math.max(advanceWidth, 1), line.height),
                         lineIndex,
                     });
                     x += advanceWidth;
-                    textIndex++;
                 }
             }
             y += line.height;
         }
 
+        this._characterLayoutCache = {
+            revision: this._textLayoutRevision,
+            x: location.x,
+            y: location.y,
+            width: size.width,
+            height: size.height,
+            characters,
+        };
         return characters;
     }
 
-    private resolveCharacterForIndex(characters: TextCharacterLayout[], index: number): TextCharacterLayout {
-        const exact = characters.find((character) => character.index === index);
-        if (exact) {
-            return exact;
-        }
-
-        const previous = characters.filter((character) => character.index < index);
-        if (previous.length > 0) {
-            return previous[previous.length - 1];
-        }
-
-        return characters[0];
-    }
-
-    private resolveInsertionIndexForLine(characters: TextCharacterLayout[], x: number): number {
-        if (characters.length === 0) {
+    private resolveInsertionIndexForLine(positions: TextInsertionLayout[], x: number): number {
+        if (positions.length === 0) {
             return 0;
         }
 
-        for (const character of characters) {
-            const centerX = character.region.x + character.region.width / 2;
+        for (let index = 0; index < positions.length; index++) {
+            const current = positions[index];
+            const next = positions[index + 1];
+            const centerX = next ? current.x + (next.x - current.x) / 2 : current.x;
             if (x <= centerX) {
-                return character.index;
+                return current.index;
             }
         }
 
-        const last = characters[characters.length - 1];
-        return last.index + 1;
+        return positions[positions.length - 1].index;
     }
 
     private static tokenize(text: string): string[] {
@@ -1091,7 +1268,7 @@ export class TextElement extends ElementBase {
     }
 
     private toStyledCharacters(): Array<{ character: string; style: TextRunStyle }> {
-        return TextElement.charactersFromRuns(this.getResolvedTextRuns());
+        return TextElement.charactersFromRuns(this.getResolvedTextRunsInternal());
     }
 
     private applyStyledCharacters(characters: Array<{ character: string; style: TextRunStyle }>): void {
