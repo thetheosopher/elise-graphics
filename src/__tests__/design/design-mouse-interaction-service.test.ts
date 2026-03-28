@@ -1,5 +1,6 @@
 import { ControllerEvent } from '../../controller/controller-event';
 import { Model } from '../../core/model';
+import { MouseLocationArgs } from '../../core/mouse-location-args';
 import { Point } from '../../core/point';
 import { Region } from '../../core/region';
 import { Size } from '../../core/size';
@@ -7,6 +8,7 @@ import { RectangleElement } from '../../elements/rectangle-element';
 import { TextElement } from '../../elements/text-element';
 import { DesignMouseInteractionService, type DesignMouseInteractionHost } from '../../design/design-mouse-interaction-service';
 import { Handle } from '../../design/handle';
+import { DesignTool } from '../../design/tools/design-tool';
 
 function createHost(overrides: Partial<DesignMouseInteractionHost> = {}) {
     const model = Model.create(200, 200);
@@ -255,6 +257,58 @@ describe('DesignMouseInteractionService', () => {
             deltaY: 25,
             shiftKey: true,
         });
+    });
+
+    test('active tool mouse events receive snapped coordinates when snapToGrid is enabled', () => {
+        const service = new DesignMouseInteractionService();
+        const activeTool = {
+            model: undefined,
+            controller: undefined,
+            opacity: 255,
+            stroke: undefined,
+            fill: undefined,
+            fillScale: 1,
+            fillOffsetX: 0,
+            fillOffsetY: 0,
+            aspectLocked: true,
+            isCreating: false,
+            minSize: 2,
+            mouseDown: jest.fn(),
+            mouseMove: jest.fn(),
+            mouseUp: jest.fn(),
+            cancel: jest.fn(),
+            setFill: jest.fn(),
+        } as unknown as DesignTool;
+        const { host } = createHost({
+            activeTool,
+            snapToGrid: true,
+            getNearestSnapX: (x: number) => Math.round(x / 10) * 10,
+            getNearestSnapY: (y: number) => Math.round(y / 10) * 10,
+        });
+
+        service.onCanvasMouseDown(host, {
+            button: 0,
+            clientX: 13,
+            clientY: 17,
+        } as unknown as MouseEvent);
+        service.onCanvasMouseMove(host, {
+            button: 0,
+            clientX: 29,
+            clientY: 34,
+        } as unknown as MouseEvent);
+        service.onCanvasMouseUp(host, {
+            button: 0,
+            clientX: 29,
+            clientY: 34,
+        } as unknown as MouseEvent);
+
+        expect(activeTool.mouseDown).toHaveBeenCalledTimes(1);
+        expect((activeTool.mouseDown as jest.Mock).mock.calls[0][0]).toBeInstanceOf(MouseLocationArgs);
+        expect((activeTool.mouseDown as jest.Mock).mock.calls[0][0].location).toMatchObject({ x: 10, y: 20 });
+        expect(activeTool.mouseMove).toHaveBeenCalledTimes(1);
+        expect((activeTool.mouseMove as jest.Mock).mock.calls[0][0].location).toMatchObject({ x: 30, y: 30 });
+        expect(activeTool.mouseUp).toHaveBeenCalledTimes(1);
+        expect((activeTool.mouseUp as jest.Mock).mock.calls[0][0].location).toMatchObject({ x: 30, y: 30 });
     });
 
     test('onCanvasMouseUp commits move previews and undo state', () => {

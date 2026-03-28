@@ -18,6 +18,14 @@ import {
     translatePathCommands,
 } from './path-command-utils';
 
+type ArcEditGeometry = {
+    center: Point;
+    radiusX: number;
+    radiusY: number;
+    xAxisUnit: Point;
+    yAxisUnit: Point;
+};
+
 /**
  * Renders series of stroked and/or filled drawing commands
  */
@@ -564,6 +572,25 @@ export class PathElement extends ElementBase implements IPointContainer {
                 if (current === index) {
                     foundPoint = command.end;
                 }
+                if (command.type === 'A' && depth === PointDepth.Full) {
+                    const geometry = PathElement.resolveArcEditGeometry(
+                        command.start,
+                        command.radiusX,
+                        command.radiusY,
+                        command.xAxisRotation,
+                        command.largeArc,
+                        command.sweep,
+                        command.end,
+                    );
+                    current++;
+                    if (current === index) {
+                        foundPoint = PathElement.getArcAxisHandlePoint(geometry, 'x');
+                    }
+                    current++;
+                    if (current === index) {
+                        foundPoint = PathElement.getArcAxisHandlePoint(geometry, 'y');
+                    }
+                }
                 return;
             }
             if (command.type === 'c') {
@@ -739,13 +766,34 @@ export class PathElement extends ElementBase implements IPointContainer {
             }
             else if (command.charAt(0) === 'A') {
                 const parts = command.substring(1, command.length).split(',');
-                const params = parts.slice(0, 5);
-                const endPoint = new Point(parseFloat(parts[5]), parseFloat(parts[6]));
+                let radiusX = parseFloat(parts[0]);
+                let radiusY = parseFloat(parts[1]);
+                const rotation = parseFloat(parts[2]);
+                const largeArc = parts[3] !== '0';
+                const sweep = parts[4] !== '0';
+                let endPoint = new Point(parseFloat(parts[5]), parseFloat(parts[6]));
                 current++;
                 if (current === index) {
-                    this._commands[i] = 'A' + params.join(',') + ',' + value.toString();
+                    this._commands[i] = 'A' + [radiusX, radiusY, rotation, largeArc ? 1 : 0, sweep ? 1 : 0, value.x, value.y].join(',');
                     this.bounds = undefined;
                     return this;
+                }
+                if (depth === PointDepth.Full) {
+                    const geometry = PathElement.resolveArcEditGeometry(currentPoint, radiusX, radiusY, rotation, largeArc, sweep, endPoint);
+                    current++;
+                    if (current === index) {
+                        radiusX = PathElement.resolveArcHandleRadius(geometry.center, geometry.xAxisUnit, value);
+                        this._commands[i] = 'A' + [radiusX, radiusY, rotation, largeArc ? 1 : 0, sweep ? 1 : 0, endPoint.x, endPoint.y].join(',');
+                        this.bounds = undefined;
+                        return this;
+                    }
+                    current++;
+                    if (current === index) {
+                        radiusY = PathElement.resolveArcHandleRadius(geometry.center, geometry.yAxisUnit, value);
+                        this._commands[i] = 'A' + [radiusX, radiusY, rotation, largeArc ? 1 : 0, sweep ? 1 : 0, endPoint.x, endPoint.y].join(',');
+                        this.bounds = undefined;
+                        return this;
+                    }
                 }
                 currentPoint = endPoint;
             }
@@ -804,5 +852,100 @@ export class PathElement extends ElementBase implements IPointContainer {
     public setWinding(winding: WindingMode) {
         this._winding = winding;
         return this;
+    }
+
+    private static resolveArcEditGeometry(
+        startPoint: Point,
+        radiusX: number,
+        radiusY: number,
+        xAxisRotation: number,
+        largeArc: boolean,
+        sweep: boolean,
+        endPoint: Point,
+    ): ArcEditGeometry {
+        const absoluteRadiusX = Math.max(1, Math.abs(radiusX) || 1);
+        const absoluteRadiusY = Math.max(1, Math.abs(radiusY) || 1);
+        const phi = (xAxisRotation * Math.PI) / 180;
+        const cosPhi = Math.cos(phi);
+        const sinPhi = Math.sin(phi);
+        const xAxisUnit = new Point(cosPhi, sinPhi);
+        const yAxisUnit = new Point(-sinPhi, cosPhi);
+
+        if (startPoint.x === endPoint.x && startPoint.y === endPoint.y) {
+            return {
+                center: new Point(startPoint.x, startPoint.y),
+                radiusX: absoluteRadiusX,
+                radiusY: absoluteRadiusY,
+                xAxisUnit,
+                yAxisUnit,
+            };
+        }
+
+        let adjustedRadiusX = absoluteRadiusX;
+        let adjustedRadiusY = absoluteRadiusY;
+        const dx = (startPoint.x - endPoint.x) / 2;
+        const dy = (startPoint.y - endPoint.y) / 2;
+        const x1p = cosPhi * dx + sinPhi * dy;
+        const y1p = -sinPhi * dx + cosPhi * dy;
+        const lambda = (x1p * x1p) / (adjustedRadiusX * adjustedRadiusX) + (y1p * y1p) / (adjustedRadiusY * adjustedRadiusY);
+
+        if (lambda > 1) {
+            const scale = Math.sqrt(lambda);
+            adjustedRadiusX *= scale;
+            adjustedRadiusY *= scale;
+        }
+
+        const radiusXSquared = adjustedRadiusX * adjustedRadiusX;
+        const radiusYSquared = adjustedRadiusY * adjustedRadiusY;
+        const x1pSquared = x1p * x1p;
+        const y1pSquared = y1p * y1p;
+        const numerator = radiusXSquared * radiusYSquared - radiusXSquared * y1pSquared - radiusYSquared * x1pSquared;
+        const denominator = radiusXSquared * y1pSquared + radiusYSquared * x1pSquared;
+
+        if (denominator === 0) {
+            return {
+                center: new Point((startPoint.x + endPoint.x) / 2, (startPoint.y + endPoint.y) / 2),
+                radiusX: adjustedRadiusX,
+                radiusY: adjustedRadiusY,
+                xAxisUnit,
+                yAxisUnit,
+            };
+        }
+
+        const factor = Math.sqrt(Math.max(0, numerator / denominator));
+        const sign = largeArc === sweep ? -1 : 1;
+        const cxp = sign * factor * ((adjustedRadiusX * y1p) / adjustedRadiusY);
+        const cyp = sign * factor * ((-adjustedRadiusY * x1p) / adjustedRadiusX);
+        const center = new Point(
+            cosPhi * cxp - sinPhi * cyp + (startPoint.x + endPoint.x) / 2,
+            sinPhi * cxp + cosPhi * cyp + (startPoint.y + endPoint.y) / 2,
+        );
+
+        return {
+            center,
+            radiusX: adjustedRadiusX,
+            radiusY: adjustedRadiusY,
+            xAxisUnit,
+            yAxisUnit,
+        };
+    }
+
+    private static getArcAxisHandlePoint(geometry: ArcEditGeometry, axis: 'x' | 'y'): Point {
+        if (axis === 'x') {
+            return new Point(
+                geometry.center.x + geometry.xAxisUnit.x * geometry.radiusX,
+                geometry.center.y + geometry.xAxisUnit.y * geometry.radiusX,
+            );
+        }
+
+        return new Point(
+            geometry.center.x + geometry.yAxisUnit.x * geometry.radiusY,
+            geometry.center.y + geometry.yAxisUnit.y * geometry.radiusY,
+        );
+    }
+
+    private static resolveArcHandleRadius(center: Point, axisUnit: Point, value: Point): number {
+        const projection = (value.x - center.x) * axisUnit.x + (value.y - center.y) * axisUnit.y;
+        return Math.max(1, Math.abs(projection));
     }
 }

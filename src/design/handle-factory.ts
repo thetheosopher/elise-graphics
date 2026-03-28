@@ -640,9 +640,44 @@ export class HandleFactory {
             iteratePathCommands(commands, (command) => {
                 let createHandle = true;
                 const connectToPrevious = true;
-                if (command.type === 'm' || command.type === 'l' || command.type === 'H' || command.type === 'V' || command.type === 'T' || command.type === 'A') {
+                if (command.type === 'm' || command.type === 'l' || command.type === 'H' || command.type === 'V' || command.type === 'T') {
                     handleIndex++;
                     handlePoint = command.end;
+                }
+                else if (command.type === 'A') {
+                    handleIndex++;
+                    handlePoint = command.end;
+
+                    if (depth === PointDepth.Full) {
+                        const endHandle = HandleFactory.createSemanticHandle(el, c, scale, handleIndex, 'path-arc-end', { cursor: 'move' });
+                        if (endHandle) {
+                            handles.push(endHandle);
+                            if (connectToPrevious && previous) {
+                                endHandle.connectedHandles = [previous];
+                            }
+                            previous = endHandle;
+                        }
+
+                        handleIndex++;
+                        const radiusXHandle = HandleFactory.createSemanticHandle(el, c, scale, handleIndex, 'path-arc-radiusX', { shape: 'circle', cursor: 'ew-resize' });
+                        if (radiusXHandle) {
+                            handles.push(radiusXHandle);
+                            if (previous) {
+                                radiusXHandle.connectedHandles = [previous];
+                            }
+                        }
+
+                        handleIndex++;
+                        const radiusYHandle = HandleFactory.createSemanticHandle(el, c, scale, handleIndex, 'path-arc-radiusY', { shape: 'circle', cursor: 'ns-resize' });
+                        if (radiusYHandle) {
+                            handles.push(radiusYHandle);
+                            if (previous) {
+                                radiusYHandle.connectedHandles = [previous];
+                            }
+                        }
+
+                        createHandle = false;
+                    }
                 }
                 else if (command.type === 'c') {
                     handleIndex++;

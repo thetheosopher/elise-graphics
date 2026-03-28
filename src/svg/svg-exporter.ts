@@ -493,7 +493,7 @@ export class SVGExporter {
         }
 
         const lines = text.split('\n');
-        const lineHeight = element.typesize || 10;
+        const lineHeight = SVGExporter.getTextLineHeight(element);
         const totalHeight = lineHeight * lines.length;
         let anchor = 'start';
         let x = location.x;
@@ -535,7 +535,7 @@ export class SVGExporter {
         if (element.typestyle) {
             SVGExporter.pushTextStyleAttributes(attributes, element.typestyle);
         }
-        SVGExporter.pushTextExtensionAttributes(attributes, element.letterSpacing, element.textDecoration);
+        SVGExporter.pushTextExtensionAttributes(attributes, element.letterSpacing, element.textDecoration, element.lineHeight);
 
         SVGExporter.pushCommonAttributes(attributes, element, context, location, false);
 
@@ -562,6 +562,7 @@ export class SVGExporter {
         attributes: string[],
         letterSpacing: number | undefined,
         textDecoration: string | undefined,
+        lineHeight?: number,
     ): void {
         if (letterSpacing !== undefined && letterSpacing !== 0) {
             attributes.push('letter-spacing="' + SVGExporter.formatNumber(letterSpacing) + '"');
@@ -569,6 +570,15 @@ export class SVGExporter {
         if (textDecoration) {
             attributes.push('text-decoration="' + SVGExporter.escapeAttribute(textDecoration.replace(/,/g, ' ')) + '"');
         }
+        if (lineHeight !== undefined && lineHeight !== 1) {
+            attributes.push('line-height="' + SVGExporter.formatNumber(lineHeight) + '"');
+        }
+    }
+
+    private static getTextLineHeight(element: TextElement): number {
+        const baseLineHeight = element.typesize || 10;
+        const multiplier = element.lineHeight !== undefined && element.lineHeight > 0 ? element.lineHeight : 1;
+        return baseLineHeight * multiplier;
     }
 
     private static exportTextRunsAsTspans(
@@ -727,6 +737,9 @@ export class SVGExporter {
         }
         if (element.lineJoin) {
             attributes.push('stroke-linejoin="' + element.lineJoin + '"');
+        }
+        if (element.miterLimit !== undefined && element.miterLimit > 0) {
+            attributes.push('stroke-miterlimit="' + SVGExporter.formatNumber(element.miterLimit) + '"');
         }
         if (parsedStroke.color.a < 255) {
             attributes.push('stroke-opacity="' + SVGExporter.formatOpacity(parsedStroke.color.a) + '"');

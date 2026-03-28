@@ -172,12 +172,12 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Dash pattern | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Stroke width | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Line cap/join | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Miter limit | ❌ | ✅ | ✅ | ✅ | ❌ |
+| Miter limit | ✅ | ✅ | ✅ | ✅ | ❌ |
 | Blend modes | ✅ | ❌ | ✅ | ✅ | ❌ |
 | Opacity (element) | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Shadow | ✅ | ✅ | ✅ | ✅ | ❌ |
 
-**Analysis:** Elise has unique strengths in **model fills** (using a nested model as a pattern source) and **fill inheritance** (parent fills cascade to children). With dash patterns, line cap/join styles, element opacity, blend modes, and drop shadows now implemented, the main remaining paint-style gaps in this area are **miter limit**, filters, and mask-style composition features.
+**Analysis:** Elise has unique strengths in **model fills** (using a nested model as a pattern source) and **fill inheritance** (parent fills cascade to children). With dash patterns, line cap/join styles, miter limits, element opacity, blend modes, and drop shadows now implemented, the main remaining paint-style gaps in this area are filters and mask-style composition features.
 
 ### 3.6 Text Rendering
 
@@ -190,7 +190,7 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 | Bold/italic | ✅ | ✅ | ✅ | ❌ |
 | Horizontal alignment | ✅ | ✅ | ✅ | ✅ |
 | Vertical alignment | ✅ | ✅ | ✅ | ❌ |
-| Line height | ✅ (auto) | ✅ | ✅ | ✅ |
+| Line height | ✅ (auto + explicit) | ✅ | ✅ | ✅ |
 | Letter spacing | ✅ | ✅ | ✅ | ❌ |
 | Text decoration | ✅ | ✅ | ✅ | ❌ |
 | Rich text (mixed styles) | ✅ | ✅ | ❌ | ❌ |
@@ -201,9 +201,9 @@ Elise is a **retained-mode 2D graphics library** built on HTML5 Canvas with a ri
 
 **Status:** Completed
 
-**Delivered scope:** `TextElement` now supports persisted `letterSpacing`, `textDecoration`, and run-based `richText` content. Text layout/rendering is shared between runtime and design rendering, and SVG import/export now preserves `letter-spacing`, `text-decoration`, and styled `<tspan>` runs. Serialization and clone round-trips cover the new text model. A full rich-text authoring mode is available on the design surface with inline editing, selection, caret navigation, formatting shortcuts, double-click word selection, and line-aware vertical arrow navigation.
+**Delivered scope:** `TextElement` now supports persisted `letterSpacing`, `textDecoration`, explicit `lineHeight`, and run-based `richText` content. Text layout/rendering is shared between runtime and design rendering, caret/selection geometry follows the same layout model, and SVG import/export now preserves `letter-spacing`, `line-height`, `text-decoration`, and styled `<tspan>` runs. Serialization and clone round-trips cover the new text model. A full rich-text authoring mode is available on the design surface with inline editing, selection, caret navigation, formatting shortcuts, double-click word selection, and line-aware vertical arrow navigation.
 
-**Analysis:** Elise now has a unique advantage in **text resource management** with locale-aware resolution, and it closes the most obvious typography gaps by supporting letter spacing, text decoration, mixed-style rich text at the model/render/SVG levels, and a complete **design-surface text editing UX** with keyboard entry, selection, inline formatting (`Ctrl+B`/`Ctrl+I`/`Ctrl+U`), double-click word selection, and vertical arrow line navigation. The main remaining text gaps are **text on path**, explicit **line spacing control**, and **RTL/Bidi** support.
+**Analysis:** Elise now has a unique advantage in **text resource management** with locale-aware resolution, and it closes the most obvious typography gaps by supporting explicit line height, letter spacing, text decoration, mixed-style rich text at the model/render/SVG levels, and a complete **design-surface text editing UX** with keyboard entry, selection, inline formatting (`Ctrl+B`/`Ctrl+I`/`Ctrl+U`), double-click word selection, and vertical arrow line navigation. The main remaining text gaps are **text on path** and **RTL/Bidi** support.
 
 #### Rich Text Authoring And Design UX
 
@@ -247,7 +247,7 @@ All five planned steps have been delivered:
 | Drag & drop | ✅ | ✅ | ✅ | ❌ |
 | Touch events | ✅ | ✅ | ✅ | ✅ |
 | Multi-touch/pinch | ✅ (design) | ✅ | ✅ | ❌ |
-| Keyboard events | ⚠️ (design surface only) | ✅ | ✅ | ✅ |
+| Keyboard events | ✅ | ✅ | ✅ | ✅ |
 | Cursor management | ✅ (design) | ✅ | ✅ | ✅ |
 | Hit regions | ✅ | ✅ | ✅ | ✅ |
 | Custom hit areas | ❌ | ❌ | ✅ | ❌ |
@@ -255,7 +255,7 @@ All five planned steps have been delivered:
 | Command dispatch | ✅ | ❌ | ❌ | ❌ |
 | File drop | ✅ (design) | ❌ | ❌ | ❌ |
 
-**Analysis:** Elise now covers the core mobile interaction gap with single-touch routing in runtime and design controllers plus pinch support on the design surface. Design mode includes practical keyboard handling for undo/redo, select-all, delete/backspace, escape-to-deselect, and arrow-key nudge operations. Event bubbling is now implemented through the model hierarchy using recursive path-based dispatch in `ViewController`, so events propagate from the deepest nested element outward through `ModelElement` containers. Runtime keyboard events remain a gap. The command dispatch pattern is unique and powerful for building interactive applications.
+**Analysis:** Elise now covers the core mobile interaction gap with single-touch routing in runtime and design controllers plus pinch support on the design surface. Design mode includes practical keyboard handling for undo/redo, select-all, delete/backspace, escape-to-deselect, and arrow-key nudge operations, and runtime view controllers now expose `keyDown`, `keyUp`, and `keyPress` callbacks plus focused-path `keyDownElement`, `keyUpElement`, and `keyPressElement` routing on both the canvas and SVG view paths. Event bubbling is implemented through the model hierarchy using recursive path-based dispatch in `ViewController`, so pointer and keyboard events can propagate from the deepest nested element outward through `ModelElement` containers. The remaining runtime keyboard gap is higher-level tab-order/accessibility semantics rather than basic event availability or focus-path routing. The command dispatch pattern is unique and powerful for building interactive applications.
 
 ### 3.9 Design Surface (Interactive Editing)
 
@@ -279,7 +279,7 @@ All five planned steps have been delivered:
 | Z-order controls | ✅ | ✅ | ✅ | ❌ |
 | Text edit mode | ✅ | ✅ | ❌ | ❌ |
 
-**Analysis:** Elise has the **most comprehensive built-in design surface** of any library in this comparison. The combination of 9 creation tools, component registry, rubber-band selection, grid snapping, dirty tracking, undo/redo, z-order controls, alignment and distribution helpers, smart drag guides, resize-to-match helpers, duplication workflows, clipboard workflows, and inline text editing with rich formatting is unmatched. The remaining gaps now sit outside core editing ergonomics, especially masking, **SVG design/runtime parity beyond the initial view-only path**, and runtime keyboard APIs.
+**Analysis:** Elise has the **most comprehensive built-in design surface** of any library in this comparison. The combination of 9 creation tools, component registry, rubber-band selection, grid snapping, dirty tracking, undo/redo, z-order controls, alignment and distribution helpers, smart drag guides, resize-to-match helpers, duplication workflows, clipboard workflows, and inline text editing with rich formatting is unmatched. The remaining gaps now sit outside core editing ergonomics, especially masking, **SVG design/runtime parity beyond the initial view-only path**, and richer runtime focus/accessibility semantics.
 
 ### 3.10 Serialization & Persistence
 
@@ -408,20 +408,17 @@ Elise now has **substantial SVG capability**:
 | --- | ------ | ---------- | ------------------------ |
 | No mask/clipping composition beyond clip paths | Cannot apply alpha masks or shape-based masking | Medium | PixiJS, Konva.js, Paper.js |
 | Partial SVG runtime only | Live SVG rendering exists for view mode, but it does not yet provide full interaction, design-surface parity, or incremental DOM updates | High | Fabric.js, Paper.js, Two.js |
-| Runtime keyboard events not exposed | `ViewController` has no keyboard API; applications must wire DOM events manually | Medium | Fabric.js, Konva.js, Paper.js |
+| No runtime tab-order/accessibility semantics | Focused-path keyboard routing exists on both view backends, but runtime scenes still lack browser-style tab order, ARIA mapping, and default focus traversal | Medium | Fabric.js, Konva.js, Paper.js |
 
 ### 5.3 Nice-to-Have Gaps (Would enhance competitive position)
 
 | Gap | Impact | Difficulty |
 | --- | ------ | ---------- |
 | No text on path | Missing creative text capability | Medium |
-| No explicit line spacing control | Typography limited to automatic line height | Low |
 | No PDF export | Cannot produce print-oriented vector output | Medium |
 | No accessibility layer (ARIA) | Not usable for accessible applications | Medium |
-| No miter limit | Minor stroke property gap | Low |
 | No schema versioning | Forward/backward compatibility risk | Low |
 | No boolean path operations | Cannot union/intersect/subtract paths | High |
-| Limited first-class arc editing controls | Arcs are persisted natively but point editing still exposes endpoint-only control for arc segments | Medium |
 | Partial SVG path editing fidelity under non-uniform transforms | Native arc commands may be expanded to cubics during affine edits that cannot preserve exact SVG arc parameters | Medium |
 | Advanced SVG features (patterns, masks, filters) | SVG import/export incomplete for advanced constructs | Medium-High |
 | No WebGL/WebGPU renderer | Performance ceiling for complex scenes | High |
@@ -466,31 +463,7 @@ Render text along an arbitrary path shape. Frequently needed for logo design, ba
 - SVG `<textPath>` import/export
 - Design surface integration for path text editing
 
-#### R3. Explicit Line Spacing Control
-
-**Priority:** Medium | **Difficulty:** Low | **Competitors:** Fabric.js, Konva.js
-
-Elise computes line height automatically from font metrics. An explicit `lineHeight` multiplier would provide typographic control matching competitors.
-
-**Recommended scope:**
-
-- `TextElement.setLineHeight(multiplier)` (e.g. 1.0, 1.2, 1.5, 2.0)
-- Persisted, serialized, and round-tripped
-- SVG interop via inherited font-size / line-height
-
-#### R4. Runtime Keyboard Event API
-
-**Priority:** Medium | **Difficulty:** Low | **Competitors:** Fabric.js, Konva.js, Paper.js
-
-Design mode has comprehensive keyboard handling, but `ViewController` does not expose keyboard events. Applications using the view controller for interactive (non-editing) scenarios cannot respond to keyboard input without manual DOM wiring.
-
-**Recommended scope:**
-
-- Expose `keyDown`, `keyUp`, `keyPress` callbacks on `ViewController`
-- Element-level keyboard focus tracking
-- Propagation through model hierarchy consistent with mouse event bubbling
-
-#### R5. Keyframe / Timeline Animation API
+#### R3. Keyframe / Timeline Animation API
 
 **Priority:** Medium | **Difficulty:** High | **Competitors:** None (partial in Konva.js Tween chaining)
 
@@ -509,43 +482,31 @@ Elise already ships property tweening. A higher-level timeline API would allow c
 
 ### Tier 2: Strategic — Build Competitive Advantage
 
-#### R6. Accessibility Layer (ARIA)
+#### R4. Accessibility Layer (ARIA)
 
 **Priority:** Medium | **Difficulty:** Medium-High
 
 Add an invisible DOM overlay synchronized with canvas elements, providing ARIA roles, labels, and keyboard focus navigation for screen readers. Currently Elise only sets `tabindex="0"` on the canvas.
 
-#### R7. Miter Limit Support
-
-**Priority:** Low | **Difficulty:** Low | **Competitors:** Fabric.js, Konva.js, Paper.js
-
-Standard stroke property for controlling sharp corner behavior. Trivial to add — maps directly to `ctx.miterLimit`.
-
-#### R8. Schema Versioning
+#### R5. Schema Versioning
 
 **Priority:** Low | **Difficulty:** Low-Medium
 
 Version stamp in serialized JSON for forward/backward compatibility. Enables migration logic when model structure evolves.
 
-#### R9. Boolean Path Operations
+#### R6. Boolean Path Operations
 
 **Priority:** Low | **Difficulty:** High | **Competitors:** Paper.js
 
 Union, intersect, subtract, and exclude operations on paths. Paper.js is the only competitor with this built-in. High complexity (requires Weiler-Atherton or Greiner-Hormann polygon clipping plus curve intersection).
 
-#### R10. Advanced SVG Feature Coverage
+#### R7. Advanced SVG Feature Coverage
 
 **Priority:** Low | **Difficulty:** Medium-High
 
 Expand SVG import/export to cover patterns, masks, filters, markers, and additional layout features. Incremental work building on the solid SVG foundation already in place.
 
-#### R11. Native Arc Path Editing
-
-**Priority:** Low | **Difficulty:** Medium
-
-First-class persisted arc command with dedicated design-surface control handles, replacing the current cubic-approximation approach for imported arcs.
-
-#### R12. PDF Export
+#### R8. PDF Export
 
 **Priority:** Low | **Difficulty:** Medium | **Competitors:** Paper.js
 
@@ -555,15 +516,15 @@ Vector PDF output for print workflows. Paper.js is the only competing library wi
 
 ### Aspirational / Long-Term
 
-#### R13. WebGL Rendering Backend
+#### R9. WebGL Rendering Backend
 
 GPU-accelerated rendering path for scenes with many elements or complex effects. Would require a parallel renderer implementation behind the existing model API.
 
-#### R14. WebGPU Rendering Backend
+#### R10. WebGPU Rendering Backend
 
 PixiJS v8 is the first library in this class to ship WebGPU support. A WebGPU backend would future-proof Elise for next-generation browser rendering.
 
-#### R15. Motion Path Animation
+#### R11. Motion Path Animation
 
 Animate elements along arbitrary path geometries. Combines the existing tweening API with path traversal for parametric motion.
 
@@ -611,21 +572,21 @@ Animate elements along arbitrary path geometries. Combines the existing tweening
 
 Elise occupies a **unique niche** that no single competitor fills: a retained-mode graphics library with a **built-in design surface**, **application framework** (Surface/Pane system with video/HTML integration), and **sprite animation with 40+ transitions**. The closest competitor combining editing + rendering is Fabric.js, but Fabric lacks Elise's Surface system, component registry, undo/redo, rubber-band selection, and transition effects.
 
-With the completion of 22 major feature milestones (animation system, touch support, SVG import/export, initial live SVG view runtime support, undo/redo, rich text editing, blend modes, filters, event bubbling, clipboard support, automatic HiDPI rendering, expanded easing coverage, and more), Elise now competes on **core capability** rather than playing catch-up on basics. The design surface is the most comprehensive in its class.
+With the completion of 27 major feature milestones (animation system, touch support, SVG import/export, initial live SVG view runtime support, focused runtime keyboard routing, undo/redo, rich text editing, explicit line height, miter limits, native arc edit handles, blend modes, filters, event bubbling, clipboard support, automatic HiDPI rendering, expanded easing coverage, and more), Elise now competes on **core capability** rather than playing catch-up on basics. The design surface is the most comprehensive in its class.
 
 **Competitive landscape shift:** Konva.js has grown to the largest library in this class by npm downloads (~1.1M/week), driven by React/Vue/Svelte/Angular framework integrations. Fabric.js v7 added multi-touch gestures, aligning guidelines, and improved text handling. PixiJS v8 shipped WebGPU as the first library in this class. Paper.js development has stalled. The market is bifurcating between high-performance renderers (PixiJS) and interactive editing libraries (Fabric.js, Konva.js, Elise).
 
 **Elise's primary competitive gaps** are now:
 
 1. **Advanced filters/effects pipeline** — CSS-style filters now exist, but pixel-level effect pipelines and authored SVG filter graphs still lag richer competitors
-2. **Advanced vector tooling** — Boolean path ops, richer arc manipulation, and exact non-uniform SVG path fidelity remain behind Paper.js-class tooling
+2. **Advanced vector tooling** — Boolean path ops and exact non-uniform SVG path fidelity remain behind Paper.js-class tooling
 3. **Rendering backend depth** — SVG runtime support is now started, but Elise still lacks full SVG parity and any WebGL/WebGPU backend for high-complexity scenes
-4. **Accessibility layer** — Canvas content still lacks a first-class ARIA/focus model
+4. **Accessibility layer** — Runtime focus routing now exists, but canvas and SVG content still lack a first-class ARIA/accessibility model
 
 **The recommended path forward:**
 
 1. **Deepen effects work:** richer filter/effect pipelines and masking remain the most visible motion-and-rendering shortcoming
-2. **Build strategic advantage** (R1-R5): Masking, text on path, runtime keyboard APIs, and timeline animation extend Elise's unique design surface and animation strengths
-3. **Polish and differentiate** (R6-R15): Accessibility, boolean operations, advanced SVG, SVG runtime parity work, PDF export, and future renderer backends round out the platform for specialized use cases
+2. **Build strategic advantage** (R1-R3): Masking, text on path, and timeline animation extend Elise's unique design surface and animation strengths
+3. **Polish and differentiate** (R4-R11): Accessibility, boolean operations, advanced SVG, SVG runtime parity work, PDF export, and future renderer backends round out the platform for specialized use cases
 
 This strategy leverages Elise's unique Surface/Pane architecture and comprehensive design surface as differentiators while closing the feature gaps that matter most in competitive evaluations.

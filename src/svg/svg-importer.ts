@@ -47,6 +47,7 @@ type SVGImportContext = {
     strokeDasharray?: string;
     strokeLinecap?: string;
     strokeLinejoin?: string;
+    strokeMiterlimit?: string;
     fillRule?: string;
     clipPath?: string;
     filter?: string;
@@ -57,6 +58,7 @@ type SVGImportContext = {
     fontSize?: string;
     fontStyle?: string;
     fontWeight?: string;
+    lineHeight?: string;
     letterSpacing?: string;
     textDecoration?: string;
     textAnchor?: string;
@@ -436,8 +438,9 @@ export class SVGImporter {
         const y = (SVGImporter.parseLength(element.getAttribute('y')) || 0) - state.viewBoxOffsetY;
         const fontSize = SVGImporter.parseLength(context.fontSize) || 10;
         const lines = importedText.text.split('\n');
+        const lineHeight = SVGImporter.parseLineHeight(context.lineHeight);
         const estimatedWidth = SVGImporter.parseLength(element.getAttribute('width')) || SVGImporter.estimateTextWidth(lines, fontSize);
-        const estimatedHeight = SVGImporter.parseLength(element.getAttribute('height')) || fontSize * lines.length;
+        const estimatedHeight = SVGImporter.parseLength(element.getAttribute('height')) || fontSize * lines.length * (lineHeight || 1);
         const textElement = TextElement.create(importedText.text, x, y, estimatedWidth, estimatedHeight);
 
         if (context.fontFamily) {
@@ -453,6 +456,10 @@ export class SVGImporter {
         const letterSpacing = SVGImporter.parseLength(context.letterSpacing);
         if (letterSpacing !== undefined) {
             textElement.setLetterSpacing(letterSpacing);
+        }
+
+        if (lineHeight !== undefined) {
+            textElement.setLineHeight(lineHeight);
         }
 
         const textDecoration = SVGImporter.normalizeTextDecoration(context.textDecoration);
@@ -495,6 +502,7 @@ export class SVGImporter {
             strokeDasharray: context.strokeDasharray,
             strokeLinecap: context.strokeLinecap,
             strokeLinejoin: context.strokeLinejoin,
+            strokeMiterlimit: context.strokeMiterlimit,
             fillRule: context.fillRule,
             clipPath: undefined,
             filter: undefined,
@@ -505,6 +513,7 @@ export class SVGImporter {
             fontSize: context.fontSize,
             fontStyle: context.fontStyle,
             fontWeight: context.fontWeight,
+            lineHeight: context.lineHeight,
             letterSpacing: context.letterSpacing,
             textDecoration: context.textDecoration,
             textAnchor: context.textAnchor,
@@ -562,6 +571,7 @@ export class SVGImporter {
             strokeDasharray: SVGImporter.getInheritedStyleValue(element, 'stroke-dasharray', parentContext.strokeDasharray),
             strokeLinecap: SVGImporter.getInheritedStyleValue(element, 'stroke-linecap', parentContext.strokeLinecap),
             strokeLinejoin: SVGImporter.getInheritedStyleValue(element, 'stroke-linejoin', parentContext.strokeLinejoin),
+            strokeMiterlimit: SVGImporter.getInheritedStyleValue(element, 'stroke-miterlimit', parentContext.strokeMiterlimit),
             fillRule: SVGImporter.getInheritedStyleValue(element, 'fill-rule', parentContext.fillRule),
             clipPath: SVGImporter.getInheritedStyleValue(element, 'clip-path', parentContext.clipPath),
             filter: SVGImporter.getLocalStyleValue(element, 'filter') || undefined,
@@ -572,6 +582,7 @@ export class SVGImporter {
             fontSize: SVGImporter.getInheritedStyleValue(element, 'font-size', parentContext.fontSize),
             fontStyle: SVGImporter.getInheritedStyleValue(element, 'font-style', parentContext.fontStyle),
             fontWeight: SVGImporter.getInheritedStyleValue(element, 'font-weight', parentContext.fontWeight),
+            lineHeight: SVGImporter.getInheritedStyleValue(element, 'line-height', parentContext.lineHeight),
             letterSpacing: SVGImporter.getInheritedStyleValue(element, 'letter-spacing', parentContext.letterSpacing),
             textDecoration: SVGImporter.getInheritedStyleValue(element, 'text-decoration', parentContext.textDecoration),
             textAnchor: SVGImporter.getInheritedStyleValue(element, 'text-anchor', parentContext.textAnchor),
@@ -591,7 +602,15 @@ export class SVGImporter {
         }
 
         SVGImporter.applyFill(element, context.fill, state);
-        SVGImporter.applyStroke(element, context.stroke, context.strokeWidth, context.strokeDasharray, context.strokeLinecap, context.strokeLinejoin);
+        SVGImporter.applyStroke(
+            element,
+            context.stroke,
+            context.strokeWidth,
+            context.strokeDasharray,
+            context.strokeLinecap,
+            context.strokeLinejoin,
+            context.strokeMiterlimit,
+        );
         if (context.filter) {
             element.setFilter(context.filter);
         }
@@ -653,6 +672,7 @@ export class SVGImporter {
         strokeDasharray?: string,
         strokeLinecap?: string,
         strokeLinejoin?: string,
+        strokeMiterlimit?: string,
     ): void {
         if (!element.canStroke()) {
             return;
@@ -686,6 +706,26 @@ export class SVGImporter {
         if (strokeLinejoin === 'bevel' || strokeLinejoin === 'miter' || strokeLinejoin === 'round') {
             element.setLineJoin(strokeLinejoin);
         }
+
+        const miterLimit = SVGImporter.parseLength(strokeMiterlimit);
+        if (miterLimit !== undefined && miterLimit > 0) {
+            element.setMiterLimit(miterLimit);
+        }
+    }
+
+    private static parseLineHeight(lineHeightValue: string | null | undefined): number | undefined {
+        if (!lineHeightValue) {
+            return undefined;
+        }
+        const numericValue = Number(lineHeightValue);
+        if (Number.isFinite(numericValue) && numericValue > 0) {
+            return numericValue;
+        }
+        const lengthValue = parseFloat(lineHeightValue);
+        if (Number.isFinite(lengthValue) && lengthValue > 0) {
+            return lengthValue;
+        }
+        return undefined;
     }
 
     private static parseLength(lengthValue: string | null | undefined): number | undefined {

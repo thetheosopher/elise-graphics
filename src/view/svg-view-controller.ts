@@ -2,12 +2,14 @@ import { ElementCommandHandler } from '../command/element-command-handler';
 import { IController } from '../controller/controller';
 import { ControllerEvent } from '../controller/controller-event';
 import { ErrorMessages } from '../core/error-messages';
+import { KeyboardEventArgs } from '../core/keyboard-event-args';
 import { Logging } from '../core/logging';
 import { Model } from '../core/model';
 import { MouseEventArgs } from '../core/mouse-event-args';
 import { PointEventParameters } from '../core/point-event-parameters';
 import { TimerParameters } from '../core/timer-parameters';
 import { ElementBase } from '../elements/element-base';
+import { ElementKeyboardEventArgs } from '../elements/element-keyboard-event-args';
 
 const log = Logging.log;
 
@@ -56,11 +58,19 @@ export class SVGViewController implements IController {
     public mouseDownView: ControllerEvent<PointEventParameters> = new ControllerEvent<PointEventParameters>();
     public mouseUpView: ControllerEvent<PointEventParameters> = new ControllerEvent<PointEventParameters>();
     public mouseMovedView: ControllerEvent<PointEventParameters> = new ControllerEvent<PointEventParameters>();
+    public keyDown: ControllerEvent<KeyboardEventArgs> = new ControllerEvent<KeyboardEventArgs>();
+    public keyUp: ControllerEvent<KeyboardEventArgs> = new ControllerEvent<KeyboardEventArgs>();
+    public keyPress: ControllerEvent<KeyboardEventArgs> = new ControllerEvent<KeyboardEventArgs>();
+    public elementFocused: ControllerEvent<ElementBase> = new ControllerEvent<ElementBase>();
+    public elementBlurred: ControllerEvent<ElementBase> = new ControllerEvent<ElementBase>();
     public mouseEnteredElement: ControllerEvent<ElementBase> = new ControllerEvent<ElementBase>();
     public mouseLeftElement: ControllerEvent<ElementBase> = new ControllerEvent<ElementBase>();
     public mouseDownElement: ControllerEvent<ElementBase> = new ControllerEvent<ElementBase>();
     public mouseUpElement: ControllerEvent<ElementBase> = new ControllerEvent<ElementBase>();
     public elementClicked: ControllerEvent<ElementBase> = new ControllerEvent<ElementBase>();
+    public keyDownElement: ControllerEvent<ElementKeyboardEventArgs> = new ControllerEvent<ElementKeyboardEventArgs>();
+    public keyUpElement: ControllerEvent<ElementKeyboardEventArgs> = new ControllerEvent<ElementKeyboardEventArgs>();
+    public keyPressElement: ControllerEvent<ElementKeyboardEventArgs> = new ControllerEvent<ElementKeyboardEventArgs>();
     public timer: ControllerEvent<TimerParameters> = new ControllerEvent<TimerParameters>();
 
     public model?: Model;
@@ -71,6 +81,8 @@ export class SVGViewController implements IController {
     public needsRedraw: boolean = false;
     public enabled: boolean = true;
     public commandHandler?: ElementCommandHandler;
+    public focusedElement?: ElementBase;
+    public focusedPath: ElementBase[] = [];
     public startTime?: number;
     public lastTick?: number;
     public lastFrameTime?: number;
@@ -87,6 +99,12 @@ export class SVGViewController implements IController {
         this.detach = this.detach.bind(this);
         this.setScale = this.setScale.bind(this);
         this.onModelUpdated = this.onModelUpdated.bind(this);
+        this.onSVGKeyDown = this.onSVGKeyDown.bind(this);
+        this.onSVGKeyUp = this.onSVGKeyUp.bind(this);
+        this.onSVGKeyPress = this.onSVGKeyPress.bind(this);
+        this.setFocusedElement = this.setFocusedElement.bind(this);
+        this.setFocusedPath = this.setFocusedPath.bind(this);
+        this.dispatchPathKeyboardEvent = this.dispatchPathKeyboardEvent.bind(this);
         this.draw = this.draw.bind(this);
         this.drawIfNeeded = this.drawIfNeeded.bind(this);
         this.calculateFPS = this.calculateFPS.bind(this);
@@ -119,6 +137,8 @@ export class SVGViewController implements IController {
         log('Setting SVG view controller model');
         this.model = model;
         this.model.controller = this;
+        this.focusedElement = undefined;
+        this.focusedPath = [];
         if (!this.svg) {
             this.createSVG();
         }
@@ -150,7 +170,11 @@ export class SVGViewController implements IController {
         }
         this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         this.svg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        this.svg.setAttribute('tabindex', '0');
         this.svg.style.display = 'block';
+        this.svg.addEventListener('keydown', this.onSVGKeyDown);
+        this.svg.addEventListener('keyup', this.onSVGKeyUp);
+        this.svg.addEventListener('keypress', this.onSVGKeyPress);
     }
 
     public detach(): void {
@@ -164,6 +188,9 @@ export class SVGViewController implements IController {
             this.model.controllerAttached.clear();
         }
         if (this.svg && this.svg.parentElement) {
+            this.svg.removeEventListener('keydown', this.onSVGKeyDown);
+            this.svg.removeEventListener('keyup', this.onSVGKeyUp);
+            this.svg.removeEventListener('keypress', this.onSVGKeyPress);
             this.svg.parentElement.removeChild(this.svg);
         }
         this.mouseEnteredView.clear();
@@ -171,11 +198,19 @@ export class SVGViewController implements IController {
         this.mouseDownView.clear();
         this.mouseUpView.clear();
         this.mouseMovedView.clear();
+        this.keyDown.clear();
+        this.keyUp.clear();
+        this.keyPress.clear();
+        this.elementFocused.clear();
+        this.elementBlurred.clear();
         this.elementClicked.clear();
         this.mouseDownElement.clear();
         this.mouseEnteredElement.clear();
         this.mouseLeftElement.clear();
         this.mouseUpElement.clear();
+        this.keyDownElement.clear();
+        this.keyUpElement.clear();
+        this.keyPressElement.clear();
         this.modelUpdated.clear();
         this.enabledChanged.clear();
         this.timer.clear();
@@ -367,6 +402,94 @@ export class SVGViewController implements IController {
         return partial * 2.0 * Math.PI;
     }
 
+    /**
+     * Sets the current focused element.
+     * @param el - Focused element
+     */
+    public setFocusedElement(el: ElementBase | undefined) {
+        this.setFocusedPath(el ? [el] : []);
+    }
+
+    /**
+     * Sets the current focused element path.
+     * @param path - Focused path ordered from deepest to outermost
+     */
+    public setFocusedPath(path: ElementBase[]) {
+        if (path.length === this.focusedPath.length && path.every((element, index) => element === this.focusedPath[index])) {
+            return;
+        }
+
+        for (const existing of this.focusedPath) {
+            if (path.indexOf(existing) === -1) {
+                this.elementBlurred.trigger(this, existing);
+            }
+        }
+
+        for (let index = path.length - 1; index >= 0; index--) {
+            const next = path[index];
+            if (this.focusedPath.indexOf(next) === -1) {
+                this.elementFocused.trigger(this, next);
+            }
+        }
+
+        this.focusedPath = path.slice();
+        this.focusedElement = this.focusedPath.length > 0 ? this.focusedPath[0] : undefined;
+    }
+
+    /**
+     * Handles SVG key down while the runtime view has focus.
+     * @param e - DOM keyboard event
+     * @returns True if keyboard listeners were notified
+     */
+    public onSVGKeyDown(e: KeyboardEvent): boolean {
+        if (!this.enabled) {
+            return false;
+        }
+        let handled = false;
+        if (this.keyDown.hasListeners()) {
+            this.keyDown.trigger(this, new KeyboardEventArgs(e));
+            handled = true;
+        }
+        handled = this.dispatchPathKeyboardEvent(this.keyDownElement, e) || handled;
+        return handled;
+    }
+
+    /**
+     * Handles SVG key up while the runtime view has focus.
+     * @param e - DOM keyboard event
+     * @returns True if keyboard listeners were notified
+     */
+    public onSVGKeyUp(e: KeyboardEvent): boolean {
+        if (!this.enabled) {
+            return false;
+        }
+        let handled = false;
+        if (this.keyUp.hasListeners()) {
+            this.keyUp.trigger(this, new KeyboardEventArgs(e));
+            handled = true;
+        }
+        handled = this.dispatchPathKeyboardEvent(this.keyUpElement, e) || handled;
+        return handled;
+    }
+
+    /**
+     * Handles SVG key press while the runtime view has focus.
+     * @param e - DOM keyboard event
+     * @returns True if keyboard listeners were notified
+     */
+    public onSVGKeyPress(e: KeyboardEvent): boolean {
+        if (!this.enabled) {
+            return false;
+        }
+        let handled = false;
+        if (this.keyPress.hasListeners()) {
+            this.keyPress.trigger(this, new KeyboardEventArgs(e));
+            handled = true;
+        }
+        handled = this.dispatchPathKeyboardEvent(this.keyPressElement, e) || handled;
+        return handled;
+    }
+
     private renderModelSVG(): string {
         if (!this.model) {
             throw new Error(ErrorMessages.ModelUndefined);
@@ -413,5 +536,15 @@ export class SVGViewController implements IController {
 
     private fmod(a: number, b: number): number {
         return Number((a - Math.floor(a / b) * b).toPrecision(8));
+    }
+
+    private dispatchPathKeyboardEvent(event: ControllerEvent<ElementKeyboardEventArgs>, keyboardEvent: KeyboardEvent): boolean {
+        if (this.focusedPath.length === 0 || !event.hasListeners()) {
+            return false;
+        }
+        for (const element of this.focusedPath) {
+            event.trigger(this, new ElementKeyboardEventArgs(keyboardEvent, element));
+        }
+        return true;
     }
 }

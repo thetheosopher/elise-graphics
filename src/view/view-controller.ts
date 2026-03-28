@@ -2,6 +2,7 @@ import { ElementCommandHandler } from '../command/element-command-handler';
 import { IController } from '../controller/controller';
 import { ControllerEvent } from '../controller/controller-event';
 import { ErrorMessages } from '../core/error-messages';
+import { KeyboardEventArgs } from '../core/keyboard-event-args';
 import { IMouseEvent } from '../core/mouse-event';
 import { Logging } from '../core/logging';
 import { Model } from '../core/model';
@@ -12,6 +13,7 @@ import { PointEventParameters } from '../core/point-event-parameters';
 import { TimerParameters } from '../core/timer-parameters';
 import { applyCanvasDisplaySize, getDevicePixelRatio, translateClientPointToCanvasPixels } from '../core/canvas-display';
 import { ElementBase } from '../elements/element-base';
+import { ElementKeyboardEventArgs } from '../elements/element-keyboard-event-args';
 import { ViewRenderer } from './view-renderer';
 
 const log = Logging.log;
@@ -89,6 +91,31 @@ export class ViewController implements IController {
     public mouseMovedView: ControllerEvent<PointEventParameters> = new ControllerEvent<PointEventParameters>();
 
     /**
+     * Fired when a key is pressed while the view target has focus.
+     */
+    public keyDown: ControllerEvent<KeyboardEventArgs> = new ControllerEvent<KeyboardEventArgs>();
+
+    /**
+     * Fired when a pressed key is released while the view target has focus.
+     */
+    public keyUp: ControllerEvent<KeyboardEventArgs> = new ControllerEvent<KeyboardEventArgs>();
+
+    /**
+     * Fired when a keypress event occurs while the view target has focus.
+     */
+    public keyPress: ControllerEvent<KeyboardEventArgs> = new ControllerEvent<KeyboardEventArgs>();
+
+    /**
+     * Fired when focus enters an element path for runtime keyboard routing.
+     */
+    public elementFocused: ControllerEvent<ElementBase> = new ControllerEvent<ElementBase>();
+
+    /**
+     * Fired when focus leaves an element path for runtime keyboard routing.
+     */
+    public elementBlurred: ControllerEvent<ElementBase> = new ControllerEvent<ElementBase>();
+
+    /**
      * Fired when mouse enters element bounds
      */
     public mouseEnteredElement: ControllerEvent<ElementBase> = new ControllerEvent<ElementBase>();
@@ -112,6 +139,21 @@ export class ViewController implements IController {
      * Fired when mouse is pressed and released over an element
      */
     public elementClicked: ControllerEvent<ElementBase> = new ControllerEvent<ElementBase>();
+
+    /**
+     * Fired when a key is pressed while an element path is focused.
+     */
+    public keyDownElement: ControllerEvent<ElementKeyboardEventArgs> = new ControllerEvent<ElementKeyboardEventArgs>();
+
+    /**
+     * Fired when a key is released while an element path is focused.
+     */
+    public keyUpElement: ControllerEvent<ElementKeyboardEventArgs> = new ControllerEvent<ElementKeyboardEventArgs>();
+
+    /**
+     * Fired when a keypress occurs while an element path is focused.
+     */
+    public keyPressElement: ControllerEvent<ElementKeyboardEventArgs> = new ControllerEvent<ElementKeyboardEventArgs>();
 
     /**
      * Period animation event timer fired when timer is enabled
@@ -212,6 +254,16 @@ export class ViewController implements IController {
      * Pressed element
      */
     public pressedElement?: ElementBase;
+
+    /**
+     * Top-most focused element for runtime keyboard routing.
+     */
+    public focusedElement?: ElementBase;
+
+    /**
+     * Current focused element path ordered from deepest to outermost.
+     */
+    public focusedPath: ElementBase[] = [];
 
     /**
      * Current pressed element path ordered from deepest to outermost.
@@ -339,6 +391,9 @@ export class ViewController implements IController {
         this.onCanvasMouseDown = this.onCanvasMouseDown.bind(this);
         this.onCanvasMouseUp = this.onCanvasMouseUp.bind(this);
         this.onCanvasMouseMove = this.onCanvasMouseMove.bind(this);
+        this.onCanvasKeyDown = this.onCanvasKeyDown.bind(this);
+        this.onCanvasKeyUp = this.onCanvasKeyUp.bind(this);
+        this.onCanvasKeyPress = this.onCanvasKeyPress.bind(this);
         this.onCanvasTouchStart = this.onCanvasTouchStart.bind(this);
         this.onCanvasTouchMove = this.onCanvasTouchMove.bind(this);
         this.onCanvasTouchEnd = this.onCanvasTouchEnd.bind(this);
@@ -347,8 +402,11 @@ export class ViewController implements IController {
         this.setMouseDownPath = this.setMouseDownPath.bind(this);
         this.setMouseOverElement = this.setMouseOverElement.bind(this);
         this.setMouseOverPath = this.setMouseOverPath.bind(this);
+        this.setFocusedElement = this.setFocusedElement.bind(this);
+        this.setFocusedPath = this.setFocusedPath.bind(this);
         this.getActiveElementPath = this.getActiveElementPath.bind(this);
         this.dispatchPathEvent = this.dispatchPathEvent.bind(this);
+        this.dispatchPathKeyboardEvent = this.dispatchPathKeyboardEvent.bind(this);
         this.setScale = this.setScale.bind(this);
         this.onModelUpdated = this.onModelUpdated.bind(this);
         this.draw = this.draw.bind(this);
@@ -407,6 +465,8 @@ export class ViewController implements IController {
         this.mouseDownPosition = undefined;
         this.mouseOverElement = undefined;
         this.pressedElement = undefined;
+        this.focusedElement = undefined;
+        this.focusedPath = [];
         this.activeTouchId = undefined;
         this.lastDeltaX = -1;
         this.lastDeltaY = -1;
@@ -499,11 +559,15 @@ export class ViewController implements IController {
             throw new Error(ErrorMessages.SizeUndefined);
         }
         const canvas = document.createElement('canvas');
+        canvas.setAttribute('tabindex', '0');
         canvas.style.touchAction = 'none';
         canvas.addEventListener('mouseenter', self.onCanvasMouseEnter);
         canvas.addEventListener('mouseleave', self.onCanvasMouseLeave);
         canvas.addEventListener('mousedown', self.onCanvasMouseDown);
         canvas.addEventListener('mousemove', self.onCanvasMouseMove);
+        canvas.addEventListener('keydown', self.onCanvasKeyDown);
+        canvas.addEventListener('keyup', self.onCanvasKeyUp);
+        canvas.addEventListener('keypress', self.onCanvasKeyPress);
         canvas.addEventListener('touchstart', self.onCanvasTouchStart, { passive: false });
         canvas.addEventListener('touchmove', self.onCanvasTouchMove, { passive: false });
         canvas.addEventListener('touchend', self.onCanvasTouchEnd, { passive: false });
@@ -548,6 +612,9 @@ export class ViewController implements IController {
         this.canvas.removeEventListener('mouseleave', this.onCanvasMouseLeave);
         this.canvas.removeEventListener('mousedown', this.onCanvasMouseDown);
         this.canvas.removeEventListener('mousemove', this.onCanvasMouseMove);
+        this.canvas.removeEventListener('keydown', this.onCanvasKeyDown);
+        this.canvas.removeEventListener('keyup', this.onCanvasKeyUp);
+        this.canvas.removeEventListener('keypress', this.onCanvasKeyPress);
         this.canvas.removeEventListener('touchstart', this.onCanvasTouchStart);
         this.canvas.removeEventListener('touchmove', this.onCanvasTouchMove);
         this.canvas.removeEventListener('touchend', this.onCanvasTouchEnd);
@@ -561,11 +628,19 @@ export class ViewController implements IController {
         this.mouseDownView.clear();
         this.mouseUpView.clear();
         this.mouseMovedView.clear();
+        this.keyDown.clear();
+        this.keyUp.clear();
+        this.keyPress.clear();
+        this.elementFocused.clear();
+        this.elementBlurred.clear();
         this.elementClicked.clear();
         this.mouseDownElement.clear();
         this.mouseEnteredElement.clear();
         this.mouseLeftElement.clear();
         this.mouseUpElement.clear();
+        this.keyDownElement.clear();
+        this.keyUpElement.clear();
+        this.keyPressElement.clear();
         this.modelUpdated.clear();
         this.enabledChanged.clear();
         if (this.timer) {
@@ -763,6 +838,7 @@ export class ViewController implements IController {
         self.mouseDownView.trigger(self, new PointEventParameters(e, self.mouseDownPosition));
         const activePath = self.getActiveElementPath(context, p.x, p.y);
         const activeElement = activePath.length > 0 ? activePath[0] : undefined;
+        self.setFocusedPath(activePath);
         self.clickCancelled = false;
         if (self.eventDelay > 0) {
             self.pendingMouseDownElement = activeElement;
@@ -818,6 +894,60 @@ export class ViewController implements IController {
         }
         const activePath = this.getActiveElementPath(context, p.x, p.y);
         this.setMouseOverPath(activePath);
+    }
+
+    /**
+     * Handles canvas key down while the runtime view has focus.
+     * @param e - DOM keyboard event
+     * @returns True if keyboard listeners were notified
+     */
+    public onCanvasKeyDown(e: KeyboardEvent): boolean {
+        if (!this.enabled) {
+            return false;
+        }
+        let handled = false;
+        if (this.keyDown.hasListeners()) {
+            this.keyDown.trigger(this, new KeyboardEventArgs(e));
+            handled = true;
+        }
+        handled = this.dispatchPathKeyboardEvent(this.keyDownElement, e) || handled;
+        return handled;
+    }
+
+    /**
+     * Handles canvas key up while the runtime view has focus.
+     * @param e - DOM keyboard event
+     * @returns True if keyboard listeners were notified
+     */
+    public onCanvasKeyUp(e: KeyboardEvent): boolean {
+        if (!this.enabled) {
+            return false;
+        }
+        let handled = false;
+        if (this.keyUp.hasListeners()) {
+            this.keyUp.trigger(this, new KeyboardEventArgs(e));
+            handled = true;
+        }
+        handled = this.dispatchPathKeyboardEvent(this.keyUpElement, e) || handled;
+        return handled;
+    }
+
+    /**
+     * Handles canvas key press while the runtime view has focus.
+     * @param e - DOM keyboard event
+     * @returns True if keyboard listeners were notified
+     */
+    public onCanvasKeyPress(e: KeyboardEvent): boolean {
+        if (!this.enabled) {
+            return false;
+        }
+        let handled = false;
+        if (this.keyPress.hasListeners()) {
+            this.keyPress.trigger(this, new KeyboardEventArgs(e));
+            handled = true;
+        }
+        handled = this.dispatchPathKeyboardEvent(this.keyPressElement, e) || handled;
+        return handled;
     }
 
     /**
@@ -969,6 +1099,40 @@ export class ViewController implements IController {
     }
 
     /**
+     * Sets current focused element.
+     * @param el - Focused element
+     */
+    public setFocusedElement(el: ElementBase | undefined) {
+        this.setFocusedPath(el ? [el] : []);
+    }
+
+    /**
+     * Sets current focused element path for runtime keyboard routing.
+     * @param path - Focused path ordered from deepest to outermost
+     */
+    public setFocusedPath(path: ElementBase[]) {
+        if (path.length === this.focusedPath.length && path.every((element, index) => element === this.focusedPath[index])) {
+            return;
+        }
+
+        for (const existing of this.focusedPath) {
+            if (path.indexOf(existing) === -1) {
+                this.elementBlurred.trigger(this, existing);
+            }
+        }
+
+        for (let index = path.length - 1; index >= 0; index--) {
+            const next = path[index];
+            if (this.focusedPath.indexOf(next) === -1) {
+                this.elementFocused.trigger(this, next);
+            }
+        }
+
+        this.focusedPath = path.slice();
+        this.focusedElement = this.focusedPath.length > 0 ? this.focusedPath[0] : undefined;
+    }
+
+    /**
      * Sets current hovered element path.
      * @param path - Hovered path ordered from deepest to outermost
      */
@@ -1018,6 +1182,16 @@ export class ViewController implements IController {
         for (const element of path) {
             event.trigger(this, element);
         }
+    }
+
+    private dispatchPathKeyboardEvent(event: ControllerEvent<ElementKeyboardEventArgs>, keyboardEvent: KeyboardEvent): boolean {
+        if (this.focusedPath.length === 0 || !event.hasListeners()) {
+            return false;
+        }
+        for (const element of this.focusedPath) {
+            event.trigger(this, new ElementKeyboardEventArgs(keyboardEvent, element));
+        }
+        return true;
     }
 
     /**

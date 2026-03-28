@@ -170,10 +170,11 @@ export class DesignMouseInteractionService {
         host.isMouseDown = true;
 
         if (host.activeTool) {
+            const toolPoint = this.getActiveToolPoint(host, point);
             if (!host.activeTool.isCreating) {
                 host.beginToolHistorySession();
             }
-            host.activeTool.mouseDown(new MouseLocationArgs(e, new Point(point.x, point.y)));
+            host.activeTool.mouseDown(new MouseLocationArgs(e, toolPoint));
 
             if (host.mouseDownView.hasListeners()) {
                 host.mouseDownView.trigger(host.controller, new PointEventParameters(e, new Point(point.x, point.y)));
@@ -243,7 +244,7 @@ export class DesignMouseInteractionService {
         }
 
         if (host.activeTool) {
-            host.activeTool.mouseMove(new MouseLocationArgs(e, new Point(point.x, point.y)));
+            host.activeTool.mouseMove(new MouseLocationArgs(e, this.getActiveToolPoint(host, point)));
             return;
         }
 
@@ -292,7 +293,7 @@ export class DesignMouseInteractionService {
         }
 
         if (host.activeTool) {
-            host.activeTool.mouseUp(new MouseLocationArgs(e, new Point(point.x, point.y)));
+            host.activeTool.mouseUp(new MouseLocationArgs(e, this.getActiveToolPoint(host, point)));
             if (!host.activeTool.isCreating) {
                 host.finalizeToolHistorySession();
             }
@@ -325,6 +326,14 @@ export class DesignMouseInteractionService {
             host.currentWidth = 0;
             host.currentHeight = 0;
         }
+    }
+
+    private getActiveToolPoint(host: DesignMouseInteractionHost, point: Point): Point {
+        if (!host.snapToGrid) {
+            return new Point(point.x, point.y);
+        }
+
+        return new Point(host.getNearestSnapX(point.x), host.getNearestSnapY(point.y));
     }
 
     private getMouseDelta(host: DesignMouseInteractionHost, point: Point): Point | undefined {

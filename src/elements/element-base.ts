@@ -116,6 +116,11 @@ export class ElementBase implements IPointContainer {
     public lineJoin?: CanvasLineJoin;
 
     /**
+     * Stroke miter limit used when lineJoin is miter.
+     */
+    public miterLimit?: number;
+
+    /**
      * Element opacity (0 transparent to 1 opaque)
      */
     public opacity: number = 1;
@@ -266,6 +271,7 @@ export class ElementBase implements IPointContainer {
         this.setStrokeDash = this.setStrokeDash.bind(this);
         this.setLineCap = this.setLineCap.bind(this);
         this.setLineJoin = this.setLineJoin.bind(this);
+        this.setMiterLimit = this.setMiterLimit.bind(this);
         this.setTransform = this.setTransform.bind(this);
         this.setVisible = this.setVisible.bind(this);
         this.applyRenderOpacity = this.applyRenderOpacity.bind(this);
@@ -449,6 +455,10 @@ export class ElementBase implements IPointContainer {
         if (o.lineJoin === 'bevel' || o.lineJoin === 'miter' || o.lineJoin === 'round') {
             this.lineJoin = o.lineJoin;
         }
+        if (o.miterLimit !== undefined) {
+            const parsedMiterLimit = Number(o.miterLimit);
+            this.miterLimit = Number.isFinite(parsedMiterLimit) && parsedMiterLimit > 0 ? parsedMiterLimit : undefined;
+        }
         if (o.opacity !== undefined) {
             this.opacity = o.opacity as number;
         }
@@ -568,6 +578,9 @@ export class ElementBase implements IPointContainer {
         if (this.lineJoin) {
             o.lineJoin = this.lineJoin;
         }
+        if (this.miterLimit !== undefined && this.miterLimit !== 10) {
+            o.miterLimit = this.miterLimit;
+        }
         if (this.opacity !== 1) {
             o.opacity = this.opacity;
         }
@@ -670,6 +683,7 @@ export class ElementBase implements IPointContainer {
         }
         e.lineCap = this.lineCap;
         e.lineJoin = this.lineJoin;
+        e.miterLimit = this.miterLimit;
         e.opacity = this.opacity;
         if (this.shadow) {
             e.shadow = {
@@ -1085,6 +1099,17 @@ export class ElementBase implements IPointContainer {
      */
     public setLineJoin(lineJoin: CanvasLineJoin | undefined) {
         this.lineJoin = lineJoin;
+        return this;
+    }
+
+    /**
+     * Sets stroke miter limit.
+     * @param miterLimit - Miter limit or undefined to clear
+     * @returns This element
+     */
+    public setMiterLimit(miterLimit: number | undefined) {
+        const normalized = Number(miterLimit);
+        this.miterLimit = Number.isFinite(normalized) && normalized > 0 ? normalized : undefined;
         return this;
     }
 

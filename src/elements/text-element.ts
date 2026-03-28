@@ -44,6 +44,7 @@ interface TextLayoutLine {
     segments: TextLayoutSegment[];
     width: number;
     height: number;
+    advanceHeight: number;
     startIndex: number;
     endIndex: number;
 }
@@ -159,6 +160,11 @@ export class TextElement extends ElementBase {
     public textDecoration?: string;
 
     /**
+     * Optional line-height multiplier applied to each laid out line.
+     */
+    public lineHeight?: number;
+
+    /**
      * Optional rich text runs for mixed typography within a single text element.
      */
     public richText?: TextRun[];
@@ -196,6 +202,10 @@ export class TextElement extends ElementBase {
         }
         if (o.textDecoration) {
             this.textDecoration = TextElement.normalizeTextDecoration(o.textDecoration as string);
+        }
+        if (o.lineHeight !== undefined) {
+            const parsedLineHeight = Number(o.lineHeight);
+            this.lineHeight = Number.isFinite(parsedLineHeight) && parsedLineHeight > 0 ? parsedLineHeight : undefined;
         }
         if (Array.isArray(o.richText)) {
             this.richText = TextElement.cloneTextRuns(o.richText as TextRun[]);
@@ -236,6 +246,9 @@ export class TextElement extends ElementBase {
         if (this.textDecoration) {
             o.textDecoration = this.textDecoration;
         }
+        if (this.lineHeight !== undefined && this.lineHeight !== 1) {
+            o.lineHeight = this.lineHeight;
+        }
         if (this.richText && this.richText.length > 0) {
             o.richText = TextElement.cloneTextRuns(this.richText);
         }
@@ -269,6 +282,7 @@ export class TextElement extends ElementBase {
         }
         e.letterSpacing = this.letterSpacing;
         e.textDecoration = this.textDecoration;
+        e.lineHeight = this.lineHeight;
         if (this.richText && this.richText.length > 0) {
             e.richText = TextElement.cloneTextRuns(this.richText);
         }
@@ -386,6 +400,18 @@ export class TextElement extends ElementBase {
      */
     public setTextDecoration(decoration?: string) {
         this.textDecoration = TextElement.normalizeTextDecoration(decoration);
+        this.invalidateTextLayoutCache();
+        return this;
+    }
+
+    /**
+     * Sets line-height multiplier applied between laid out lines.
+     * @param lineHeight - Line-height multiplier
+     * @returns This text element
+     */
+    public setLineHeight(lineHeight: number | undefined) {
+        const normalized = Number(lineHeight);
+        this.lineHeight = Number.isFinite(normalized) && normalized > 0 ? normalized : undefined;
         this.invalidateTextLayoutCache();
         return this;
     }
@@ -519,7 +545,7 @@ export class TextElement extends ElementBase {
     public getCaretRegion(c: CanvasRenderingContext2D, location: Point, size: Size, index: number): Region {
         const positions = this.getInsertionLayout(c, location, size);
         if (positions.length === 0) {
-            const lineHeight = this.typesize || 10;
+            const lineHeight = this.getLineAdvance(this.typesize || 10);
             return new Region(location.x, location.y, 1, lineHeight);
         }
 
@@ -829,6 +855,7 @@ export class TextElement extends ElementBase {
                 currentLine.segments.push({ text: token, width, style, startIndex: textIndex });
                 currentLine.width += width;
                 currentLine.height = Math.max(currentLine.height, style.typesize);
+                currentLine.advanceHeight = this.getLineAdvance(currentLine.height);
                 textIndex += token.length;
                 currentLine.endIndex = textIndex;
             }
@@ -878,7 +905,7 @@ export class TextElement extends ElementBase {
                 this.drawTextDecorations(c, segment, drawX, drawY, fill, decorationsOnly);
                 x += segment.width;
             }
-            y += line.height;
+            y += line.advanceHeight;
         }
 
         if (fill && (this.fillOffsetX || this.fillOffsetY)) {
@@ -1043,10 +1070,12 @@ export class TextElement extends ElementBase {
     }
 
     private createEmptyLine(startIndex: number): TextLayoutLine {
+        const lineHeight = this.typesize !== undefined ? this.typesize : 10;
         return {
             segments: [],
             width: 0,
-            height: this.typesize !== undefined ? this.typesize : 10,
+            height: lineHeight,
+            advanceHeight: this.getLineAdvance(lineHeight),
             startIndex,
             endIndex: startIndex,
         };
@@ -1059,9 +1088,14 @@ export class TextElement extends ElementBase {
 
         const layout = this.layoutRuns(c, runs, lineWidth);
         const alignment = this.resolveAlignment();
-        const totalHeight = layout.reduce((sum, line) => sum + line.height, 0);
+        const totalHeight = layout.reduce((sum, line) => sum + line.advanceHeight, 0);
         this._layoutCache = { revision: this._textLayoutRevision, lineWidth, layout, alignment, totalHeight };
         return this._layoutCache;
+    }
+
+    private getLineAdvance(lineHeight: number): number {
+        const multiplier = this.lineHeight !== undefined && this.lineHeight > 0 ? this.lineHeight : 1;
+        return lineHeight * multiplier;
     }
 
     private invalidateTextLayoutCache(): void {
@@ -1120,7 +1154,7 @@ export class TextElement extends ElementBase {
                 x += size.width - line.width;
             }
 
-            positions[line.startIndex] = { index: line.startIndex, x, y, height: line.height, lineIndex };
+            positions[line.startIndex] = { index: line.startIndex, x, y, height: line.advanceHeight, lineIndex };
             let currentX = x;
             for (const segment of line.segments) {
                 for (let index = 0; index < segment.text.length; index++) {
@@ -1128,13 +1162,13 @@ export class TextElement extends ElementBase {
                     const character = segment.text.charAt(index);
                     const characterWidth = this.measureCharacterWidth(c, character, segment.style);
                     const advanceWidth = characterWidth + (index < segment.text.length - 1 ? segment.style.letterSpacing : 0);
-                    positions[rawIndex] = { index: rawIndex, x: currentX, y, height: line.height, lineIndex };
+                    positions[rawIndex] = { index: rawIndex, x: currentX, y, height: line.advanceHeight, lineIndex };
                     currentX += advanceWidth;
-                    positions[rawIndex + 1] = { index: rawIndex + 1, x: currentX, y, height: line.height, lineIndex };
+                    positions[rawIndex + 1] = { index: rawIndex + 1, x: currentX, y, height: line.advanceHeight, lineIndex };
                 }
             }
-            positions[line.endIndex] = { index: line.endIndex, x: currentX, y, height: line.height, lineIndex };
-            y += line.height;
+            positions[line.endIndex] = { index: line.endIndex, x: currentX, y, height: line.advanceHeight, lineIndex };
+            y += line.advanceHeight;
         }
 
         for (let index = 0; index < positions.length; index++) {
@@ -1143,7 +1177,7 @@ export class TextElement extends ElementBase {
                     index,
                     x: location.x,
                     y: startY,
-                    height: this.typesize !== undefined ? this.typesize : 10,
+                    height: this.getLineAdvance(this.typesize !== undefined ? this.typesize : 10),
                     lineIndex: 0,
                 };
             }
@@ -1214,13 +1248,13 @@ export class TextElement extends ElementBase {
                     characters.push({
                         index: segment.startIndex + index,
                         character,
-                        region: new Region(x, y, Math.max(advanceWidth, 1), line.height),
+                        region: new Region(x, y, Math.max(advanceWidth, 1), line.advanceHeight),
                         lineIndex,
                     });
                     x += advanceWidth;
                 }
             }
-            y += line.height;
+            y += line.advanceHeight;
         }
 
         this._characterLayoutCache = {

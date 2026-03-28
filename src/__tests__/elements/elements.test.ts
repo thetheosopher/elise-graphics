@@ -126,13 +126,14 @@ test('rectangle set location and size', () => {
 
 test('rectangle fluent setters', () => {
     const rect = RectangleElement.create(0, 0, 50, 50);
-    const result = rect.setFill('Green').setStroke('Red').setStrokeDash([4, 2]).setLineCap('round').setLineJoin('bevel').setShadow({ color: '#000000', blur: 8, offsetX: 2, offsetY: 1 }).setBlendMode('multiply').setFilter('grayscale(80%)').setInteractive(true);
+    const result = rect.setFill('Green').setStroke('Red').setStrokeDash([4, 2]).setLineCap('round').setLineJoin('bevel').setMiterLimit(7).setShadow({ color: '#000000', blur: 8, offsetX: 2, offsetY: 1 }).setBlendMode('multiply').setFilter('grayscale(80%)').setInteractive(true);
     expect(result).toBe(rect);
     expect(rect.fill).toBe('Green');
     expect(rect.stroke).toBe('Red');
     expect(rect.strokeDash).toEqual([4, 2]);
     expect(rect.lineCap).toBe('round');
     expect(rect.lineJoin).toBe('bevel');
+    expect(rect.miterLimit).toBe(7);
     expect(rect.shadow).toEqual({ color: '#000000', blur: 8, offsetX: 2, offsetY: 1 });
     expect(rect.blendMode).toBe('multiply');
     expect(rect.filter).toBe('grayscale(80%)');
@@ -449,6 +450,23 @@ test('path fromSVGPath preserves relative arcs as absolute arc commands', () => 
     expect(commands![1]).toBe('A10,10,0,0,0,25,5');
 });
 
+test('path full-depth arc editing exposes radius control points', () => {
+    const path = PathElement.fromSVGPath('M 0 0 A 10 6 30 0 1 18 12');
+
+    const endPoint = path.getPointAt(1, PointDepth.Full);
+    const radiusXHandle = path.getPointAt(2, PointDepth.Full);
+    const radiusYHandle = path.getPointAt(3, PointDepth.Full);
+
+    expect(endPoint.toString()).toBe('18,12');
+    expect(radiusXHandle.toString()).not.toBe(endPoint.toString());
+    expect(radiusYHandle.toString()).not.toBe(endPoint.toString());
+
+    path.setPointAt(2, Point.create(radiusXHandle.x + 8, radiusXHandle.y), PointDepth.Full);
+    path.setPointAt(3, Point.create(radiusYHandle.x, radiusYHandle.y + 4), PointDepth.Full);
+
+    expect(path.getCommands()?.[1]).toMatch(/^A[\d.]+,[\d.]+,30,0,1,18,12$/);
+});
+
 test('path setCommands preserves native shorthand and axis-aligned commands', () => {
     const path = PathElement.create();
     path.setCommands('m(0,0) l(10,0) h 5 q 5 5 10 0 t 10 -5 z');
@@ -689,7 +707,7 @@ test('text serialize/parse round-trip', () => {
 test('text serialize/parse preserves letter spacing decoration and rich text', () => {
     const txt = TextElement.create(undefined, 10, 20, 200, 50);
     txt.setTypeface('Arial, sans-serif').setTypesize(16).setTypestyle('bold');
-    txt.setLetterSpacing(1.5).setTextDecoration('underline,line-through');
+    txt.setLetterSpacing(1.5).setTextDecoration('underline,line-through').setLineHeight(1.5);
     txt.setRichText([
         { text: 'Hello ', typestyle: 'bold' },
         { text: 'World', typestyle: 'italic', letterSpacing: 2, decoration: 'underline' },
@@ -698,6 +716,7 @@ test('text serialize/parse preserves letter spacing decoration and rich text', (
     const serialized = txt.serialize();
     expect(serialized.letterSpacing).toBe(1.5);
     expect(serialized.textDecoration).toBe('underline,line-through');
+    expect(serialized.lineHeight).toBe(1.5);
     expect(serialized.richText).toEqual([
         { text: 'Hello ', typestyle: 'bold' },
         { text: 'World', typestyle: 'italic', letterSpacing: 2, decoration: 'underline' },
@@ -707,6 +726,7 @@ test('text serialize/parse preserves letter spacing decoration and rich text', (
     parsed.parse(serialized);
     expect(parsed.letterSpacing).toBe(1.5);
     expect(parsed.textDecoration).toBe('underline,line-through');
+    expect(parsed.lineHeight).toBe(1.5);
     expect(parsed.richText).toEqual([
         { text: 'Hello ', typestyle: 'bold' },
         { text: 'World', typestyle: 'italic', letterSpacing: 2, decoration: 'underline' },
@@ -822,6 +842,25 @@ test('text caret tracks blank visual lines created by consecutive newlines', () 
     expect(caretOnBlankLine.y).toBe(10);
     expect(caretBeforeThirdLine.x).toBe(0);
     expect(caretBeforeThirdLine.y).toBe(20);
+});
+
+test('text explicit line height changes caret and selection layout spacing', () => {
+    const txt = TextElement.create('a\nb', 0, 0, 200, 60);
+    txt.setTypesize(10).setLineHeight(1.5);
+    const context = {
+        measureText: jest.fn((text: string) => ({ width: text.length * 10 })),
+        font: '',
+    } as unknown as CanvasRenderingContext2D;
+
+    const caretBeforeSecondLine = txt.getCaretRegion(context, new Point(0, 0), new Size(200, 60), 2);
+    const selection = txt.getSelectionRegions(context, new Point(0, 0), new Size(200, 60), 0, 3);
+
+    expect(caretBeforeSecondLine.y).toBe(15);
+    expect(caretBeforeSecondLine.height).toBe(15);
+    expect(selection).toEqual([
+        expect.objectContaining({ x: 0, y: 0, width: 10, height: 15 }),
+        expect.objectContaining({ x: 0, y: 15, width: 10, height: 15 }),
+    ]);
 });
 
 // --- ImageElement ---

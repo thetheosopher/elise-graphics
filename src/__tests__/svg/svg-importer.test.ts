@@ -180,6 +180,7 @@ test('SVGImporter.parseDocument imports stroke dash, line cap, and line join sty
                 'stroke-dasharray': '5 2 1',
                 'stroke-linecap': 'round',
                 'stroke-linejoin': 'bevel',
+                'stroke-miterlimit': '6',
             }),
         ]),
     );
@@ -191,6 +192,7 @@ test('SVGImporter.parseDocument imports stroke dash, line cap, and line join sty
     expect(rectangle.strokeDash).toEqual([5, 2, 1]);
     expect(rectangle.lineCap).toBe('round');
     expect(rectangle.lineJoin).toBe('bevel');
+    expect(rectangle.miterLimit).toBe(6);
 });
 
 test('SVGImporter.parseDocument imports text and image elements with inherited transform and opacity', () => {
@@ -290,6 +292,7 @@ test('SVGImporter.parseDocument imports text letter spacing decoration and style
                 fill: '#112233',
                 'font-family': 'Arial',
                 'font-size': '16',
+                'line-height': '1.5',
                 'letter-spacing': '1.5',
                 'text-decoration': 'underline',
             }, [
@@ -304,6 +307,7 @@ test('SVGImporter.parseDocument imports text letter spacing decoration and style
 
     expect(text.text).toBeUndefined();
     expect(text.getResolvedText()).toBe('Hello World');
+    expect(text.lineHeight).toBe(1.5);
     expect(text.letterSpacing).toBe(1.5);
     expect(text.textDecoration).toBe('underline');
     expect(text.richText).toEqual([

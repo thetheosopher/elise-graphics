@@ -9,6 +9,8 @@ type FakeElement = {
     parentElement?: FakeElement;
     firstChild?: FakeElement;
     textContent?: string;
+    addEventListener: (type: string, handler: EventListenerOrEventListenerObject) => void;
+    removeEventListener: (type: string, handler: EventListenerOrEventListenerObject) => void;
     appendChild: (child: FakeElement) => FakeElement;
     replaceChild: (nextChild: FakeElement, currentChild: FakeElement) => FakeElement;
     removeChild: (child: FakeElement) => FakeElement;
@@ -37,6 +39,14 @@ function createFakeElement(tagName: string, outerHTML?: string): FakeElement {
         tagName,
         style: {},
         outerHTML: outerHTML || '<' + tagName + '></' + tagName + '>',
+        addEventListener(type: string, handler: EventListenerOrEventListenerObject) {
+            void type;
+            void handler;
+        },
+        removeEventListener(type: string, handler: EventListenerOrEventListenerObject) {
+            void type;
+            void handler;
+        },
         appendChild(child: FakeElement) {
             this.firstChild = child;
             child.parentElement = this;
@@ -183,6 +193,80 @@ test('svg view controller tick redraws when timer handlers invalidate', () => {
 
     drawSpy.mockRestore();
     fakeWindowScope.restore();
+});
+
+test('svg view controller runtime keyboard events are exposed', () => {
+    const controller = new SVGViewController();
+    const down = jest.fn();
+    const up = jest.fn();
+    const press = jest.fn();
+    const event = { key: 'A' } as KeyboardEvent;
+
+    controller.keyDown.add(down);
+    controller.keyUp.add(up);
+    controller.keyPress.add(press);
+
+    expect(controller.onSVGKeyDown(event)).toBe(true);
+    expect(controller.onSVGKeyUp(event)).toBe(true);
+    expect(controller.onSVGKeyPress(event)).toBe(true);
+
+    expect(down).toHaveBeenCalledWith(controller, expect.objectContaining({ event }));
+    expect(up).toHaveBeenCalledWith(controller, expect.objectContaining({ event }));
+    expect(press).toHaveBeenCalledWith(controller, expect.objectContaining({ event }));
+});
+
+test('svg view controller keyboard events do not fire while disabled', () => {
+    const controller = new SVGViewController();
+    const down = jest.fn();
+    controller.keyDown.add(down);
+    controller.setEnabled(false);
+
+    expect(controller.onSVGKeyDown({ key: 'A' } as KeyboardEvent)).toBe(false);
+    expect(down).not.toHaveBeenCalled();
+});
+
+test('svg view controller supports manual focus path and keyboard bubbling', () => {
+    const controller = new SVGViewController();
+    const outer = RectangleElement.create(0, 0, 20, 20);
+    const inner = RectangleElement.create(2, 2, 8, 8);
+    const focused = jest.fn();
+    const keyDownElement = jest.fn();
+
+    controller.elementFocused.add(focused);
+    controller.keyDownElement.add(keyDownElement);
+    controller.setFocusedPath([inner, outer]);
+
+    expect(controller.focusedElement).toBe(inner);
+    expect(controller.focusedPath).toEqual([inner, outer]);
+    expect(focused.mock.calls).toEqual([
+        [controller, outer],
+        [controller, inner],
+    ]);
+
+    const event = { key: 'Enter' } as KeyboardEvent;
+    expect(controller.onSVGKeyDown(event)).toBe(true);
+    expect(keyDownElement.mock.calls).toEqual([
+        [controller, expect.objectContaining({ event, element: inner })],
+        [controller, expect.objectContaining({ event, element: outer })],
+    ]);
+});
+
+test('svg view controller clearing focus emits blur events', () => {
+    const controller = new SVGViewController();
+    const outer = RectangleElement.create(0, 0, 20, 20);
+    const inner = RectangleElement.create(2, 2, 8, 8);
+    const blurred = jest.fn();
+
+    controller.setFocusedPath([inner, outer]);
+    controller.elementBlurred.add(blurred);
+    controller.setFocusedPath([]);
+
+    expect(controller.focusedElement).toBeUndefined();
+    expect(controller.focusedPath).toEqual([]);
+    expect(blurred.mock.calls).toEqual([
+        [controller, inner],
+        [controller, outer],
+    ]);
 });
 
 test('svg view controller detach removes mounted svg and clears controller reference', () => {

@@ -194,7 +194,8 @@ test('setElementStroke applies dash pattern, line cap, and line join', () => {
         .setStroke('#112233,3')
         .setStrokeDash([5, 2, 1])
         .setLineCap('round')
-        .setLineJoin('bevel');
+        .setLineJoin('bevel')
+        .setMiterLimit(6);
     const context = {
         setLineDash: jest.fn(),
     } as unknown as CanvasRenderingContext2D;
@@ -206,6 +207,7 @@ test('setElementStroke applies dash pattern, line cap, and line join', () => {
     expect(context.strokeStyle).toBe('rgb(17,34,51)');
     expect(context.lineCap).toBe('round');
     expect(context.lineJoin).toBe('bevel');
+    expect(context.miterLimit).toBe(6);
     expect(context.setLineDash).toHaveBeenCalledWith([5, 2, 1]);
 });
 

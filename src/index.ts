@@ -10,6 +10,7 @@ import { ElementAnimator, ElementTween } from './animation/element-tween';
 import { Color } from './core/color';
 import { CommonEvent } from './core/common-event';
 import { ErrorMessages } from './core/error-messages';
+import { KeyboardEventArgs } from './core/keyboard-event-args';
 import { LocationArgs } from './core/location-args';
 import { Logging } from './core/logging';
 import { Matrix2D } from './core/matrix-2d';
@@ -75,6 +76,7 @@ import { ElementCreationProps } from './elements/element-creation-props';
 import { ElementCreatorRegistration } from './elements/element-creator-registration';
 import { ElementDragArgs } from './elements/element-drag-args';
 import { ElementFactory } from './elements/element-factory';
+import { ElementKeyboardEventArgs } from './elements/element-keyboard-event-args';
 import { ElementLocationArgs } from './elements/element-location-args';
 import { ElementMouseEventArgs } from './elements/element-mouse-event-args';
 import { ElementSizeArgs } from './elements/element-size-args';
@@ -175,6 +177,7 @@ export { Color } from './core/color';
 export { CommonEvent } from './core/common-event';
 export type { SerializedData } from './core/serialization';
 export { ErrorMessages } from './core/error-messages';
+export { KeyboardEventArgs } from './core/keyboard-event-args';
 export { LocationArgs } from './core/location-args';
 export { Logging } from './core/logging';
 export { Matrix2D } from './core/matrix-2d';
@@ -242,6 +245,7 @@ export { ElementCreationProps } from './elements/element-creation-props';
 export { ElementCreatorRegistration } from './elements/element-creator-registration';
 export { ElementDragArgs } from './elements/element-drag-args';
 export { ElementFactory } from './elements/element-factory';
+export { ElementKeyboardEventArgs } from './elements/element-keyboard-event-args';
 export { ElementLocationArgs } from './elements/element-location-args';
 export { ElementMouseEventArgs } from './elements/element-mouse-event-args';
 export { ElementRotationArgs } from './elements/element-rotation-args';
@@ -473,6 +477,7 @@ export default {
     ElementCreatorRegistration: ElementCreatorRegistration,
     ElementDragArgs: ElementDragArgs,
     ElementFactory: ElementFactory,
+    ElementKeyboardEventArgs: ElementKeyboardEventArgs,
     ElementLocationArgs: ElementLocationArgs,
     ElementMouseEventArgs: ElementMouseEventArgs,
     ElementSizeArgs: ElementSizeArgs,
@@ -480,6 +485,7 @@ export default {
     EllipseElement: EllipseElement,
     EllipseTool: EllipseTool,
     ErrorMessages: ErrorMessages,
+    KeyboardEventArgs: KeyboardEventArgs,
     FillFactory: FillFactory,
     FillInfo: FillInfo,
     GenericComponentProps: GenericComponentProps,

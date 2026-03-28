@@ -666,6 +666,7 @@ export class Model extends ElementBase {
         }
         c.lineCap = el.lineCap || 'butt';
         c.lineJoin = el.lineJoin || 'miter';
+        c.miterLimit = el.miterLimit !== undefined && el.miterLimit > 0 ? el.miterLimit : 10;
         if (!stroke || stroke === 'no') {
             c.strokeStyle = Color.Transparent.toStyleString();
             return false;

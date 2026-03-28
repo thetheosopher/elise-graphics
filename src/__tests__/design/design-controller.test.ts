@@ -4,6 +4,7 @@ import { ArcElement } from '../../elements/arc-element';
 import { ArrowElement } from '../../elements/arrow-element';
 import { EllipseElement } from '../../elements/ellipse-element';
 import { Model } from '../../core/model';
+import { PathElement } from '../../elements/path-element';
 import { RectangleElement } from '../../elements/rectangle-element';
 import { RegularPolygonElement } from '../../elements/regular-polygon-element';
 import { RingElement } from '../../elements/ring-element';
@@ -15,6 +16,7 @@ import { Region } from '../../core/region';
 import { Handle } from '../../design/handle';
 import { HandleMovedArgs } from '../../design/handle-moved-args';
 import { GridType } from '../../design/grid-type';
+import { LineTool } from '../../design/tools/line-tool';
 import { RectangleTool } from '../../design/tools/rectangle-tool';
 import { BitmapResource } from '../../resource/bitmap-resource';
 
@@ -753,9 +755,10 @@ describe('design controller undo and redo', () => {
         const arrow = ArrowElement.create(40, 40, 90, 50).setInteractive(true);
         const wedge = WedgeElement.create(50, 50, 100, 60).setInteractive(true);
         const ring = RingElement.create(60, 60, 110, 70).setInteractive(true);
+        const pathArc = PathElement.fromSVGPath('M 0 0 A 10 6 30 0 1 18 12').setInteractive(true);
         star.innerRadiusScale = 0.5;
 
-        [arc, polygon, star, arrow, wedge, ring].forEach((element) => model.add(element));
+        [arc, polygon, star, arrow, wedge, ring, pathArc].forEach((element) => model.add(element));
         installInteractiveCanvas(controller);
         controller.setModel(model);
 
@@ -776,6 +779,14 @@ describe('design controller undo and redo', () => {
 
         ring.editPoints = true;
         expect(controller.getElementHandles(ring).map((handle) => handle.handleId)).toEqual(['ring-outerRadius', 'ring-innerRadius']);
+
+        controller.selectElement(pathArc);
+        pathArc.editPoints = true;
+        expect(controller.getElementHandles(pathArc).filter((handle) => !!handle.handleId).map((handle) => handle.handleId)).toEqual([
+            'path-arc-end',
+            'path-arc-radiusX',
+            'path-arc-radiusY',
+        ]);
     });
 
     test('dragging a semantic primitive handle enters point-drag mode instead of resize mode', () => {
@@ -1813,6 +1824,50 @@ describe('design controller interaction indicators', () => {
         controller.onCanvasMouseMove({ button: 0, clientX: 21, clientY: 23, shiftKey: false, ctrlKey: false, metaKey: false });
 
         expect(controller.getElementMoveLocation(element)).toMatchObject({ x: 20, y: 20 });
+    });
+
+    test('tool-created rectangles snap creation coordinates to the grid', () => {
+        const controller = new DesignController();
+        const model = Model.create(100, 100);
+        installCanvasOnly(controller);
+        controller.setModel(model);
+        controller.snapToGrid = true;
+        controller.gridSpacing = 10;
+        const fakeWindowScope = installFakeWindow();
+
+        controller.setActiveTool(new RectangleTool());
+        controller.onCanvasMouseDown({ button: 0, clientX: 13, clientY: 17 });
+        controller.onCanvasMouseMove({ button: 0, clientX: 29, clientY: 34 });
+        controller.onCanvasMouseUp({ button: 0, clientX: 29, clientY: 34 });
+
+        expect(model.elements).toHaveLength(1);
+        expect(model.elements[0].type).toBe('rectangle');
+        expect(model.elements[0].getLocation()).toMatchObject({ x: 10, y: 20 });
+        expect(model.elements[0].getSize()).toMatchObject({ width: 20, height: 10 });
+
+        fakeWindowScope.restore();
+    });
+
+    test('tool-created lines snap endpoints to the grid', () => {
+        const controller = new DesignController();
+        const model = Model.create(100, 100);
+        installCanvasOnly(controller);
+        controller.setModel(model);
+        controller.snapToGrid = true;
+        controller.gridSpacing = 10;
+        const fakeWindowScope = installFakeWindow();
+
+        controller.setActiveTool(new LineTool());
+        controller.onCanvasMouseDown({ button: 0, clientX: 13, clientY: 17 });
+        controller.onCanvasMouseMove({ button: 0, clientX: 29, clientY: 34 });
+        controller.onCanvasMouseUp({ button: 0, clientX: 29, clientY: 34 });
+
+        expect(model.elements).toHaveLength(1);
+        expect(model.elements[0].type).toBe('line');
+        expect(model.elements[0].getPointAt(0)).toMatchObject({ x: 10, y: 20 });
+        expect(model.elements[0].getPointAt(1)).toMatchObject({ x: 30, y: 30 });
+
+        fakeWindowScope.restore();
     });
 
     test('draw shows point drag indicator with point coordinates', () => {

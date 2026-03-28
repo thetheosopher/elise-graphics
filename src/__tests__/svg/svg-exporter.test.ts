@@ -73,6 +73,7 @@ test('Model.toSVG exports basic shape elements', () => {
         .setStrokeDash([5, 3])
         .setLineCap('round')
         .setLineJoin('bevel')
+        .setMiterLimit(7)
         .setCornerRadius(6)
         .setVisible(false);
     const ellipse = EllipseElement.create(80, 60, 20, 10).setStroke('#445566, 3');
@@ -91,6 +92,7 @@ test('Model.toSVG exports basic shape elements', () => {
     expect(svgMarkup).toContain('stroke-dasharray="5 3"');
     expect(svgMarkup).toContain('stroke-linecap="round"');
     expect(svgMarkup).toContain('stroke-linejoin="bevel"');
+    expect(svgMarkup).toContain('stroke-miterlimit="7"');
     expect(svgMarkup).toContain('<ellipse cx="80" cy="60" rx="20" ry="10"');
     expect(svgMarkup).toContain('<line x1="5" y1="6" x2="25" y2="30"');
     expect(svgMarkup).toContain('<polygon points="0 0 20 0 10 15"');
@@ -188,6 +190,21 @@ test('Model.toSVG exports letter spacing text decoration and rich text tspans', 
     expect(svgMarkup).toContain('text-decoration="underline"');
     expect(svgMarkup).toContain('<tspan x="10" y="20" font-weight="bold">Hello </tspan>');
     expect(svgMarkup).toContain('<tspan font-style="italic" text-decoration="line-through">World</tspan>');
+});
+
+test('Model.toSVG exports explicit text line height', () => {
+    const model = Model.create(200, 100);
+    const text = TextElement.create('Hello\nWorld', 10, 20, 120, 60)
+        .setFill('#112233')
+        .setTypeface('Arial')
+        .setTypesize(16)
+        .setLineHeight(1.5);
+    model.add(text);
+
+    const svgMarkup = model.toSVG();
+
+    expect(svgMarkup).toContain('line-height="1.5"');
+    expect(svgMarkup).toContain('<tspan x="10" y="20">Hello</tspan><tspan x="10" y="44">World</tspan>');
 });
 
 test('Model.toSVG exports gradients and valid SVG transform matrices', () => {

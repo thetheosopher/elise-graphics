@@ -19,6 +19,7 @@ from simpler elements.
 * Support for sprite and image transitions.
 * SVG import and export with hierarchy-preserving container support, `<symbol>`/`<use>` handling, and gradient/clip-path interop.
 * Event bubbling through nested model hierarchies for composable interactive content.
+* Runtime keyboard events on both canvas and SVG view controllers, with focus-path bubbling through nested model hierarchies.
 * Design surface and component library for interactive model creation and editing, including inline rich-text editing with formatting shortcuts.
 * Higher level surface library for creation of graphical applications with integration of video and other HTML content.
 * Sketcher class to gradually draw and fill complex polygonal models for visual effect.
@@ -104,7 +105,7 @@ The example above does the following:
 
 ## Result
 
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;![](images/blue_model_red_ellipse.png)
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;![Blue model with red ellipse](images/blue_model_red_ellipse.png)
 
 ## Property Tween Animation
 
@@ -201,6 +202,47 @@ Events propagate through the model hierarchy from the deepest nested element out
 controller.elementClicked.add(function(source, element) {
     // Fires for each element in the ancestry path, deepest first
     console.log('Clicked:', element.id);
+});
+```
+
+Runtime keyboard routing uses the same retained-mode ancestry idea. On the canvas view controller, clicking an interactive element focuses its ancestry path for subsequent keyboard input. Both runtime view controllers also expose `setFocusedElement(...)` and `setFocusedPath(...)` so applications can manage focus explicitly.
+
+## Runtime Keyboard Events
+
+Both `ViewController` and `SVGViewController` expose `keyDown`, `keyUp`, and `keyPress` events at the controller level, plus `keyDownElement`, `keyUpElement`, and `keyPressElement` events that bubble through the currently focused element path.
+
+```javascript
+var hostDiv = document.getElementById('elise-host');
+var model = elise.model(240, 140).setFill('#0f172a');
+
+var panel = elise.rectangle(20, 20, 200, 100)
+    .setFill('#1e293b')
+    .setStroke('#7dd3fc,2')
+    .setInteractive(true);
+panel.id = 'panel';
+model.add(panel);
+
+var controller = elise.view(hostDiv, model);
+
+controller.keyDown.add(function (_source, args) {
+    console.log('View key down:', args.event.key);
+});
+
+controller.keyDownElement.add(function (_source, args) {
+    console.log('Focused element key down:', args.element.id, args.event.key);
+});
+
+// Optional explicit focus if your app manages focus outside pointer input.
+controller.setFocusedElement(panel);
+```
+
+The same event surface is available on the SVG runtime path:
+
+```javascript
+var svgController = elise.svgView(hostDiv, model);
+svgController.setFocusedElement(panel);
+svgController.keyPressElement.add(function (_source, args) {
+    console.log('SVG focused element key press:', args.element.id, args.event.key);
 });
 ```
 
@@ -315,7 +357,7 @@ npm install
 ### Commands
 
 | Command | Description |
-|---------|-------------|
+| ------- | ----------- |
 | `npm run build` | Clean output directories, compile TypeScript to CommonJS (`lib/`) and ES module (`lib-esm/`) targets, and bundle UMD packages (`_bundles/`) with webpack. |
 | `npm run clean` | Remove the `_bundles`, `lib`, and `lib-esm` output directories. |
 | `npm test` | Run the Jest test suite. |

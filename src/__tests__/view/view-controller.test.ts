@@ -273,6 +273,95 @@ test('view controller mouse down/move/up routes element events and click', () =>
     fakeWindowScope.restore();
 });
 
+test('view controller runtime keyboard events are exposed', () => {
+    const controller = new ViewController();
+    const down = jest.fn();
+    const up = jest.fn();
+    const press = jest.fn();
+    const event = { key: 'A' } as KeyboardEvent;
+
+    controller.keyDown.add(down);
+    controller.keyUp.add(up);
+    controller.keyPress.add(press);
+
+    expect(controller.onCanvasKeyDown(event)).toBe(true);
+    expect(controller.onCanvasKeyUp(event)).toBe(true);
+    expect(controller.onCanvasKeyPress(event)).toBe(true);
+
+    expect(down).toHaveBeenCalledWith(controller, expect.objectContaining({ event }));
+    expect(up).toHaveBeenCalledWith(controller, expect.objectContaining({ event }));
+    expect(press).toHaveBeenCalledWith(controller, expect.objectContaining({ event }));
+});
+
+test('view controller keyboard events do not fire while disabled', () => {
+    const controller = new ViewController();
+    const down = jest.fn();
+    controller.keyDown.add(down);
+    controller.setEnabled(false);
+
+    expect(controller.onCanvasKeyDown({ key: 'A' } as KeyboardEvent)).toBe(false);
+    expect(down).not.toHaveBeenCalled();
+});
+
+test('view controller focuses clicked element path and bubbles keyboard events through it', () => {
+    const controller = new ViewController();
+    const fakeWindowScope = installFakeWindow();
+    const child = { id: 'child' } as any;
+    const parent = { id: 'parent' } as any;
+
+    installInteractiveSurface(controller, [child, parent]);
+
+    const focused = jest.fn();
+    const keyDownElement = jest.fn();
+
+    controller.elementFocused.add(focused);
+    controller.keyDownElement.add(keyDownElement);
+
+    controller.onCanvasMouseDown({ clientX: 10, clientY: 12 } as any);
+
+    expect(controller.focusedElement).toBe(child);
+    expect(controller.focusedPath).toEqual([child, parent]);
+    expect(focused.mock.calls).toEqual([
+        [controller, parent],
+        [controller, child],
+    ]);
+
+    const event = { key: 'Enter' } as KeyboardEvent;
+    expect(controller.onCanvasKeyDown(event)).toBe(true);
+    expect(keyDownElement.mock.calls).toEqual([
+        [controller, expect.objectContaining({ event, element: child })],
+        [controller, expect.objectContaining({ event, element: parent })],
+    ]);
+
+    fakeWindowScope.restore();
+});
+
+test('view controller background click clears focused path and emits blur', () => {
+    const controller = new ViewController();
+    const fakeWindowScope = installFakeWindow();
+    const child = { id: 'child' } as any;
+    const parent = { id: 'parent' } as any;
+
+    installInteractiveSurface(controller, [child, parent]);
+    controller.onCanvasMouseDown({ clientX: 10, clientY: 12 } as any);
+
+    (controller.model as any).activeElementPathAt = jest.fn(() => []);
+    (controller.model as any).firstActiveElementAt = jest.fn(() => undefined);
+    const blurred = jest.fn();
+    controller.elementBlurred.add(blurred);
+
+    controller.onCanvasMouseDown({ clientX: 22, clientY: 18 } as any);
+
+    expect(controller.focusedElement).toBeUndefined();
+    expect(controller.focusedPath).toEqual([]);
+    expect(blurred.mock.calls).toEqual([
+        [controller, child],
+        [controller, parent],
+    ]);
+
+    fakeWindowScope.restore();
+});
+
 test('view controller delayed mouse down sets pending element after timer', () => {
     jest.useFakeTimers();
 
