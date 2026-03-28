@@ -14,6 +14,7 @@ import { Point } from '../../core/point';
 import { Region } from '../../core/region';
 import { Handle } from '../../design/handle';
 import { HandleMovedArgs } from '../../design/handle-moved-args';
+import { GridType } from '../../design/grid-type';
 import { RectangleTool } from '../../design/tools/rectangle-tool';
 import { BitmapResource } from '../../resource/bitmap-resource';
 
@@ -217,6 +218,7 @@ function createOverlayContext() {
         lineTo: jest.fn(),
         stroke: jest.fn(),
         arc: jest.fn(),
+        fill: jest.fn(),
         fillText: jest.fn(),
         strokeText: jest.fn(),
         setLineDash: jest.fn(),
@@ -1605,6 +1607,74 @@ describe('design controller interaction indicators', () => {
         expect(context.fillText).toHaveBeenCalledWith('w 30 h 40', expect.any(Number), expect.any(Number));
     });
 
+    test('draw renders contrast-friendly line grid at the configured spacing', () => {
+        const controller = new DesignController();
+        const model = Model.create(20, 20);
+        const context = createOverlayContext();
+        const strokeStyles: string[] = [];
+        let currentStrokeStyle = '';
+
+        Object.defineProperty(context, 'strokeStyle', {
+            configurable: true,
+            get: () => currentStrokeStyle,
+            set: (value: string) => {
+                currentStrokeStyle = value;
+                strokeStyles.push(value);
+            },
+        });
+
+        installDrawCanvas(controller, context);
+        controller.model = model;
+        controller.renderer = { renderToContext: jest.fn() } as never;
+        controller.gridType = GridType.Lines;
+        controller.gridSpacing = 10;
+        controller.gridColor = 'Red';
+
+        jest.spyOn(controller, 'getElementHandles').mockReturnValue([]);
+
+        controller.draw();
+
+        expect(strokeStyles).toContain('rgb(255,255,255)');
+        expect(strokeStyles).toContain('rgb(255,0,0)');
+        expect(context.stroke).toHaveBeenCalledTimes(2);
+        expect(context.moveTo).toHaveBeenCalledWith(10, 0);
+        expect(context.lineTo).toHaveBeenCalledWith(10, 20);
+        expect(context.moveTo).toHaveBeenCalledWith(0, 10);
+        expect(context.lineTo).toHaveBeenCalledWith(20, 10);
+    });
+
+    test('draw renders white-backed black dots for dot grid visibility', () => {
+        const controller = new DesignController();
+        const model = Model.create(20, 20);
+        const context = createOverlayContext();
+        const fillStyles: string[] = [];
+        let currentFillStyle = '';
+
+        Object.defineProperty(context, 'fillStyle', {
+            configurable: true,
+            get: () => currentFillStyle,
+            set: (value: string) => {
+                currentFillStyle = value;
+                fillStyles.push(value);
+            },
+        });
+
+        installDrawCanvas(controller, context);
+        controller.model = model;
+        controller.renderer = { renderToContext: jest.fn() } as never;
+        controller.gridType = GridType.Dots;
+        controller.gridSpacing = 10;
+
+        jest.spyOn(controller, 'getElementHandles').mockReturnValue([]);
+
+        controller.draw();
+
+        expect(fillStyles).toContain('rgb(255,255,255)');
+        expect(fillStyles).toContain('rgb(0,0,0)');
+        expect(context.arc).toHaveBeenCalledWith(10, 10, expect.any(Number), 0, Math.PI * 2);
+        expect(context.fill).toHaveBeenCalled();
+    });
+
     test('draw shows resize indicator with updated size', () => {
         const controller = new DesignController();
         const model = Model.create(100, 100);
@@ -1724,6 +1794,26 @@ describe('design controller interaction indicators', () => {
 
         expect(verticalSpy).toHaveBeenCalledWith(context, smartAligned.guides.vertical[0]);
         expect(horizontalSpy).toHaveBeenCalledWith(context, smartAligned.guides.horizontal[0]);
+    });
+
+    test('dragging a selected element snaps move preview to the grid', () => {
+        const controller = new DesignController();
+        const model = Model.create(200, 200);
+        const element = RectangleElement.create(13, 17, 20, 15).setInteractive(true);
+
+        model.add(element);
+        installInteractiveCanvas(controller);
+        controller.setModel(model);
+        controller.selectedElements = [element];
+        controller.snapToGrid = true;
+        controller.gridSpacing = 10;
+        controller.isMoving = true;
+        controller.isMouseDown = true;
+        controller.mouseDownPosition = new Point(13, 17);
+
+        controller.onCanvasMouseMove({ button: 0, clientX: 21, clientY: 23, shiftKey: false, ctrlKey: false, metaKey: false });
+
+        expect(controller.getElementMoveLocation(element)).toMatchObject({ x: 20, y: 20 });
     });
 
     test('draw shows point drag indicator with point coordinates', () => {
