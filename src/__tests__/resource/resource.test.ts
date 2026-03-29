@@ -35,6 +35,42 @@ test('bitmap resource clone', () => {
     expect(cloned.uri).toBe('/images/logo.png');
 });
 
+test('bitmap resource load sets anonymous cross origin before src assignment', () => {
+    const originalImage = globalThis.Image;
+    const operations: string[] = [];
+
+    class FakeImage {
+        public crossOrigin: string | null = null;
+        public onload?: (_e: unknown) => void;
+        public onabort?: (_e: unknown) => void;
+        public onerror?: (_e: unknown) => void;
+        private _src?: string;
+
+        public set src(value: string) {
+            operations.push('src:' + value + ':crossOrigin=' + this.crossOrigin);
+            this._src = value;
+        }
+
+        public get src(): string {
+            return this._src || '';
+        }
+    }
+
+    (globalThis as typeof globalThis & { Image: typeof Image }).Image = FakeImage as unknown as typeof Image;
+
+    try {
+        const res = BitmapResource.create('logo', '/images/logo.png');
+        res.load('https://cdn.example.com/logo.png', () => undefined);
+
+        expect(res.image).toBeDefined();
+        expect((res.image as unknown as FakeImage).crossOrigin).toBe('anonymous');
+        expect(operations).toEqual(['src:https://cdn.example.com/logo.png:crossOrigin=anonymous']);
+    }
+    finally {
+        (globalThis as typeof globalThis & { Image: typeof Image }).Image = originalImage;
+    }
+});
+
 test('bitmap resource matching', () => {
     const res = BitmapResource.create('logo', '/images/logo.png', 'en-US');
     expect(res.matchesFull('logo', 'en-US')).toBe(true);

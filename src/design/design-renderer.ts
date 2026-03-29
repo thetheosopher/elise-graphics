@@ -326,6 +326,7 @@ export class DesignRenderer {
         if (rectangle.transform) {
             model.setRenderTransform(c, rectangle.transform, location);
         }
+        rectangle.applyRenderOpacity(c);
         if (FillFactory.setElementFill(c, rectangle)) {
             if (rectangle.fillOffsetX || rectangle.fillOffsetY) {
                 const fillOffsetX = rectangle.fillOffsetX || 0;
@@ -409,6 +410,7 @@ export class DesignRenderer {
         if (line.transform) {
             model.setRenderTransform(c, line.transform, location);
         }
+        line.applyRenderOpacity(c);
         c.beginPath();
         c.moveTo(p1x + offsetX, p1y + offsetY);
         c.lineTo(p2x + offsetX, p2y + offsetY);
@@ -462,6 +464,7 @@ export class DesignRenderer {
         if (polyline.transform) {
             model.setRenderTransform(c, polyline.transform, location);
         }
+        polyline.applyRenderOpacity(c);
         c.beginPath();
         if (movingPointIndex === 0 && movingPointLocation) {
             c.moveTo(movingPointLocation.x, movingPointLocation.y);
@@ -563,6 +566,7 @@ export class DesignRenderer {
         if (polygon.transform) {
             model.setRenderTransform(c, polygon.transform, location);
         }
+        polygon.applyRenderOpacity(c);
         c.beginPath();
         if (movingPointIndex === 0 && movingPointLocation) {
             c.moveTo(movingPointLocation.x, movingPointLocation.y);
@@ -660,6 +664,7 @@ export class DesignRenderer {
         if (pathElement.transform) {
             model.setRenderTransform(c, pathElement.transform, location);
         }
+        pathElement.applyRenderOpacity(c);
         c.beginPath();
         const commands = pathElement.getCommands();
         if (commands) {
@@ -803,6 +808,7 @@ export class DesignRenderer {
                 model.setRenderTransform(c, ellipse.transform, ref);
             }
         }
+        ellipse.applyRenderOpacity(c);
         const scaleY = radiusY / radiusX;
         c.save();
         c.beginPath();

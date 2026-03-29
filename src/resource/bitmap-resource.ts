@@ -106,6 +106,7 @@ export class BitmapResource extends Resource {
      */
     public load(url: string, callback: (result: boolean) => void): void {
         const image = new Image();
+        image.crossOrigin = 'anonymous';
         this.image = image;
         if (this.resourceManager && this.resourceManager.urlProxy) {
             this.resourceManager.urlProxy.getUrl(url, (success, proxyUrl) => {

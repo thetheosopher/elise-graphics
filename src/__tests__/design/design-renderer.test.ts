@@ -1,6 +1,7 @@
 import { DesignRenderer } from '../../design/design-renderer';
 import { Point } from '../../core/point';
 import { Size } from '../../core/size';
+import { PolylineElement } from '../../elements/polyline-element';
 import { RectangleElement } from '../../elements/rectangle-element';
 import { FillFactory } from '../../fill/fill-factory';
 import type { IDesignController } from '../../design/design-controller-interface';
@@ -53,7 +54,12 @@ function createContext(): CanvasRenderingContext2D {
         strokeText: jest.fn(),
         drawImage: jest.fn(),
         globalAlpha: 1,
+        globalCompositeOperation: 'source-over',
         filter: 'none',
+        shadowColor: 'transparent',
+        shadowBlur: 0,
+        shadowOffsetX: 0,
+        shadowOffsetY: 0,
         textAlign: 'left',
         textBaseline: 'top',
         font: '',
@@ -189,6 +195,7 @@ describe('design renderer', () => {
         };
 
         const pathElement = {
+            applyRenderOpacity: jest.fn(),
             model,
             getBounds: jest.fn(() => bounds),
             getLocation: jest.fn(() => new Point(0, 0)),
@@ -233,6 +240,7 @@ describe('design renderer', () => {
         };
 
         const pathElement = {
+            applyRenderOpacity: jest.fn(),
             model,
             getBounds: jest.fn(() => bounds),
             getLocation: jest.fn(() => new Point(0, 0)),
@@ -260,6 +268,7 @@ describe('design renderer', () => {
         };
 
         const pathElement = {
+            applyRenderOpacity: jest.fn(),
             model,
             fillOffsetX: 2,
             fillOffsetY: 5,
@@ -280,6 +289,49 @@ describe('design renderer', () => {
         expect(c.translate).toHaveBeenNthCalledWith(1, 9, 14);
         expect(c.fill).toHaveBeenCalledWith('nonzero');
         expect(c.translate).toHaveBeenNthCalledWith(2, -9, -14);
+    });
+
+    test('renderPolylineElement applies shared render state before stroke', () => {
+        const renderer = new DesignRenderer(createController());
+        const c = createContext();
+
+        const polyline = PolylineElement.create().setPoints([
+            new Point(0, 0),
+            new Point(10, 10),
+            new Point(20, 0),
+        ]);
+        polyline.opacity = 0.5;
+        polyline.filter = 'blur(2px)';
+        polyline.blendMode = 'multiply';
+        polyline.shadow = {
+            color: '#224466',
+            blur: 6,
+            offsetX: 3,
+            offsetY: 4,
+        };
+        polyline.model = {
+            resourceManager: {
+                get: jest.fn(),
+            },
+            add: jest.fn(() => 0),
+            getSize: jest.fn(() => new Size(100, 100)),
+            getFillScale: jest.fn(() => ({ rx: 1, ry: 1 })),
+            setElementStroke: jest.fn(() => true),
+            setRenderTransform: jest.fn(),
+        };
+        const applyRenderOpacitySpy = jest.spyOn(polyline, 'applyRenderOpacity');
+
+        renderer.renderPolylineElement(c, polyline as never);
+
+        expect(applyRenderOpacitySpy).toHaveBeenCalledWith(c);
+        expect(c.globalAlpha).toBe(0.5);
+        expect(c.filter).toBe('blur(2px)');
+        expect(c.globalCompositeOperation).toBe('multiply');
+        expect(c.shadowBlur).toBe(6);
+        expect(c.shadowOffsetX).toBe(3);
+        expect(c.shadowOffsetY).toBe(4);
+        expect(polyline.model.setElementStroke).toHaveBeenCalledWith(c, polyline);
+        expect(c.stroke).toHaveBeenCalledTimes(1);
     });
 
     test('renderToContext throws when controller model is missing', () => {
