@@ -108,7 +108,6 @@ export class Sketcher {
         }
         self.context = context;
         self.controller.model.context = self.context;
-        self.controller.renderer.beginRender(self.context, self.controller.scale);
 
         // Set up timer to add elements from source model to draw model
         self.elementCount = self.sourceModel.elements.length;
@@ -152,10 +151,6 @@ export class Sketcher {
         ) {
             return;
         }
-        if (sketcher.scale !== undefined && sketcher.scale !== 1) {
-            sketcher.context.resetTransform();
-            sketcher.context.scale(sketcher.scale, sketcher.scale);
-        }
         if (sketcher.elementIndex >= sketcher.elementCount || sketcher.elementIndex < 0) {
             if (sketcher.passIndex === 1) {
                 if (sketcher.repeat) {
@@ -165,7 +160,14 @@ export class Sketcher {
                     sketcher.timerHandle = setTimeout(this.drawNextElement, sketcher.repeatDelay, sketcher);
                 }
                 else {
-                    sketcher.controller.renderer.endRender(sketcher.context);
+                    sketcher.context.save();
+                    sketcher.controller.applyRenderViewport(sketcher.context);
+                    sketcher.controller.renderer.applyRenderState(
+                        sketcher.context,
+                        sketcher.controller.scale * sketcher.scale,
+                    );
+                    sketcher.controller.renderer.renderModelStroke(sketcher.context);
+                    sketcher.context.restore();
                     sketcher.context = undefined;
                     if (this.sketchDone.hasListeners()) {
                         this.sketchDone.trigger(true);
@@ -179,69 +181,84 @@ export class Sketcher {
             }
         }
         else {
-            if (sketcher.passIndex === 0 && sketcher.elementIndex === 0) {
-                const size = sketcher.controller.model.getSize();
-                if (size !== undefined) {
-                    const w = size.width;
-                    const h = size.height;
-                    if (FillFactory.setElementFill(sketcher.context, sketcher.controller.model)) {
-                        sketcher.context.fillRect(0, 0, w, h);
-                    }
-                    else {
-                        sketcher.context.clearRect(0, 0, w, h);
-                    }
-                }
-            }
+            sketcher.context.save();
+            try {
+                sketcher.controller.applyRenderViewport(
+                    sketcher.context,
+                    sketcher.passIndex === 0 && sketcher.elementIndex === 0,
+                );
+                sketcher.controller.renderer.applyRenderState(
+                    sketcher.context,
+                    sketcher.controller.scale * sketcher.scale,
+                );
 
-            const els = sketcher.sourceModel.elements;
-            const batchSize = sketcher.passIndex === 0 ? this.strokeBatchSize : this.fillBatchSize;
-            for (let i = 0; i < batchSize; i++) {
-                // Get next element from source model
-                const el = els[sketcher.elementIndex];
-                const isFillable = el.type === 'path' || el.type === 'polygon';
-                if (!el) {
-                    return;
-                }
-
-                // If first pass, draw outline
-                if (sketcher.passIndex === 0) {
-                    const elc = el.clone();
-                    if (isFillable) {
-                        const fillInfo = FillInfo.getFillInfo(el);
-                        if (fillInfo && fillInfo.type === 'color' && fillInfo.color) {
-                            const color = Color.parse(fillInfo.color);
-                            elc.setFill('#FFFFFF');
-                            if (this.sketchColor) {
-                                const strokeColor = new Color(this.strokeOpacity, color.r, color.g, color.b);
-                                elc.setStroke(strokeColor.toHexString());
-                            }
-                            else {
-                                const grayColor = this.clampColor(0.21 * color.r + 0.72 * color.g + 0.07 * color.b);
-                                const strokeColor = new Color(this.strokeOpacity, grayColor, grayColor, grayColor);
-                                elc.setStroke(strokeColor.toHexString());
-                            }
+                if (sketcher.passIndex === 0 && sketcher.elementIndex === 0) {
+                    const size = sketcher.controller.model.getSize();
+                    if (size !== undefined) {
+                        const w = size.width;
+                        const h = size.height;
+                        if (FillFactory.setElementFill(sketcher.context, sketcher.controller.model)) {
+                            sketcher.context.fillRect(0, 0, w, h);
+                        }
+                        else {
+                            sketcher.context.clearRect(0, 0, w, h);
                         }
                     }
-                    sketcher.drawModel.add(elc);
-                    sketcher.controller.renderer.renderElement(sketcher.context, elc);
-                }
-                else {
-                    // On second pass, replace fill and erase stroke
-                    const elc = sketcher.drawModel.elements[sketcher.elementIndex];
-                    if (isFillable) {
-                        elc.setFill(el.fill);
-                        elc.setStroke(undefined);
-                    }
-                    sketcher.controller.renderer.renderElement(sketcher.context, elc);
                 }
 
-                sketcher.elementIndex++;
-                if (sketcher.elementIndex >= sketcher.elementCount || sketcher.elementIndex < 0) {
-                    break;
+                const els = sketcher.sourceModel.elements;
+                const batchSize = sketcher.passIndex === 0 ? this.strokeBatchSize : this.fillBatchSize;
+                for (let i = 0; i < batchSize; i++) {
+                    // Get next element from source model
+                    const el = els[sketcher.elementIndex];
+                    if (!el) {
+                        return;
+                    }
+                    const isFillable = el.type === 'path' || el.type === 'polygon';
+
+                    // If first pass, draw outline
+                    if (sketcher.passIndex === 0) {
+                        const elc = el.clone();
+                        if (isFillable) {
+                            const fillInfo = FillInfo.getFillInfo(el);
+                            if (fillInfo && fillInfo.type === 'color' && fillInfo.color) {
+                                const color = Color.parse(fillInfo.color);
+                                elc.setFill('#FFFFFF');
+                                if (this.sketchColor) {
+                                    const strokeColor = new Color(this.strokeOpacity, color.r, color.g, color.b);
+                                    elc.setStroke(strokeColor.toHexString());
+                                }
+                                else {
+                                    const grayColor = this.clampColor(0.21 * color.r + 0.72 * color.g + 0.07 * color.b);
+                                    const strokeColor = new Color(this.strokeOpacity, grayColor, grayColor, grayColor);
+                                    elc.setStroke(strokeColor.toHexString());
+                                }
+                            }
+                        }
+                        sketcher.drawModel.add(elc);
+                        sketcher.controller.renderer.renderElement(sketcher.context, elc);
+                    }
+                    else {
+                        // On second pass, replace fill and erase stroke
+                        const elc = sketcher.drawModel.elements[sketcher.elementIndex];
+                        if (isFillable) {
+                            elc.setFill(el.fill);
+                            elc.setStroke(undefined);
+                        }
+                        sketcher.controller.renderer.renderElement(sketcher.context, elc);
+                    }
+
+                    sketcher.elementIndex++;
+                    if (sketcher.elementIndex >= sketcher.elementCount || sketcher.elementIndex < 0) {
+                        break;
+                    }
+                }
+                if (sketcher.controller) {
+                    sketcher.timerHandle = setTimeout(this.drawNextElement, sketcher.timerDelay, sketcher);
                 }
             }
-            if (sketcher.controller) {
-                sketcher.timerHandle = setTimeout(this.drawNextElement, sketcher.timerDelay, sketcher);
+            finally {
+                sketcher.context.restore();
             }
         }
     }

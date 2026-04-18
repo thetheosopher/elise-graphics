@@ -15,6 +15,7 @@ import { PolygonElement } from '../elements/polygon-element';
 import { PolylineElement } from '../elements/polyline-element';
 import { RectangleElement } from '../elements/rectangle-element';
 import { TextElement, type TextRun } from '../elements/text-element';
+import { TextPathElement } from '../elements/text-path-element';
 import { Color } from '../core/color';
 import { FillInfo } from '../fill/fill-info';
 import { LinearGradientFill } from '../fill/linear-gradient-fill';
@@ -27,6 +28,7 @@ type SVGExportContext = {
     nextGradientId: number;
     nextClipPathId: number;
     nextSymbolId: number;
+    nextTextPathId: number;
     symbols: Record<string, string>;
 };
 
@@ -50,6 +52,7 @@ export class SVGExporter {
             nextGradientId: 1,
             nextClipPathId: 1,
             nextSymbolId: 1,
+            nextTextPathId: 1,
             symbols: {},
         };
 
@@ -246,6 +249,10 @@ export class SVGExporter {
             const attributes = ['points="' + SVGExporter.escapeAttribute(SVGExporter.pointsToString(points)) + '"'];
             SVGExporter.pushCommonAttributes(attributes, element, context, element.getLocation(), false, true);
             return '<polyline ' + attributes.join(' ') + ' />';
+        }
+
+        if (element instanceof TextPathElement) {
+            return SVGExporter.exportTextPathElement(element, context);
         }
 
         if (element instanceof TextElement) {
@@ -548,6 +555,67 @@ export class SVGExporter {
         return '<text ' + attributes.join(' ') + '>' + tspans.join('') + '</text>';
     }
 
+    private static exportTextPathElement(element: TextPathElement, context: SVGExportContext): string {
+        const pathCommands = element.getPathCommands();
+        const text = SVGExporter.resolveTextContent(element);
+        const runs = element.getResolvedTextRuns();
+        const bounds = element.getBounds();
+        if (!pathCommands || pathCommands.length === 0 || !text || runs.length === 0 || !bounds) {
+            return '';
+        }
+
+        const pathId = 'elise-text-path-' + context.nextTextPathId++;
+        context.defs.push('<path id="' + pathId + '" d="' + SVGExporter.escapeAttribute(SVGExporter.exportPathDataFromCommands(pathCommands)) + '" />');
+
+        const attributes = ['xml:space="preserve"'];
+        if (element.typeface) {
+            attributes.push('font-family="' + SVGExporter.escapeAttribute(element.typeface) + '"');
+        }
+        if (element.typesize !== undefined) {
+            attributes.push('font-size="' + SVGExporter.formatNumber(element.typesize) + '"');
+        }
+        if (element.typestyle) {
+            SVGExporter.pushTextStyleAttributes(attributes, element.typestyle);
+        }
+        SVGExporter.pushTextExtensionAttributes(attributes, element.letterSpacing, element.textDecoration, undefined);
+        SVGExporter.pushCommonAttributes(attributes, element, context, bounds.location, false);
+
+        const textPathAttributes = ['href="#' + pathId + '"'];
+        if (element.startOffset !== 0) {
+            const startOffset = element.startOffsetPercent
+                ? SVGExporter.formatNumber(element.startOffset) + '%'
+                : SVGExporter.formatNumber(element.startOffset);
+            textPathAttributes.push('startOffset="' + SVGExporter.escapeAttribute(startOffset) + '"');
+        }
+        if (element.side === 'right') {
+            textPathAttributes.push('side="right"');
+        }
+
+        const normalizedText = text.replace(/\r\n?/g, '\n').replace(/\n/g, ' ');
+        const content = !element.richText || element.richText.length === 0
+            ? SVGExporter.escapeText(normalizedText)
+            : SVGExporter.exportTextPathRunsAsTspans(element, runs).join('');
+        const textMarkup = '<text ' + attributes.join(' ') + '><textPath ' + textPathAttributes.join(' ') + '>' + content + '</textPath></text>';
+
+        if (!element.showPath) {
+            return textMarkup;
+        }
+
+        const guidePathAttributes = [
+            'd="' + SVGExporter.escapeAttribute(SVGExporter.exportPathDataFromCommands(pathCommands)) + '"',
+            'fill="none"',
+        ];
+        SVGExporter.pushContainerAttributes(guidePathAttributes, {
+            opacity: element.opacity,
+            visible: element.visible,
+            transform: element.transform,
+            clipPath: element.clipPath,
+            filter: element.filter,
+        }, bounds.location, context);
+        SVGExporter.pushStrokeAttributes(guidePathAttributes, element);
+        return '<path ' + guidePathAttributes.join(' ') + ' />' + textMarkup;
+    }
+
     private static pushTextStyleAttributes(attributes: string[], typestyle: string): void {
         const parts = typestyle.split(',').map((part) => part.trim().toLowerCase());
         if (parts.indexOf('italic') !== -1) {
@@ -629,6 +697,30 @@ export class SVGExporter {
             }
         }
 
+        return tspans;
+    }
+
+    private static exportTextPathRunsAsTspans(element: TextPathElement, runs: TextRun[]): string[] {
+        const tspans: string[] = [];
+        for (const run of runs) {
+            const content = run.text.replace(/\r\n?/g, '\n').replace(/\n/g, ' ');
+            const attributes: string[] = [];
+            if (run.typeface && run.typeface !== element.typeface) {
+                attributes.push('font-family="' + SVGExporter.escapeAttribute(run.typeface) + '"');
+            }
+            if (run.typesize !== undefined && run.typesize !== element.typesize) {
+                attributes.push('font-size="' + SVGExporter.formatNumber(run.typesize) + '"');
+            }
+            if (run.typestyle && run.typestyle !== element.typestyle) {
+                SVGExporter.pushTextStyleAttributes(attributes, run.typestyle);
+            }
+            SVGExporter.pushTextExtensionAttributes(
+                attributes,
+                run.letterSpacing !== undefined && run.letterSpacing !== element.letterSpacing ? run.letterSpacing : undefined,
+                run.decoration !== undefined && run.decoration !== element.textDecoration ? run.decoration : undefined,
+            );
+            tspans.push('<tspan ' + attributes.join(' ') + '>' + SVGExporter.escapeText(content) + '</tspan>');
+        }
         return tspans;
     }
 
@@ -863,7 +955,7 @@ export class SVGExporter {
         return commands.join(' ');
     }
 
-    private static resolveTextContent(element: TextElement): string | undefined {
+    private static resolveTextContent(element: { getResolvedText(): string | undefined }): string | undefined {
         return element.getResolvedText();
     }
 

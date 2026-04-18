@@ -18,6 +18,7 @@ import { RectangleElement } from '../elements/rectangle-element';
 import { RingElement } from '../elements/ring-element';
 import { SpriteElement } from '../elements/sprite-element';
 import { TextElement } from '../elements/text-element';
+import { TextPathElement } from '../elements/text-path-element';
 import { WedgeElement } from '../elements/wedge-element';
 import { tracePathCommands } from '../elements/path-command-utils';
 import { FillFactory } from '../fill/fill-factory';
@@ -56,6 +57,7 @@ export class DesignRenderer {
         this.renderRingElement = this.renderRingElement.bind(this);
         this.renderEllipseElement = this.renderEllipseElement.bind(this);
         this.renderTextElement = this.renderTextElement.bind(this);
+        this.renderTextPathElement = this.renderTextPathElement.bind(this);
         this.renderModelElement = this.renderModelElement.bind(this);
 
         this.controller = controller;
@@ -183,6 +185,10 @@ export class DesignRenderer {
 
             case 'text':
                 this.renderTextElement(c, el as TextElement);
+                break;
+
+            case 'textPath':
+                this.renderTextPathElement(c, el as TextPathElement);
                 break;
         }
     }
@@ -861,6 +867,15 @@ export class DesignRenderer {
             size = this.controller.getElementResizeSize(textElement);
         }
         textElement.renderText(c, location, size);
+    }
+
+    /**
+     * Renders a text path element to canvas 2d context
+     * @param c - Rendering context
+     * @param textPathElement - Text path element to render
+     */
+    public renderTextPathElement(c: CanvasRenderingContext2D, textPathElement: TextPathElement) {
+        this.renderEditablePrimitive(c, textPathElement);
     }
 
     /**

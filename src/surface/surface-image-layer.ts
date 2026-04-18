@@ -1,5 +1,6 @@
 import { CommonEvent } from '../core/common-event';
 import { ErrorMessages } from '../core/error-messages';
+import type { SerializedData } from '../core/serialization';
 import { Surface } from './surface';
 import { SurfaceLayer } from './surface-layer';
 
@@ -184,6 +185,28 @@ export class SurfaceImageLayer extends SurfaceLayer {
     public addTo(surface: Surface) {
         surface.layers.push(this);
         return this;
+    }
+
+    /**
+     * Serializes persistent image layer properties to a new object
+     * @returns Serialized image layer data
+     */
+    public serialize(): SerializedData {
+        const o = super.serialize();
+        o.type = 'surfaceImage';
+        o.source = this.source;
+        return o;
+    }
+
+    /**
+     * Parses serialized data into image layer properties
+     * @param o - Serialized image layer data
+     */
+    public parse(o: SerializedData): void {
+        super.parse(o);
+        if (o.source !== undefined) {
+            this.source = o.source as string;
+        }
     }
 
     public onload(): void {}

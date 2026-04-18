@@ -274,6 +274,15 @@ export class ElementBase implements IPointContainer {
         this.setMiterLimit = this.setMiterLimit.bind(this);
         this.setTransform = this.setTransform.bind(this);
         this.setVisible = this.setVisible.bind(this);
+        this.setId = this.setId.bind(this);
+        this.setLocked = this.setLocked.bind(this);
+        this.setAspectLocked = this.setAspectLocked.bind(this);
+        this.setMouseDown = this.setMouseDown.bind(this);
+        this.setMouseUp = this.setMouseUp.bind(this);
+        this.setMouseEnter = this.setMouseEnter.bind(this);
+        this.setMouseLeave = this.setMouseLeave.bind(this);
+        this.setClick = this.setClick.bind(this);
+        this.setTimer = this.setTimer.bind(this);
         this.applyRenderOpacity = this.applyRenderOpacity.bind(this);
         this.applyRenderShadow = this.applyRenderShadow.bind(this);
         this.applyRenderBlendMode = this.applyRenderBlendMode.bind(this);
@@ -1262,6 +1271,111 @@ export class ElementBase implements IPointContainer {
      */
     public setVisible(visible: boolean) {
         this.visible = visible;
+        return this;
+    }
+
+    /**
+     * Sets element ID.
+     * @param id - Element identifier
+     * @returns This element
+     */
+    public setId(id: string | undefined) {
+        this.id = id;
+        return this;
+    }
+
+    /**
+     * Sets whether element is locked from moving/sizing.
+     * @param locked - Locked flag
+     * @returns This element
+     */
+    public setLocked(locked: boolean) {
+        this.locked = locked;
+        return this;
+    }
+
+    /**
+     * Sets whether element maintains aspect ratio during resizing.
+     * @param aspectLocked - Aspect lock flag
+     * @returns This element
+     */
+    public setAspectLocked(aspectLocked: boolean) {
+        this.aspectLocked = aspectLocked;
+        return this;
+    }
+
+    /**
+     * Sets mouse down command handler tag.
+     * @param handler - Command handler tag
+     * @returns This element
+     */
+    public setMouseDown(handler: string | undefined) {
+        this.mouseDown = handler;
+        if (handler) {
+            this.interactive = true;
+        }
+        return this;
+    }
+
+    /**
+     * Sets mouse up command handler tag.
+     * @param handler - Command handler tag
+     * @returns This element
+     */
+    public setMouseUp(handler: string | undefined) {
+        this.mouseUp = handler;
+        if (handler) {
+            this.interactive = true;
+        }
+        return this;
+    }
+
+    /**
+     * Sets mouse enter command handler tag.
+     * @param handler - Command handler tag
+     * @returns This element
+     */
+    public setMouseEnter(handler: string | undefined) {
+        this.mouseEnter = handler;
+        if (handler) {
+            this.interactive = true;
+        }
+        return this;
+    }
+
+    /**
+     * Sets mouse leave command handler tag.
+     * @param handler - Command handler tag
+     * @returns This element
+     */
+    public setMouseLeave(handler: string | undefined) {
+        this.mouseLeave = handler;
+        if (handler) {
+            this.interactive = true;
+        }
+        return this;
+    }
+
+    /**
+     * Sets click command handler tag.
+     * @param handler - Command handler tag
+     * @returns This element
+     */
+    public setClick(handler: string | undefined) {
+        this.click = handler;
+        if (handler) {
+            this.interactive = true;
+        }
+        return this;
+    }
+
+    /**
+     * Sets timer command handler tag.
+     * @param handler - Command handler tag
+     * @returns This element
+     */
+    public setTimer(handler: string | undefined) {
+        this.timer = handler;
         return this;
     }
 

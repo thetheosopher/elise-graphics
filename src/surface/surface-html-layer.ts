@@ -1,4 +1,5 @@
 import { ErrorMessages } from '../core/error-messages';
+import type { SerializedData } from '../core/serialization';
 import { Surface } from './surface';
 import { SurfaceLayer } from './surface-layer';
 
@@ -222,5 +223,52 @@ export class SurfaceHtmlLayer extends SurfaceLayer {
     public addTo(surface: Surface) {
         surface.layers.push(this);
         return this;
+    }
+
+    /**
+     * Serializes persistent HTML layer properties to a new object
+     * @returns Serialized HTML layer data
+     */
+    public serialize(): SerializedData {
+        const o = super.serialize();
+        o.type = 'surfaceHtml';
+        o.source = this.source;
+        if (this.scrolling !== 'auto') {
+            o.scrolling = this.scrolling;
+        }
+        if (!this.sandbox) {
+            o.sandbox = this.sandbox;
+        }
+        const defaultPermissions = ['allow-forms', 'allow-popups', 'allow-scripts'];
+        if (JSON.stringify(this.sandboxPermissions) !== JSON.stringify(defaultPermissions)) {
+            o.sandboxPermissions = this.sandboxPermissions.slice();
+        }
+        if (!this.scaleContent) {
+            o.scaleContent = this.scaleContent;
+        }
+        return o;
+    }
+
+    /**
+     * Parses serialized data into HTML layer properties
+     * @param o - Serialized HTML layer data
+     */
+    public parse(o: SerializedData): void {
+        super.parse(o);
+        if (o.source !== undefined) {
+            this.source = o.source as string;
+        }
+        if (o.scrolling !== undefined) {
+            this.scrolling = o.scrolling as string;
+        }
+        if (o.sandbox !== undefined) {
+            this.sandbox = o.sandbox as boolean;
+        }
+        if (o.sandboxPermissions !== undefined) {
+            this.sandboxPermissions = (o.sandboxPermissions as string[]).slice();
+        }
+        if (o.scaleContent !== undefined) {
+            this.scaleContent = o.scaleContent as boolean;
+        }
     }
 }

@@ -333,22 +333,42 @@ abstract class ElementBase {
   sizeValue?: Size;
   locationValue?: Point;
   getLocation(): Point | undefined;
-  setLocation(location: Point): void;
+  setLocation(location: string | Point): ElementBase;
   getSize(): Size | undefined;
-  setSize(size: Size): void;
+  setSize(size: string | Size): ElementBase;
   getBounds(): Region | undefined;
-  translate(offsetX: number, offsetY: number): void;
-  scale(scaleX: number, scaleY: number): void;
-  nudgeSize(outX: number, outY: number): void;
+  translate(offsetX: number, offsetY: number): ElementBase;
+  scale(scaleX: number, scaleY: number): ElementBase;
+  nudgeSize(outX: number, outY: number): ElementBase;
 
   // Fluent Setters (return this)
-  setFill(fill: string | LinearGradientFill | RadialGradientFill): ElementBase;
-  setStroke(stroke: string): ElementBase;
+  setId(id: string | undefined): ElementBase;
+  setLocked(locked: boolean): ElementBase;
+  setAspectLocked(aspectLocked: boolean): ElementBase;
+  setFill(fill: string | Color | LinearGradientFill | RadialGradientFill | undefined): ElementBase;
+  setStroke(stroke: string | Color | undefined): ElementBase;
+  setStrokeDash(pattern: number[] | undefined): ElementBase;
+  setLineCap(value: CanvasLineCap | undefined): ElementBase;
+  setLineJoin(value: CanvasLineJoin | undefined): ElementBase;
+  setMiterLimit(value: number | undefined): ElementBase;
   setFillScale(fillScale: number): ElementBase;
   setFillOffsetX(fillOffsetX: number): ElementBase;
   setFillOffsetY(fillOffsetY: number): ElementBase;
   setInteractive(interactive: boolean): ElementBase;
+  setClipPath(clipPath: ElementClipPath | undefined): ElementBase;
+  setOpacity(opacity: number): ElementBase;
+  setShadow(shadow: ElementShadow | undefined): ElementBase;
+  setBlendMode(blendMode: ElementBlendMode | undefined): ElementBase;
+  setFilter(filter: ElementFilter | undefined | null): ElementBase;
   setTransform(transform: string): ElementBase;
+  setVisible(visible: boolean): ElementBase;
+  setMouseDown(handler: string | undefined): ElementBase;
+  setMouseUp(handler: string | undefined): ElementBase;
+  setMouseEnter(handler: string | undefined): ElementBase;
+  setMouseLeave(handler: string | undefined): ElementBase;
+  setClick(handler: string | undefined): ElementBase;
+  setTimer(handler: string | undefined): ElementBase;
+  setRotation(degrees: number, cx?: number, cy?: number): ElementBase;
 
   // Capabilities (override in subclasses)
   canStroke(): boolean;
@@ -388,6 +408,8 @@ abstract class ElementBase {
 class RectangleElement extends ElementBase {
   // Type: "rectangle"
   static create(x?: number, y?: number, width?: number, height?: number): RectangleElement;
+  setCornerRadius(radius: number): RectangleElement;
+  setCornerRadii(tl: number, tr?: number, br?: number, bl?: number): RectangleElement;
   // Capabilities: canStroke=true, canFill=true
 }
 ```
@@ -402,6 +424,10 @@ class EllipseElement extends ElementBase {
   center?: string;                                         // getter/setter, serialized as "x,y"
 
   static create(x?: number, y?: number, rx?: number, ry?: number): EllipseElement;
+  getCenter(): Point | undefined;
+  setCenter(center: string | Point | undefined): EllipseElement;
+  setRadiusX(radiusX: number): EllipseElement;
+  setRadiusY(radiusY: number): EllipseElement;
   // If ry omitted, defaults to rx (circle)
   // Capabilities: canStroke=true, canFill=true
 }
@@ -416,6 +442,10 @@ class LineElement extends ElementBase {
   p2?: string;                                             // getter/setter, serialized as "x,y"
 
   static create(x1?: number, y1?: number, x2?: number, y2?: number): LineElement;
+  getP1(): Point | undefined;
+  setP1(point: string | Point): LineElement;
+  getP2(): Point | undefined;
+  setP2(point: string | Point): LineElement;
   // Capabilities: canStroke=true, canFill=false, canResize=false, canMovePoint=true
   // pointCount=2, editable endpoints
 }
@@ -432,6 +462,7 @@ class PathElement extends ElementBase {
 
   add(command: string): PathElement;                       // Append command (e.g., "m10,20")
   setCommands(commands: string): PathElement;              // Set commands from a space-separated string
+  setWinding(winding: WindingMode): PathElement;
 
   // Capabilities: canStroke=true, canFill=true, canEditPoints=true
   // Commands: mX,Y lX,Y HX VY cCX1,CY1,CX2,CY2,X,Y SCP2X,CP2Y,X,Y QCX,CY,X,Y TX,Y ARX,RY,ROT,LARGE,SWEEP,X,Y z
@@ -457,6 +488,42 @@ Example using all command types:
 m10,10 H50 V30 c60,30,70,50,50,70 S40,90,20,70 T10,50 A10,10,0,0,1,30,30 z
 ```
 
+### ArcElement
+
+```typescript
+class ArcElement extends ElementBase {
+  // Type: "arc"
+  startAngle: number;
+  endAngle: number;
+
+  static create(x?: number, y?: number, width?: number, height?: number): ArcElement;
+
+  setStartAngle(startAngle: number): ArcElement;
+  setEndAngle(endAngle: number): ArcElement;
+
+  // Capabilities: canStroke=true, canFill=false, canEditPoints=true
+}
+```
+
+### ArrowElement
+
+```typescript
+class ArrowElement extends ElementBase {
+  // Type: "arrow"
+  headLengthScale: number;
+  headWidthScale: number;
+  shaftWidthScale: number;
+
+  static create(x?: number, y?: number, width?: number, height?: number): ArrowElement;
+
+  setHeadLengthScale(scale: number): ArrowElement;
+  setHeadWidthScale(scale: number): ArrowElement;
+  setShaftWidthScale(scale: number): ArrowElement;
+
+  // Capabilities: canStroke=true, canFill=true, canEditPoints=true
+}
+```
+
 ### PolygonElement
 
 ```typescript
@@ -469,6 +536,7 @@ class PolygonElement extends ElementBase {
 
   addPoint(point: Point): PolygonElement;
   setPoints(source: string | Point[]): PolygonElement;    // String format: "x,y x,y x,y"
+  setWinding(winding: WindingMode): PolygonElement;
   getPoints(): Point[] | undefined;
 
   // Capabilities: canStroke=true, canFill=true, canEditPoints=true
@@ -489,9 +557,61 @@ class PolylineElement extends ElementBase {
 
   addPoint(point: Point): PolylineElement;
   setPoints(source: string | Point[]): PolylineElement;   // String format: "x,y x,y x,y"
+  setSmoothPoints(smoothPoints: boolean): PolylineElement;
   getPoints(): Point[] | undefined;
 
   // Capabilities: canStroke=true, canFill=false, canEditPoints=true
+}
+```
+
+### RegularPolygonElement
+
+```typescript
+class RegularPolygonElement extends ElementBase {
+  // Type: "regularPolygon"
+  sides: number;
+  innerRadiusScale: number;
+  rotation: number;
+
+  static create(x?: number, y?: number, width?: number, height?: number): RegularPolygonElement;
+
+  setSides(sides: number): RegularPolygonElement;
+  setInnerRadiusScale(scale: number): RegularPolygonElement;
+  setShapeRotation(rotation: number): RegularPolygonElement;
+
+  // Capabilities: canStroke=true, canFill=true, canEditPoints=true
+}
+```
+
+### RingElement
+
+```typescript
+class RingElement extends ElementBase {
+  // Type: "ring"
+  innerRadiusScale: number;
+
+  static create(x?: number, y?: number, width?: number, height?: number): RingElement;
+
+  setInnerRadiusScale(scale: number): RingElement;
+
+  // Capabilities: canStroke=true, canFill=true, canEditPoints=true
+}
+```
+
+### WedgeElement
+
+```typescript
+class WedgeElement extends ElementBase {
+  // Type: "wedge"
+  startAngle: number;
+  endAngle: number;
+
+  static create(x?: number, y?: number, width?: number, height?: number): WedgeElement;
+
+  setStartAngle(startAngle: number): WedgeElement;
+  setEndAngle(endAngle: number): WedgeElement;
+
+  // Capabilities: canStroke=true, canFill=true, canEditPoints=true
 }
 ```
 
@@ -521,6 +641,8 @@ class TextElement extends ElementBase {
   setAlignment(alignment: string): TextElement;
   setLetterSpacing(letterSpacing: number): TextElement;
   setTextDecoration(decoration: string): TextElement;
+  setLineHeight(lineHeight: number | undefined): TextElement;
+  setRichText(richText: TextRun[]): TextElement;
 
   // Rich text helpers
   getResolvedText(): string;                               // Flattened text from richText or text/source
@@ -591,6 +713,7 @@ class ImageElement extends ElementBase {
 
   static create(source?: string | BitmapResource, x?: number, y?: number,
                 width?: number, height?: number): ImageElement;
+  setSource(source: string | undefined): ImageElement;
 
   // Capabilities: canStroke=true (outline), canFill=false
 }
@@ -607,6 +730,7 @@ class ModelElement extends ElementBase {
 
   static create(source?: string | ModelResource, x?: number, y?: number,
                 width?: number, height?: number): ModelElement;
+  setSource(source: string | undefined): ModelElement;
 
   // Scales inner model to fit element bounds
 }
@@ -625,6 +749,9 @@ class SpriteElement extends ElementBase {
   static create(x?: number, y?: number, width?: number, height?: number): SpriteElement;
 
   addFrame(frame: SpriteFrame): SpriteElement;
+  setFrames(frames: SpriteFrame[]): SpriteElement;
+  setLoop(loop: boolean): SpriteElement;
+  setFrameIndex(frameIndex: number): SpriteElement;
 }
 ```
 

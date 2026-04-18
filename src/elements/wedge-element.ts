@@ -30,6 +30,30 @@ export class WedgeElement extends PathBackedElementBase {
 
     constructor() {
         super('wedge');
+        this.setStartAngle = this.setStartAngle.bind(this);
+        this.setEndAngle = this.setEndAngle.bind(this);
+    }
+
+    /**
+     * Sets the start angle in degrees.
+     * @param startAngle - Start angle
+     * @returns This wedge element
+     */
+    public setStartAngle(startAngle: number) {
+        this.startAngle = startAngle;
+        this.bounds = undefined;
+        return this;
+    }
+
+    /**
+     * Sets the end angle in degrees.
+     * @param endAngle - End angle
+     * @returns This wedge element
+     */
+    public setEndAngle(endAngle: number) {
+        this.endAngle = endAngle;
+        this.bounds = undefined;
+        return this;
     }
 
     public parse(o: SerializedData): void {

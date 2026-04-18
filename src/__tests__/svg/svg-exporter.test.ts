@@ -13,6 +13,7 @@ import { RegularPolygonElement } from '../../elements/regular-polygon-element';
 import { RectangleElement } from '../../elements/rectangle-element';
 import { RingElement } from '../../elements/ring-element';
 import { TextElement } from '../../elements/text-element';
+import { TextPathElement } from '../../elements/text-path-element';
 import { WedgeElement } from '../../elements/wedge-element';
 import { LinearGradientFill } from '../../fill/linear-gradient-fill';
 import { BitmapResource } from '../../resource/bitmap-resource';
@@ -205,6 +206,33 @@ test('Model.toSVG exports explicit text line height', () => {
 
     expect(svgMarkup).toContain('line-height="1.5"');
     expect(svgMarkup).toContain('<tspan x="10" y="20">Hello</tspan><tspan x="10" y="44">World</tspan>');
+});
+
+test('Model.toSVG exports textPath elements with defs references and optional guide path', () => {
+    const model = Model.create(200, 100);
+    const textPath = TextPathElement.create(undefined, 'M 10 40 C 40 0 80 0 110 40')
+        .setTypeface('Arial')
+        .setTypesize(16)
+        .setLetterSpacing(1.5)
+        .setStartOffset(50)
+        .setStartOffsetPercent(true)
+        .setShowPath(true)
+        .setFill('#112233')
+        .setStroke('#334455,2');
+    textPath.setRichText([
+        { text: 'Curved ', typestyle: 'bold' },
+        { text: 'text', typestyle: 'italic' },
+    ]);
+    model.add(textPath);
+
+    const svgMarkup = model.toSVG();
+
+    expect(svgMarkup).toContain('<defs>');
+    expect(svgMarkup).toContain('<path id="elise-text-path-1" d="M 10 40 C 40 0 80 0 110 40" />');
+    expect(svgMarkup).toContain('<text ');
+    expect(svgMarkup).toContain('<textPath href="#elise-text-path-1" startOffset="50%">');
+    expect(svgMarkup).toContain('<tspan font-weight="bold">Curved </tspan><tspan font-style="italic">text</tspan>');
+    expect(svgMarkup).toContain('<path d="M 10 40 C 40 0 80 0 110 40" fill="none" stroke="#334455" stroke-width="2" />');
 });
 
 test('Model.toSVG exports gradients and valid SVG transform matrices', () => {

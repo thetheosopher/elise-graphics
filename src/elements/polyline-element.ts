@@ -46,6 +46,7 @@ export class PolylineElement extends ElementBase implements IPointContainer {
         this.addPoint = this.addPoint.bind(this);
         this.getPoints = this.getPoints.bind(this);
         this.setPoints = this.setPoints.bind(this);
+        this.setSmoothPoints = this.setSmoothPoints.bind(this);
     }
 
     /**
@@ -103,6 +104,16 @@ export class PolylineElement extends ElementBase implements IPointContainer {
             this._points = pointsSource.slice(0);
         }
         this.bounds = undefined;
+        return this;
+    }
+
+    /**
+     * Sets whether polyline points should be smoothed.
+     * @param smoothPoints - Smooth points flag
+     * @returns This polyline element
+     */
+    public setSmoothPoints(smoothPoints: boolean) {
+        this.smoothPoints = smoothPoints;
         return this;
     }
 

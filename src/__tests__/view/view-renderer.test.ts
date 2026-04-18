@@ -50,6 +50,7 @@ describe('view renderer', () => {
             elements: [{ draw: drawA }, { draw: drawB }],
             getLocation: jest.fn(() => new Point(0, 0)),
             setRenderTransform: jest.fn(),
+            applyRenderOpacity: jest.fn(),
             setElementStroke: jest.fn(() => false),
         };
         const renderer = new ViewRenderer({ offsetX: 5, offsetY: 7, model: model as never });
@@ -76,6 +77,7 @@ describe('view renderer', () => {
             getSize: jest.fn(() => new Size(20, 30)),
             getLocation: jest.fn(() => new Point(1, 2)),
             setRenderTransform: jest.fn(),
+            applyRenderOpacity: jest.fn(),
         };
 
         const renderer = new ViewRenderer({ offsetX: 0, offsetY: 0, model: model as never });
@@ -90,6 +92,7 @@ describe('view renderer', () => {
     test('endRender strokes model bounds when stroke is enabled', () => {
         const c = createContext();
         const model = {
+            applyRenderOpacity: jest.fn(),
             setElementStroke: jest.fn(() => true),
             getSize: jest.fn(() => new Size(11, 12)),
         };

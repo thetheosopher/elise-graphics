@@ -123,6 +123,36 @@ export class SpriteElement extends ElementBase {
     }
 
     /**
+     * Sets sprite frames.
+     * @param frames - Array of sprite frames
+     * @returns This sprite element
+     */
+    public setFrames(frames: SpriteFrame[]) {
+        this.frames = SpriteElement.cloneFrames(frames);
+        return this;
+    }
+
+    /**
+     * Sets whether sprite animation should loop.
+     * @param loop - Loop flag
+     * @returns This sprite element
+     */
+    public setLoop(loop: boolean) {
+        this.loop = loop;
+        return this;
+    }
+
+    /**
+     * Sets current rendered frame index.
+     * @param frameIndex - Frame index
+     * @returns This sprite element
+     */
+    public setFrameIndex(frameIndex: number) {
+        this.frameIndex = frameIndex;
+        return this;
+    }
+
+    /**
      * Copies properies of another element instance to this instance
      * @param o - Source element
      */

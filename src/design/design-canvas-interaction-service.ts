@@ -6,7 +6,7 @@ import { ViewDragArgs } from '../core/view-drag-args';
 import { ElementBase } from '../elements/element-base';
 import { ElementDragArgs } from '../elements/element-drag-args';
 import { ComponentElement } from './component/component-element';
-import { DesignContextMenuEventArgs } from './design-context-menu-event-args';
+import { DesignContextMenuEventArgs, type DesignContextMenuPointActions } from './design-context-menu-event-args';
 
 export interface DesignCanvasInteractionHost {
     controller: IController;
@@ -46,6 +46,7 @@ export interface DesignCanvasInteractionHost {
     replaceCurrentUndoSnapshot(): void;
     invalidate(): void;
     drawIfNeeded(): void;
+    resolvePointContextMenuActions(point: Point, element?: ElementBase): DesignContextMenuPointActions;
 }
 
 export class DesignCanvasInteractionService {
@@ -180,7 +181,8 @@ export class DesignCanvasInteractionService {
 
         const point = host.windowToCanvas(e.clientX, e.clientY);
         const element = host.model.firstActiveElementAt(context, point.x, point.y);
-        const args = new DesignContextMenuEventArgs(e, new Point(point.x, point.y), element, host.selectedElements);
+        const pointActions = host.resolvePointContextMenuActions(new Point(point.x, point.y), element);
+        const args = new DesignContextMenuEventArgs(e, new Point(point.x, point.y), element, host.selectedElements, pointActions);
 
         if (host.contextMenuRequested.hasListeners()) {
             e.preventDefault?.();

@@ -4,6 +4,7 @@ import { MouseLocationArgs } from '../../core/mouse-location-args';
 import { Point } from '../../core/point';
 import { Region } from '../../core/region';
 import { Size } from '../../core/size';
+import { PathElement } from '../../elements/path-element';
 import { RectangleElement } from '../../elements/rectangle-element';
 import { TextElement } from '../../elements/text-element';
 import { DesignMouseInteractionService, type DesignMouseInteractionHost } from '../../design/design-mouse-interaction-service';
@@ -53,6 +54,7 @@ function createHost(overrides: Partial<DesignMouseInteractionHost> = {}) {
         selectionEnabled: true,
         snapToGrid: false,
         cancelAction: false,
+        activePointIndex: undefined,
         movingPointIndex: undefined,
         movingPointLocation: undefined,
         rubberBandActive: false,
@@ -135,6 +137,7 @@ function createHost(overrides: Partial<DesignMouseInteractionHost> = {}) {
         getNearestSnapY: (y: number) => y,
         getHandleCornerRadii: () => undefined,
         areCornerRadiiEqual: (left, right) => JSON.stringify(left) === JSON.stringify(right),
+        insertPointAtLocation: jest.fn((_point: Point, _mode?: 'anchor' | 'bezier') => undefined),
         ...overrides,
     };
 
@@ -208,6 +211,32 @@ describe('DesignMouseInteractionService', () => {
         expect(host.isResizing).toBe(false);
         expect(host.movingPointIndex).toBe(3);
         expect(host.movingPointLocation).toMatchObject({ x: 22, y: 18 });
+    });
+
+    test('onCanvasMouseDown uses ctrl-alt-click to request bezier point insertion for selected path edit mode', () => {
+        const service = new DesignMouseInteractionService();
+        const path = PathElement.fromSVGPath('M 0 0 L 90 0').setInteractive(true);
+        path.editPoints = true;
+        const { host } = createHost({
+            selectedElements: [path],
+            isSelected: (candidate) => candidate === path,
+            getElementHandles: () => [],
+            insertPointAtLocation: jest.fn(() => 1),
+        });
+
+        service.onCanvasMouseDown(host, {
+            button: 0,
+            clientX: 45,
+            clientY: 1,
+            ctrlKey: true,
+            altKey: true,
+            metaKey: false,
+            shiftKey: false,
+        });
+
+        expect(host.insertPointAtLocation).toHaveBeenCalledWith(expect.objectContaining({ x: 45, y: 1 }), 'bezier');
+        expect(host.captureMouse).not.toHaveBeenCalled();
+        expect(host.isMouseDown).toBe(false);
     });
 
     test('onCanvasMouseDown clears edit points when clicking an already selected editable element', () => {

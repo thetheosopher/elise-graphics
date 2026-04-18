@@ -14,6 +14,7 @@ import { PolygonElement } from '../elements/polygon-element';
 import { PolylineElement } from '../elements/polyline-element';
 import { RectangleElement } from '../elements/rectangle-element';
 import { TextElement, type TextRun } from '../elements/text-element';
+import { TextPathElement } from '../elements/text-path-element';
 import { LinearGradientFill } from '../fill/linear-gradient-fill';
 import { RadialGradientFill } from '../fill/radial-gradient-fill';
 import { BitmapResource } from '../resource/bitmap-resource';
@@ -428,7 +429,12 @@ export class SVGImporter {
         return PolylineElement.create().setPoints(points);
     }
 
-    private static importTextElement(element: Element, context: SVGImportContext, state: SVGImportState): TextElement | undefined {
+    private static importTextElement(element: Element, context: SVGImportContext, state: SVGImportState): TextElement | TextPathElement | undefined {
+        const textPathChild = SVGImporter.getFirstChildByTagName(element, 'textPath');
+        if (textPathChild) {
+            return SVGImporter.importTextPathElement(element, textPathChild, context, state);
+        }
+
         const importedText = SVGImporter.getTextRuns(element, context);
         if (!importedText.text || importedText.text.length === 0) {
             return undefined;
@@ -477,6 +483,93 @@ export class SVGImporter {
         }
 
         return textElement;
+    }
+
+    private static importTextPathElement(
+        element: Element,
+        textPathNode: Element,
+        context: SVGImportContext,
+        state: SVGImportState,
+    ): TextPathElement | undefined {
+        const textPathContext = SVGImporter.mergeContext(textPathNode, context);
+        const importedText = SVGImporter.getTextRuns(textPathNode, textPathContext);
+        if (!importedText.text || importedText.text.length === 0) {
+            return undefined;
+        }
+
+        const referenceId = SVGImporter.getPaintServerReferenceId(textPathNode);
+        if (!referenceId) {
+            return undefined;
+        }
+
+        const referencedPath = state.namedElements[referenceId];
+        if (!referencedPath) {
+            return undefined;
+        }
+
+        const pathData = referencedPath.getAttribute('d');
+        if (!pathData) {
+            return undefined;
+        }
+
+        const textPath = TextPathElement.fromSVGPath(pathData);
+        if (state.viewBoxOffsetX !== 0 || state.viewBoxOffsetY !== 0) {
+            textPath.translate(-state.viewBoxOffsetX, -state.viewBoxOffsetY);
+        }
+
+        const x = (SVGImporter.parseLength(element.getAttribute('x')) || 0) - state.viewBoxOffsetX;
+        const y = (SVGImporter.parseLength(element.getAttribute('y')) || 0) - state.viewBoxOffsetY;
+        if (x !== 0 || y !== 0) {
+            textPath.translate(x, y);
+        }
+
+        if (textPathContext.fontFamily) {
+            textPath.setTypeface(textPathContext.fontFamily);
+        }
+        const fontSize = SVGImporter.parseLength(textPathContext.fontSize) || 10;
+        textPath.setTypesize(fontSize);
+
+        const typestyle = SVGImporter.buildTypographyStyle(textPathContext.fontWeight, textPathContext.fontStyle);
+        if (typestyle) {
+            textPath.setTypestyle(typestyle);
+        }
+
+        const letterSpacing = SVGImporter.parseLength(textPathContext.letterSpacing);
+        if (letterSpacing !== undefined) {
+            textPath.setLetterSpacing(letterSpacing);
+        }
+
+        const textDecoration = SVGImporter.normalizeTextDecoration(textPathContext.textDecoration);
+        if (textDecoration) {
+            textPath.setTextDecoration(textDecoration);
+        }
+
+        const alignment = SVGImporter.buildTextPathAlignment(textPathContext.textAnchor);
+        if (alignment) {
+            textPath.setAlignment(alignment);
+        }
+
+        const startOffset = SVGImporter.parseTextPathStartOffset(textPathNode.getAttribute('startOffset'));
+        if (startOffset) {
+            textPath.setStartOffset(startOffset.value).setStartOffsetPercent(startOffset.percent);
+        }
+
+        const side = textPathNode.getAttribute('side');
+        if (side && side.toLowerCase() === 'right') {
+            textPath.setSide('right');
+        }
+
+        if (importedText.runs && importedText.runs.length > 0) {
+            textPath.setRichText(importedText.runs.map((run) => ({
+                ...run,
+                text: run.text.replace(/\r\n?/g, '\n').replace(/\n/g, ' '),
+            })));
+        }
+        else {
+            textPath.setText(importedText.text.replace(/\r\n?/g, '\n').replace(/\n/g, ' '));
+        }
+
+        return textPath;
     }
 
     private static importImageElement(element: Element, model: Model, state: SVGImportState): ImageElement | undefined {
@@ -878,6 +971,17 @@ export class SVGImporter {
         return element.getAttribute('x') !== null || element.getAttribute('y') !== null || element.getAttribute('dy') !== null;
     }
 
+    private static getFirstChildByTagName(element: Element, tagName: string): Element | undefined {
+        const lowered = tagName.toLowerCase();
+        for (let index = 0; index < element.children.length; index++) {
+            const child = element.children[index];
+            if (child.nodeName.toLowerCase() === lowered) {
+                return child;
+            }
+        }
+        return undefined;
+    }
+
     private static normalizeTextDecoration(value: string | undefined): string | undefined {
         if (!value) {
             return undefined;
@@ -944,6 +1048,42 @@ export class SVGImporter {
         }
 
         return parts.length > 0 ? parts.join(',') : undefined;
+    }
+
+    private static buildTextPathAlignment(textAnchor: string | undefined): string | undefined {
+        const anchor = textAnchor ? textAnchor.toLowerCase() : '';
+        if (anchor === 'middle') {
+            return 'center';
+        }
+        if (anchor === 'end') {
+            return 'right';
+        }
+        if (anchor === 'start' || anchor === 'left') {
+            return 'left';
+        }
+        return undefined;
+    }
+
+    private static parseTextPathStartOffset(value: string | null | undefined): { value: number; percent: boolean } | undefined {
+        if (!value) {
+            return undefined;
+        }
+        const trimmed = value.trim();
+        if (trimmed.length === 0) {
+            return undefined;
+        }
+        if (trimmed.endsWith('%')) {
+            const parsedPercent = parseFloat(trimmed.substring(0, trimmed.length - 1));
+            if (isNaN(parsedPercent)) {
+                return undefined;
+            }
+            return { value: parsedPercent, percent: true };
+        }
+        const parsedValue = SVGImporter.parseLength(trimmed);
+        if (parsedValue === undefined) {
+            return undefined;
+        }
+        return { value: parsedValue, percent: false };
     }
 
     private static getImageResourceKey(element: Element, sequenceNumber: number): string {

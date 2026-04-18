@@ -34,6 +34,42 @@ export class RegularPolygonElement extends PathBackedElementBase {
 
     constructor() {
         super('regularPolygon');
+        this.setSides = this.setSides.bind(this);
+        this.setInnerRadiusScale = this.setInnerRadiusScale.bind(this);
+        this.setShapeRotation = this.setShapeRotation.bind(this);
+    }
+
+    /**
+     * Sets the number of polygon sides.
+     * @param sides - Number of sides (minimum 3)
+     * @returns This regular polygon element
+     */
+    public setSides(sides: number) {
+        this.sides = Math.max(3, Math.round(sides));
+        this.bounds = undefined;
+        return this;
+    }
+
+    /**
+     * Sets inner radius scale for star shapes.
+     * @param innerRadiusScale - Inner radius scale (0.05 to 1)
+     * @returns This regular polygon element
+     */
+    public setInnerRadiusScale(innerRadiusScale: number) {
+        this.innerRadiusScale = clampPrimitiveValue(innerRadiusScale, 0.05, 1);
+        this.bounds = undefined;
+        return this;
+    }
+
+    /**
+     * Sets shape rotation angle in degrees.
+     * @param rotation - Rotation angle in degrees
+     * @returns This regular polygon element
+     */
+    public setShapeRotation(rotation: number) {
+        this.rotation = rotation;
+        this.bounds = undefined;
+        return this;
     }
 
     public parse(o: SerializedData): void {

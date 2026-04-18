@@ -9,6 +9,7 @@ import { PolylineElement } from '../../elements/polyline-element';
 import { RegularPolygonElement } from '../../elements/regular-polygon-element';
 import { RingElement } from '../../elements/ring-element';
 import { TextElement } from '../../elements/text-element';
+import { TextPathElement } from '../../elements/text-path-element';
 import { ImageElement } from '../../elements/image-element';
 import { SpriteElement } from '../../elements/sprite-element';
 import { ModelElement } from '../../elements/model-element';
@@ -16,6 +17,17 @@ import { WedgeElement } from '../../elements/wedge-element';
 import { Point } from '../../core/point';
 import { PointDepth } from '../../core/point-depth';
 import { Size } from '../../core/size';
+import {
+    canRemovePathCommandPoint,
+    findPathCommandInsertionTarget,
+    getPathCommandPointAt,
+    getPathCommandPointCount,
+    insertPathCommandBezierPoint,
+    insertPathCommandPoint,
+    setPathCommandPointAt,
+    parsePathCommandString,
+    removePathCommandPoint,
+} from '../../elements/path-command-utils';
 
 // --- RectangleElement ---
 
@@ -861,6 +873,214 @@ test('text explicit line height changes caret and selection layout spacing', () 
         expect.objectContaining({ x: 0, y: 0, width: 10, height: 15 }),
         expect.objectContaining({ x: 0, y: 15, width: 10, height: 15 }),
     ]);
+});
+
+test('text path create with text and guide path', () => {
+    const textPath = TextPathElement.create('Hello', 'M 0 0 L 100 0');
+
+    expect(textPath.type).toBe('textPath');
+    expect(textPath.text).toBe('Hello');
+    expect(textPath.getPathCommands()).toEqual(['m0,0', 'l100,0']);
+    expect(textPath.getPathLength()).toBeCloseTo(100);
+});
+
+test('text path serialize and parse round-trip', () => {
+    const textPath = TextPathElement.create(undefined, 'M 10 20 C 20 0 40 0 50 20')
+        .setTypeface('Arial')
+        .setTypesize(18)
+        .setTypestyle('bold')
+        .setAlignment('center')
+        .setLetterSpacing(1.5)
+        .setTextDecoration('underline')
+        .setStartOffset(25)
+        .setStartOffsetPercent(true)
+        .setShowPath(true)
+        .setSide('right');
+    textPath.setRichText([
+        { text: 'Curved ', typestyle: 'bold' },
+        { text: 'text', typestyle: 'italic', decoration: 'line-through' },
+    ]);
+
+    const serialized = textPath.serialize();
+    expect(serialized.type).toBe('textPath');
+    expect(serialized.pathCommands).toBe('m10,20 c20,0,40,0,50,20');
+    expect(serialized.startOffset).toBe(25);
+    expect(serialized.startOffsetPercent).toBe(true);
+    expect(serialized.showPath).toBe(true);
+    expect(serialized.side).toBe('right');
+
+    const parsed = new TextPathElement();
+    parsed.parse(serialized);
+
+    expect(parsed.typeface).toBe('Arial');
+    expect(parsed.typesize).toBe(18);
+    expect(parsed.typestyle).toBe('bold');
+    expect(parsed.alignment).toBe('center');
+    expect(parsed.letterSpacing).toBe(1.5);
+    expect(parsed.textDecoration).toBe('underline');
+    expect(parsed.startOffset).toBe(25);
+    expect(parsed.startOffsetPercent).toBe(true);
+    expect(parsed.showPath).toBe(true);
+    expect(parsed.side).toBe('right');
+    expect(parsed.richText).toEqual([
+        { text: 'Curved ', typestyle: 'bold' },
+        { text: 'text', typestyle: 'italic', decoration: 'line-through' },
+    ]);
+});
+
+// --- Shared path-command point utilities ---
+
+test('getPathCommandPointCount counts m/l/c/Q/S/A/H/V/T commands correctly', () => {
+    // m + l = 2
+    expect(getPathCommandPointCount(parsePathCommandString('M 0 0 L 100 100', false))).toBe(2);
+    // m + c (endpoint + cp1 + cp2) = 1 + 3 = 4
+    expect(getPathCommandPointCount(parsePathCommandString('M 0 0 C 10 0 20 0 30 0', false))).toBe(4);
+    // m + Q (endpoint + control) = 1 + 2 = 3
+    expect(getPathCommandPointCount(parsePathCommandString('M 0 0 Q 50 50 100 0', false))).toBe(3);
+    // m + H + V = 3
+    expect(getPathCommandPointCount(parsePathCommandString('M 0 0 H 50 V 80', false))).toBe(3);
+    // m + A (endpoint only) = 2
+    expect(getPathCommandPointCount(parsePathCommandString('M 0 0 A 25 25 0 0 1 50 0', false))).toBe(2);
+    // empty
+    expect(getPathCommandPointCount([])).toBe(0);
+});
+
+test('findPathCommandInsertionTarget resolves and splits line segments', () => {
+    const commands = parsePathCommandString('M 0 0 L 100 0', false);
+
+    const target = findPathCommandInsertionTarget(commands, new Point(48, 3), 8);
+
+    expect(target).toBeDefined();
+    expect(target?.commandIndex).toBe(1);
+    expect(target?.insertedPointIndex).toBe(1);
+
+    const insertedPoint = insertPathCommandPoint(commands, target!.commandIndex, target!.ratio);
+
+    expect(insertedPoint.x).toBeCloseTo(48);
+    expect(insertedPoint.y).toBeCloseTo(0);
+    expect(commands).toEqual(['m0,0', 'l48,0', 'l100,0']);
+});
+
+test('insertPathCommandPoint splits quadratic segments into two explicit curves', () => {
+    const commands = parsePathCommandString('M 0 0 Q 50 100 100 0', false);
+    const target = findPathCommandInsertionTarget(commands, new Point(50, 50), 20);
+
+    expect(target).toBeDefined();
+
+    insertPathCommandPoint(commands, target!.commandIndex, target!.ratio);
+
+    expect(commands).toHaveLength(3);
+    expect(commands[1].charAt(0)).toBe('Q');
+    expect(commands[2].charAt(0)).toBe('Q');
+});
+
+test('removePathCommandPoint removes anchor points but not control handles', () => {
+    const commands = parsePathCommandString('M 0 0 C 10 0 20 0 30 0 L 40 0', false);
+
+    expect(canRemovePathCommandPoint(commands, 2, PointDepth.Full)).toBe(false);
+    expect(canRemovePathCommandPoint(commands, 1, PointDepth.Full)).toBe(true);
+
+    removePathCommandPoint(commands, 1, PointDepth.Full);
+
+    expect(commands).toEqual(['m0,0', 'l40,0']);
+});
+
+test('getPathCommandPointAt returns endpoints and control points', () => {
+    const cmds = parsePathCommandString('M 10 20 C 30 40 50 60 70 80', false);
+    // Simple depth: m=0, c endpoint=1
+    expect(getPathCommandPointAt(cmds, 0)).toEqual(expect.objectContaining({ x: 10, y: 20 }));
+    expect(getPathCommandPointAt(cmds, 1)).toEqual(expect.objectContaining({ x: 70, y: 80 }));
+    // Full depth: m=0, c endpoint=1, cp1=2, cp2=3
+    expect(getPathCommandPointAt(cmds, 1, PointDepth.Full)).toEqual(expect.objectContaining({ x: 70, y: 80 }));
+    expect(getPathCommandPointAt(cmds, 2, PointDepth.Full)).toEqual(expect.objectContaining({ x: 30, y: 40 }));
+    expect(getPathCommandPointAt(cmds, 3, PointDepth.Full)).toEqual(expect.objectContaining({ x: 50, y: 60 }));
+    // out of range
+    expect(() => getPathCommandPointAt(cmds, 99)).toThrow();
+});
+
+test('setPathCommandPointAt mutates command array for endpoint and control points', () => {
+    const cmds = parsePathCommandString('M 10 20 L 100 200', false);
+    setPathCommandPointAt(cmds, 1, Point.create(150, 250), PointDepth.Simple);
+    expect(getPathCommandPointAt(cmds, 1)).toEqual(expect.objectContaining({ x: 150, y: 250 }));
+
+    // Cubic control point edit
+    const cubicCmds = parsePathCommandString('M 0 0 C 10 20 30 40 50 60', false);
+    setPathCommandPointAt(cubicCmds, 2, Point.create(99, 88), PointDepth.Full);
+    expect(getPathCommandPointAt(cubicCmds, 2, PointDepth.Full)).toEqual(expect.objectContaining({ x: 99, y: 88 }));
+    // Endpoint still intact
+    expect(getPathCommandPointAt(cubicCmds, 1, PointDepth.Full)).toEqual(expect.objectContaining({ x: 50, y: 60 }));
+});
+
+test('setPathCommandPointAt normalizes H/V when moved off axis', () => {
+    const cmds = parsePathCommandString('M 0 0 H 100', false);
+    // Move H point off-axis so it becomes l
+    setPathCommandPointAt(cmds, 1, Point.create(100, 50), PointDepth.Simple);
+    expect(cmds[1].charAt(0)).toBe('l');
+    expect(getPathCommandPointAt(cmds, 1)).toEqual(expect.objectContaining({ x: 100, y: 50 }));
+});
+
+test('insertPathCommandBezierPoint converts a line segment into cubic segments', () => {
+    const cmds = parsePathCommandString('M 0 0 L 90 0', false);
+    const insertedPoint = insertPathCommandBezierPoint(cmds, 1, 0.5);
+
+    expect(insertedPoint).toEqual(expect.objectContaining({ x: 45, y: 0 }));
+    expect(cmds).toEqual(['m0,0', 'c15,0,30,0,45,0', 'c60,0,75,0,90,0']);
+});
+
+// --- TextPathElement point editing ---
+
+test('text path canEditPoints returns true', () => {
+    const tp = TextPathElement.create('Hello', 'M 0 0 L 100 0');
+    expect(tp.canEditPoints()).toBe(true);
+});
+
+test('text path canMovePoint depends on editPoints', () => {
+    const tp = TextPathElement.create('Hello', 'M 0 0 L 100 0');
+    expect(tp.canMovePoint()).toBe(false);
+    tp.editPoints = true;
+    expect(tp.canMovePoint()).toBe(true);
+});
+
+test('text path canResize is disabled during point editing', () => {
+    const tp = TextPathElement.create('Hello', 'M 0 0 L 100 0');
+    expect(tp.canResize()).toBe(true);
+    tp.editPoints = true;
+    expect(tp.canResize()).toBe(false);
+});
+
+test('text path pointCount returns correct count', () => {
+    const tp = TextPathElement.create('Hello', 'M 0 0 L 50 50 L 100 0');
+    expect(tp.pointCount()).toBe(3);
+});
+
+test('text path getPointAt and setPointAt roundtrip', () => {
+    const tp = TextPathElement.create('Hello', 'M 10 20 L 100 200');
+    expect(tp.getPointAt(0)).toEqual(expect.objectContaining({ x: 10, y: 20 }));
+    expect(tp.getPointAt(1)).toEqual(expect.objectContaining({ x: 100, y: 200 }));
+    tp.setPointAt(1, Point.create(150, 250), PointDepth.Simple);
+    expect(tp.getPointAt(1)).toEqual(expect.objectContaining({ x: 150, y: 250 }));
+});
+
+test('text path getPointAt with PointDepth.Full exposes cubic control points', () => {
+    const tp = TextPathElement.create('Arc', 'M 0 0 C 10 20 30 40 50 60');
+    expect(tp.pointCount()).toBe(4);
+    expect(tp.getPointAt(2, PointDepth.Full)).toEqual(expect.objectContaining({ x: 10, y: 20 }));
+    expect(tp.getPointAt(3, PointDepth.Full)).toEqual(expect.objectContaining({ x: 30, y: 40 }));
+});
+
+test('text path getCommands returns internal path commands', () => {
+    const tp = TextPathElement.create('Hello', 'M 0 0 L 100 0');
+    const cmds = tp.getCommands();
+    expect(cmds).toBeDefined();
+    expect(cmds!.length).toBe(2);
+    expect(cmds![0]).toBe('m0,0');
+});
+
+test('text path editPoints is not serialized', () => {
+    const tp = TextPathElement.create('Hello', 'M 0 0 L 100 0');
+    tp.editPoints = true;
+    const serialized = tp.serialize();
+    expect(serialized.editPoints).toBeUndefined();
 });
 
 // --- ImageElement ---

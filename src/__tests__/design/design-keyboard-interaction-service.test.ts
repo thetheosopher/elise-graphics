@@ -18,6 +18,7 @@ function createHost(): DesignKeyboardInteractionHost {
         nudgeSize: jest.fn(),
         nudgeLocation: jest.fn(),
         selectAll: jest.fn(),
+        deleteActivePoint: jest.fn(() => false),
         deleteSelection: jest.fn(),
         cancelActiveTool: jest.fn(),
         finalizeToolHistorySession: jest.fn(),
@@ -98,6 +99,17 @@ describe('DesignKeyboardInteractionService', () => {
 
         expect(service.handleKeyDown(host, event)).toBe(true);
         expect(host.deleteSelection).toHaveBeenCalledWith(event);
+    });
+
+    test('delete removes the active point before falling back to selection removal', () => {
+        const service = new DesignKeyboardInteractionService();
+        const host = createHost();
+        (host.deleteActivePoint as jest.Mock).mockReturnValue(true);
+        const event = { keyCode: 46, preventDefault: jest.fn() } as unknown as KeyboardEvent;
+
+        expect(service.handleKeyDown(host, event)).toBe(true);
+        expect(host.deleteActivePoint).toHaveBeenCalledTimes(1);
+        expect(host.deleteSelection).not.toHaveBeenCalled();
     });
 
     test('escape cancels active mouse interaction through mouse up', () => {

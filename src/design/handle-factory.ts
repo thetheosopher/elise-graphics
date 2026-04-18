@@ -11,6 +11,7 @@ import { iteratePathCommands } from '../elements/path-command-utils';
 import { RegularPolygonElement } from '../elements/regular-polygon-element';
 import { RectangleElement } from '../elements/rectangle-element';
 import { RingElement } from '../elements/ring-element';
+import { TextPathElement } from '../elements/text-path-element';
 import { WedgeElement } from '../elements/wedge-element';
 import { Handle } from './handle';
 import type { IDesignController } from './design-controller-interface';
@@ -287,6 +288,11 @@ export class HandleFactory {
         } else if (el.type === 'ring') {
             if (el.editPoints) {
                 return HandleFactory.ringElementHandles(el as RingElement, c, scale);
+            }
+            handles = HandleFactory.rectangularElementHandles(el, c, scale);
+        } else if (el.type === 'textPath') {
+            if (el.editPoints) {
+                return HandleFactory.pathShapeHandles(el as TextPathElement, c, scale);
             }
             handles = HandleFactory.rectangularElementHandles(el, c, scale);
         } else if (
@@ -606,12 +612,12 @@ export class HandleFactory {
 
     /**
      * Creates handles for path elements
-     * @param el - Path element
+     * @param el - Path or text-path element with getCommands() API
      * @param c - Design controller
      * @param scale - Controller rendering scale
      * @returns Array of handles for element
      */
-    public static pathShapeHandles(el: PathElement, c: IDesignController, scale: number): Handle[] {
+    public static pathShapeHandles(el: ElementBase & { getCommands(): string[] | undefined }, c: IDesignController, scale: number): Handle[] {
         const handles: Handle[] = [];
         let movingPointIndex = -1;
         let offsetX = 0;

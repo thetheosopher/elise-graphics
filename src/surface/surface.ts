@@ -4,6 +4,7 @@ import { IController } from '../controller/controller';
 import { CommonEvent } from '../core/common-event';
 import { ErrorMessages } from '../core/error-messages';
 import { Model } from '../core/model';
+import type { SerializedData } from '../core/serialization';
 import { Utility } from '../core/utility';
 import { ElementBase } from '../elements/element-base';
 import { ImageElement } from '../elements/image-element';
@@ -12,6 +13,7 @@ import { ResourceManagerEvent } from '../resource/resource-manager-event';
 import { ResourceState } from '../resource/resource-state';
 import { SurfaceButtonElement } from './surface-button-element';
 import { SurfaceElement } from './surface-element';
+import { SurfaceElementFactory } from './surface-element-factory';
 import { SurfaceElementStates } from './surface-element-states';
 import { SurfaceAnimationLayer } from './surface-animation-layer';
 import { SurfaceHiddenLayer } from './surface-hidden-layer';
@@ -65,6 +67,23 @@ export class Surface {
      */
     public static create(width: number, height: number, id: string, scale: number) {
         return new Surface(width, height, id, scale);
+    }
+
+    /**
+     * Parses a JSON string into a Surface instance
+     * @param json - JSON source string
+     * @returns Deserialized surface
+     */
+    public static parse(json: string): Surface {
+        const o = JSON.parse(json);
+        const surface = new Surface(
+            o.width as number,
+            o.height as number,
+            o.id as string | undefined,
+            o.scale as number | undefined
+        );
+        surface.parseData(o);
+        return surface;
     }
 
     /**
@@ -805,5 +824,121 @@ export class Surface {
 
         link.href = fallbackHref;
         link.click();
+    }
+
+    /**
+     * Parses serialized data into surface properties
+     * @param o - Serialized surface data
+     */
+    public parseData(o: SerializedData): void {
+        if (o.opacity !== undefined) {
+            this.opacity = o.opacity as number;
+        }
+        if (o.backgroundColor !== undefined) {
+            this.backgroundColor = o.backgroundColor as string;
+        }
+        if (o.normalImageSource !== undefined) {
+            this.normalImageSource = o.normalImageSource as string;
+        }
+        if (o.selectedImageSource !== undefined) {
+            this.selectedImageSource = o.selectedImageSource as string;
+        }
+        if (o.highlightedImageSource !== undefined) {
+            this.highlightedImageSource = o.highlightedImageSource as string;
+        }
+        if (o.disabledImageSource !== undefined) {
+            this.disabledImageSource = o.disabledImageSource as string;
+        }
+        if (o.translateX !== undefined) {
+            this.translateX = o.translateX as number;
+        }
+        if (o.translateY !== undefined) {
+            this.translateY = o.translateY as number;
+        }
+
+        // Parse elements via factory
+        if (o.elements) {
+            for (const elementData of o.elements as SerializedData[]) {
+                const element = SurfaceElementFactory.create(elementData.type);
+                if (element) {
+                    element.parse(elementData);
+                    this.elements.push(element);
+                }
+            }
+        }
+
+        // Parse layers via factory
+        if (o.layers) {
+            for (const layerData of o.layers as SerializedData[]) {
+                const layer = SurfaceElementFactory.create(layerData.type);
+                if (layer && layer instanceof SurfaceLayer) {
+                    layer.parse(layerData);
+                    this.layers.push(layer);
+                }
+            }
+        }
+    }
+
+    /**
+     * Serializes persistent surface properties to a new object
+     * @returns Serialized surface data
+     */
+    public serialize(): SerializedData {
+        const o: SerializedData = {
+            type: 'surface',
+            width: this.width,
+            height: this.height,
+        };
+        if (this.id) {
+            o.id = this.id;
+        }
+        if (this.scale !== 1) {
+            o.scale = this.scale;
+        }
+        if (this.opacity !== 1) {
+            o.opacity = this.opacity;
+        }
+        if (this.backgroundColor) {
+            o.backgroundColor = this.backgroundColor;
+        }
+        if (this.normalImageSource) {
+            o.normalImageSource = this.normalImageSource;
+        }
+        if (this.selectedImageSource) {
+            o.selectedImageSource = this.selectedImageSource;
+        }
+        if (this.highlightedImageSource) {
+            o.highlightedImageSource = this.highlightedImageSource;
+        }
+        if (this.disabledImageSource) {
+            o.disabledImageSource = this.disabledImageSource;
+        }
+        if (this.translateX !== 0) {
+            o.translateX = this.translateX;
+        }
+        if (this.translateY !== 0) {
+            o.translateY = this.translateY;
+        }
+        if (this.elements.length > 0) {
+            o.elements = this.elements.map(e => e.serialize());
+        }
+        if (this.layers.length > 0) {
+            o.layers = this.layers.map(l => l.serialize());
+        }
+        return o;
+    }
+
+    /**
+     * Serializes surface to formatted JSON string
+     */
+    public formattedJSON(): string {
+        return JSON.stringify(this.serialize(), null, ' ');
+    }
+
+    /**
+     * Serializes surface to raw JSON string
+     */
+    public rawJSON(): string {
+        return JSON.stringify(this.serialize());
     }
 }

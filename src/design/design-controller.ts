@@ -35,12 +35,21 @@ import { DesignArrangementService, type DesignArrangementHost } from './design-a
 import { DesignCanvasInteractionService, type DesignCanvasInteractionHost } from './design-canvas-interaction-service';
 import { DesignCanvasLifecycleService, type DesignCanvasLifecycleHost } from './design-canvas-lifecycle-service';
 import { DesignClipboardService, type DesignClipboardData } from './design-clipboard-service';
-import { DesignContextMenuEventArgs } from './design-context-menu-event-args';
+import { DesignContextMenuEventArgs, type DesignContextMenuPointActions } from './design-context-menu-event-args';
 import { DesignDrawService, type DesignDrawHost } from './design-draw-service';
 import { DesignKeyboardInteractionService, type DesignKeyboardInteractionHost } from './design-keyboard-interaction-service';
 import { DesignMouseInteractionService, type DesignMouseInteractionHost } from './design-mouse-interaction-service';
 import { DesignMovementService, type DesignMovableSelectionEntry, type DesignSmartAlignmentGuides, type DesignMovementHost } from './design-movement-service';
 import { DesignOverlayRenderService, type DesignOverlayRenderHost } from './design-overlay-render-service';
+import {
+    insertPointAtLocation as insertDesignPointAtLocation,
+    isPointEditableDesignElement,
+    removePointAtIndex,
+    resolveInsertPointAtLocation,
+    resolveRemovablePointIndexAtLocation,
+    type PathPointInsertionMode,
+    type PointEditableDesignElement,
+} from './design-point-edit-utils';
 import { DesignRenderer } from './design-renderer';
 import { DesignSelectionService, type DesignSelectionHost } from './design-selection-service';
 import { DesignTextEditingService, type DesignTextEditingHost } from './design-text-editing-service';
@@ -484,6 +493,11 @@ export class DesignController implements IController {
     public isDragging: boolean;
 
     /**
+     * Index of the currently active point handle when point editing is enabled.
+     */
+    public activePointIndex?: number;
+
+    /**
      * Index of point into current element being moved
      */
     public movingPointIndex?: number;
@@ -892,6 +906,7 @@ export class DesignController implements IController {
         this.isMovingPoint = false;
         this.isMovingCornerRadius = false;
         this.isDragging = false;
+        this.activePointIndex = undefined;
         this.lastClientX = -1;
         this.lastClientY = -1;
         this.activeTouchId = undefined;
@@ -960,6 +975,7 @@ export class DesignController implements IController {
 
         this.selectedElements = [];
         this.selecting = false;
+        this.activePointIndex = undefined;
         this.sizeHandles = undefined;
         this.movingPointLocation = undefined;
         this.rotationCenter = undefined;
@@ -1093,6 +1109,7 @@ export class DesignController implements IController {
             }
         });
         if (itemsRemoved) {
+            self.activePointIndex = undefined;
             self.selectedElements = [];
             self.onSelectionChanged();
             self.onModelUpdated();
@@ -1553,7 +1570,100 @@ export class DesignController implements IController {
      * Called when selected elements are changed
      */
     public onSelectionChanged(): void {
+        this.activePointIndex = undefined;
         this.canvasInteractionService.onSelectionChanged(this.createCanvasInteractionHost());
+    }
+
+    private getSelectedPointEditableElement(element?: ElementBase): PointEditableDesignElement | undefined {
+        const candidate = element ?? (this.selectedElements.length === 1 ? this.selectedElements[0] : undefined);
+        if (!candidate || this.selectedElements.length !== 1 || this.selectedElements[0] !== candidate) {
+            return undefined;
+        }
+        if (!candidate.editPoints || !isPointEditableDesignElement(candidate)) {
+            return undefined;
+        }
+        return candidate;
+    }
+
+    private finalizePointMutation(activePointIndex?: number): void {
+        this.activePointIndex = activePointIndex;
+        this.setIsDirty(true);
+        this.commitUndoSnapshot();
+        this.invalidate();
+        this.drawIfNeeded();
+    }
+
+    public insertPointAtLocation(
+        point: Point,
+        element?: ElementBase,
+        mode: PathPointInsertionMode = 'anchor',
+    ): number | undefined {
+        const editableElement = this.getSelectedPointEditableElement(element);
+        if (!editableElement) {
+            return undefined;
+        }
+
+        const insertedPointIndex = insertDesignPointAtLocation(editableElement, point, undefined, mode);
+        if (insertedPointIndex === undefined) {
+            return undefined;
+        }
+
+        this.finalizePointMutation(insertedPointIndex);
+        return insertedPointIndex;
+    }
+
+    public deleteActivePoint(): boolean {
+        const editableElement = this.getSelectedPointEditableElement();
+        if (!editableElement || this.activePointIndex === undefined) {
+            return false;
+        }
+
+        if (!removePointAtIndex(editableElement, this.activePointIndex)) {
+            return false;
+        }
+
+        this.finalizePointMutation(undefined);
+        return true;
+    }
+
+    private removePointAtLocation(point: Point, element?: ElementBase): boolean {
+        const editableElement = this.getSelectedPointEditableElement(element);
+        if (!editableElement) {
+            return false;
+        }
+
+        const removablePointIndex = resolveRemovablePointIndexAtLocation(editableElement, point);
+        if (removablePointIndex === undefined || !removePointAtIndex(editableElement, removablePointIndex)) {
+            return false;
+        }
+
+        this.finalizePointMutation(undefined);
+        return true;
+    }
+
+    public resolvePointContextMenuActions(point: Point, element?: ElementBase): DesignContextMenuPointActions {
+        const editableElement = this.getSelectedPointEditableElement(element);
+        if (!editableElement) {
+            return {};
+        }
+
+        const removablePointIndex = resolveRemovablePointIndexAtLocation(editableElement, point);
+        if (removablePointIndex !== undefined) {
+            return {
+                canRemovePoint: true,
+                removePoint: () => this.removePointAtLocation(point, editableElement),
+            };
+        }
+
+        const insertPointIndex = resolveInsertPointAtLocation(editableElement, point);
+        if (insertPointIndex === undefined) {
+            return {};
+        }
+
+        return {
+            canAddPoint: true,
+            addPoint: () => this.insertPointAtLocation(point, editableElement) !== undefined,
+        };
     }
 
     /**
@@ -1693,6 +1803,9 @@ export class DesignController implements IController {
         }
         if (el === this.dragOverElement) {
             this.dragOverElement = undefined;
+        }
+        if (this.selectedElements.indexOf(el) !== -1) {
+            this.activePointIndex = undefined;
         }
         this.elementRemoved.trigger(this, el);
         this.invalidate();
@@ -2895,6 +3008,12 @@ export class DesignController implements IController {
             set originalTransform(value: string | undefined) {
                 self.originalTransform = value;
             },
+            get activePointIndex() {
+                return self.activePointIndex;
+            },
+            set activePointIndex(value: number | undefined) {
+                self.activePointIndex = value;
+            },
             get movingPointIndex() {
                 return self.movingPointIndex;
             },
@@ -3365,6 +3484,7 @@ export class DesignController implements IController {
             nudgeSize: (offsetX: number, offsetY: number) => self.nudgeSize(offsetX, offsetY),
             nudgeLocation: (offsetX: number, offsetY: number) => self.nudgeLocation(offsetX, offsetY),
             selectAll: () => self.selectAll(),
+            deleteActivePoint: () => self.deleteActivePoint(),
             deleteSelection: (e: KeyboardEvent) => {
                 if (self.onDelete.hasListeners()) {
                     self.onDelete.trigger(self, new ControllerEventArgs(e));
@@ -3530,6 +3650,12 @@ export class DesignController implements IController {
             set cancelAction(value: boolean) {
                 self.cancelAction = value;
             },
+            get activePointIndex() {
+                return self.activePointIndex;
+            },
+            set activePointIndex(value: number | undefined) {
+                self.activePointIndex = value;
+            },
             get movingPointIndex() {
                 return self.movingPointIndex;
             },
@@ -3692,6 +3818,7 @@ export class DesignController implements IController {
                 left?: [number, number, number, number] | number[],
                 right?: [number, number, number, number] | number[],
             ) => DesignController.areCornerRadiiEqual(left, right),
+            insertPointAtLocation: (point: Point, mode?: PathPointInsertionMode) => self.insertPointAtLocation(point, undefined, mode),
         };
     }
 
@@ -3776,6 +3903,7 @@ export class DesignController implements IController {
             replaceCurrentUndoSnapshot: () => self.replaceCurrentUndoSnapshot(),
             invalidate: () => self.invalidate(),
             drawIfNeeded: () => self.drawIfNeeded(),
+            resolvePointContextMenuActions: (point: Point, element?: ElementBase) => self.resolvePointContextMenuActions(point, element),
         };
     }
 }

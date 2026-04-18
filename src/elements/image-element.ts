@@ -55,6 +55,16 @@ export class ImageElement extends ElementBase {
     }
 
     /**
+     * Sets image resource key.
+     * @param source - Image resource key
+     * @returns This image element
+     */
+    public setSource(source: string | undefined) {
+        this.source = source;
+        return this;
+    }
+
+    /**
      * Copies properties of another object to this instance
      * @param o - Source element
      */

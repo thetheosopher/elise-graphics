@@ -9,22 +9,18 @@ import { WindingMode } from '../core/winding-mode';
 import { FillFactory } from '../fill/fill-factory';
 import { ElementBase } from './element-base';
 import { InvalidIndexException } from './invalid-index-exception';
+import { clearGeometryCache } from './path-geometry';
 import {
+    getPathCommandPointAt,
+    getPathCommandPointCount,
     iteratePathCommands,
     normalizePathCommands,
     parsePathCommandString,
     scalePathCommands,
+    setPathCommandPointAt,
     tracePathCommands,
     translatePathCommands,
 } from './path-command-utils';
-
-type ArcEditGeometry = {
-    center: Point;
-    radiusX: number;
-    radiusY: number;
-    xAxisUnit: Point;
-    yAxisUnit: Point;
-};
 
 /**
  * Renders series of stroked and/or filled drawing commands
@@ -534,21 +530,7 @@ export class PathElement extends ElementBase implements IPointContainer {
      * @returns Number of points
      */
     public pointCount(): number {
-        let pointCount = 0;
-        if (this._commands) {
-            iteratePathCommands(this._commands, (command) => {
-                if (command.type === 'm' || command.type === 'l' || command.type === 'H' || command.type === 'V' || command.type === 'T' || command.type === 'A') {
-                    pointCount++;
-                }
-                else if (command.type === 'c' || command.type === 'Q' || command.type === 'S') {
-                    pointCount += 2;
-                    if (command.type === 'c') {
-                        pointCount++;
-                    }
-                }
-            });
-        }
-        return pointCount;
+        return this._commands ? getPathCommandPointCount(this._commands) : 0;
     }
 
     /**
@@ -558,257 +540,26 @@ export class PathElement extends ElementBase implements IPointContainer {
      * @returns Requested point
      */
     public getPointAt(index: number, depth?: PointDepth): Point {
-        let current = -1;
         if (!this._commands) {
             throw new InvalidIndexException(index);
         }
-        let foundPoint: Point | undefined;
-        iteratePathCommands(this._commands, (command) => {
-            if (foundPoint) {
-                return;
-            }
-            if (command.type === 'm' || command.type === 'l' || command.type === 'H' || command.type === 'V' || command.type === 'T' || command.type === 'A') {
-                current++;
-                if (current === index) {
-                    foundPoint = command.end;
-                }
-                if (command.type === 'A' && depth === PointDepth.Full) {
-                    const geometry = PathElement.resolveArcEditGeometry(
-                        command.start,
-                        command.radiusX,
-                        command.radiusY,
-                        command.xAxisRotation,
-                        command.largeArc,
-                        command.sweep,
-                        command.end,
-                    );
-                    current++;
-                    if (current === index) {
-                        foundPoint = PathElement.getArcAxisHandlePoint(geometry, 'x');
-                    }
-                    current++;
-                    if (current === index) {
-                        foundPoint = PathElement.getArcAxisHandlePoint(geometry, 'y');
-                    }
-                }
-                return;
-            }
-            if (command.type === 'c') {
-                current++;
-                if (current === index) {
-                    foundPoint = command.end;
-                }
-                if (depth === PointDepth.Full) {
-                    current++;
-                    if (current === index) {
-                        foundPoint = command.cp1;
-                    }
-                    current++;
-                    if (current === index) {
-                        foundPoint = command.cp2;
-                    }
-                }
-                return;
-            }
-            if (command.type === 'Q' || command.type === 'S') {
-                current++;
-                if (current === index) {
-                    foundPoint = command.end;
-                }
-                if (depth === PointDepth.Full) {
-                    current++;
-                    if (current === index) {
-                        foundPoint = command.type === 'Q' ? command.controlPoint : command.cp2;
-                    }
-                }
-            }
-        });
-        if (foundPoint) {
-            return foundPoint;
-        }
-        throw new InvalidIndexException(index);
+        return getPathCommandPointAt(this._commands, index, depth);
     }
 
     /**
      * Sets point at a given index (0 to # points - 1)
      * @param index - Point index (0 to # points - 1)
      * @param value - New point value
-     * @param depth - Not applicable to this element
+     * @param depth - Point depth
      */
     public setPointAt(index: number, value: Point, depth: PointDepth) {
-        let current = -1;
         if (!this._commands) {
             throw new Error(ErrorMessages.NoCommandsAreDefined);
         }
-        const cl = this._commands.length;
-        let currentPoint = Point.Origin;
-        for (let i = 0; i < cl; i++) {
-            const command = this._commands[i];
-            if (command.charAt(0) === 'm') {
-                current++;
-                if (current === index) {
-                    this._commands[i] = 'm' + value.toString();
-                    this.bounds = undefined;
-                    return this;
-                }
-                currentPoint = Point.parse(command.substring(1, command.length));
-            }
-            else if (command.charAt(0) === 'l') {
-                current++;
-                if (current === index) {
-                    this._commands[i] = 'l' + value.toString();
-                    this.bounds = undefined;
-                    return this;
-                }
-                currentPoint = Point.parse(command.substring(1, command.length));
-            }
-            else if (command.charAt(0) === 'H') {
-                current++;
-                if (current === index) {
-                    this._commands[i] = value.y === currentPoint.y ? 'H' + value.x : 'l' + value.toString();
-                    this.bounds = undefined;
-                    return this;
-                }
-                currentPoint = new Point(parseFloat(command.substring(1, command.length)), currentPoint.y);
-            }
-            else if (command.charAt(0) === 'V') {
-                current++;
-                if (current === index) {
-                    this._commands[i] = value.x === currentPoint.x ? 'V' + value.y : 'l' + value.toString();
-                    this.bounds = undefined;
-                    return this;
-                }
-                currentPoint = new Point(currentPoint.x, parseFloat(command.substring(1, command.length)));
-            }
-            else if (command.charAt(0) === 'c') {
-                const parts = command.substring(1, command.length).split(',');
-                let cp1 = new Point(parseFloat(parts[0]), parseFloat(parts[1]));
-                let cp2 = new Point(parseFloat(parts[2]), parseFloat(parts[3]));
-                let endPoint = new Point(parseFloat(parts[4]), parseFloat(parts[5]));
-                current++;
-                if (current === index) {
-                    endPoint = value;
-                    this._commands[i] = 'c' + cp1.toString() + ',' + cp2.toString() + ',' + endPoint.toString();
-                    this.bounds = undefined;
-                    return this;
-                }
-                if (depth === PointDepth.Full) {
-                    current++;
-                    if (current === index) {
-                        cp1 = value;
-                        this._commands[i] = 'c' + cp1.toString() + ',' + cp2.toString() + ',' + endPoint.toString();
-                        this.bounds = undefined;
-                        return this;
-                    }
-                    current++;
-                    if (current === index) {
-                        cp2 = value;
-                        this._commands[i] = 'c' + cp1.toString() + ',' + cp2.toString() + ',' + endPoint.toString();
-                        this.bounds = undefined;
-                        return this;
-                    }
-                }
-                currentPoint = endPoint;
-            }
-            else if (command.charAt(0) === 'S') {
-                const parts = command.substring(1, command.length).split(',');
-                let cp2 = new Point(parseFloat(parts[0]), parseFloat(parts[1]));
-                let endPoint = new Point(parseFloat(parts[2]), parseFloat(parts[3]));
-                current++;
-                if (current === index) {
-                    endPoint = value;
-                    this._commands[i] = 'S' + cp2.toString() + ',' + endPoint.toString();
-                    this.bounds = undefined;
-                    return this;
-                }
-                if (depth === PointDepth.Full) {
-                    current++;
-                    if (current === index) {
-                        cp2 = value;
-                        this._commands[i] = 'S' + cp2.toString() + ',' + endPoint.toString();
-                        this.bounds = undefined;
-                        return this;
-                    }
-                }
-                currentPoint = endPoint;
-            }
-            else if (command.charAt(0) === 'q' || command.charAt(0) === 'Q') {
-                const parts = command.substring(1, command.length).split(',');
-                let controlPoint = new Point(parseFloat(parts[0]), parseFloat(parts[1]));
-                let endPoint = new Point(parseFloat(parts[2]), parseFloat(parts[3]));
-                current++;
-                if (current === index) {
-                    endPoint = value;
-                    this._commands[i] = 'Q' + controlPoint.toString() + ',' + endPoint.toString();
-                    this.bounds = undefined;
-                    return this;
-                }
-                if (depth === PointDepth.Full) {
-                    current++;
-                    if (current === index) {
-                        controlPoint = value;
-                        this._commands[i] = 'Q' + controlPoint.toString() + ',' + endPoint.toString();
-                        this.bounds = undefined;
-                        return this;
-                    }
-                }
-                currentPoint = endPoint;
-            }
-            else if (command.charAt(0) === 'T') {
-                const endPoint = Point.parse(command.substring(1, command.length));
-                current++;
-                if (current === index) {
-                    this._commands[i] = 'T' + value.toString();
-                    this.bounds = undefined;
-                    return this;
-                }
-                currentPoint = endPoint;
-            }
-            else if (command.charAt(0) === 'A') {
-                const parts = command.substring(1, command.length).split(',');
-                let radiusX = parseFloat(parts[0]);
-                let radiusY = parseFloat(parts[1]);
-                const rotation = parseFloat(parts[2]);
-                const largeArc = parts[3] !== '0';
-                const sweep = parts[4] !== '0';
-                let endPoint = new Point(parseFloat(parts[5]), parseFloat(parts[6]));
-                current++;
-                if (current === index) {
-                    this._commands[i] = 'A' + [radiusX, radiusY, rotation, largeArc ? 1 : 0, sweep ? 1 : 0, value.x, value.y].join(',');
-                    this.bounds = undefined;
-                    return this;
-                }
-                if (depth === PointDepth.Full) {
-                    const geometry = PathElement.resolveArcEditGeometry(currentPoint, radiusX, radiusY, rotation, largeArc, sweep, endPoint);
-                    current++;
-                    if (current === index) {
-                        radiusX = PathElement.resolveArcHandleRadius(geometry.center, geometry.xAxisUnit, value);
-                        this._commands[i] = 'A' + [radiusX, radiusY, rotation, largeArc ? 1 : 0, sweep ? 1 : 0, endPoint.x, endPoint.y].join(',');
-                        this.bounds = undefined;
-                        return this;
-                    }
-                    current++;
-                    if (current === index) {
-                        radiusY = PathElement.resolveArcHandleRadius(geometry.center, geometry.yAxisUnit, value);
-                        this._commands[i] = 'A' + [radiusX, radiusY, rotation, largeArc ? 1 : 0, sweep ? 1 : 0, endPoint.x, endPoint.y].join(',');
-                        this.bounds = undefined;
-                        return this;
-                    }
-                }
-                currentPoint = endPoint;
-            }
-            else if (command.charAt(0) === 'z') {
-                const normalized = normalizePathCommands(this._commands.slice(0, i + 1));
-                const lastMove = normalized
-                    .slice()
-                    .reverse()
-                    .find((entry) => entry.charAt(0) === 'm');
-                if (lastMove) {
-                    currentPoint = Point.parse(lastMove.substring(1));
-                }
-            }
-        }
-        throw new InvalidIndexException(index);
+        setPathCommandPointAt(this._commands, index, value, depth);
+        clearGeometryCache(this._commands);
+        this.bounds = undefined;
+        return this;
     }
 
     /**
@@ -852,100 +603,5 @@ export class PathElement extends ElementBase implements IPointContainer {
     public setWinding(winding: WindingMode) {
         this._winding = winding;
         return this;
-    }
-
-    private static resolveArcEditGeometry(
-        startPoint: Point,
-        radiusX: number,
-        radiusY: number,
-        xAxisRotation: number,
-        largeArc: boolean,
-        sweep: boolean,
-        endPoint: Point,
-    ): ArcEditGeometry {
-        const absoluteRadiusX = Math.max(1, Math.abs(radiusX) || 1);
-        const absoluteRadiusY = Math.max(1, Math.abs(radiusY) || 1);
-        const phi = (xAxisRotation * Math.PI) / 180;
-        const cosPhi = Math.cos(phi);
-        const sinPhi = Math.sin(phi);
-        const xAxisUnit = new Point(cosPhi, sinPhi);
-        const yAxisUnit = new Point(-sinPhi, cosPhi);
-
-        if (startPoint.x === endPoint.x && startPoint.y === endPoint.y) {
-            return {
-                center: new Point(startPoint.x, startPoint.y),
-                radiusX: absoluteRadiusX,
-                radiusY: absoluteRadiusY,
-                xAxisUnit,
-                yAxisUnit,
-            };
-        }
-
-        let adjustedRadiusX = absoluteRadiusX;
-        let adjustedRadiusY = absoluteRadiusY;
-        const dx = (startPoint.x - endPoint.x) / 2;
-        const dy = (startPoint.y - endPoint.y) / 2;
-        const x1p = cosPhi * dx + sinPhi * dy;
-        const y1p = -sinPhi * dx + cosPhi * dy;
-        const lambda = (x1p * x1p) / (adjustedRadiusX * adjustedRadiusX) + (y1p * y1p) / (adjustedRadiusY * adjustedRadiusY);
-
-        if (lambda > 1) {
-            const scale = Math.sqrt(lambda);
-            adjustedRadiusX *= scale;
-            adjustedRadiusY *= scale;
-        }
-
-        const radiusXSquared = adjustedRadiusX * adjustedRadiusX;
-        const radiusYSquared = adjustedRadiusY * adjustedRadiusY;
-        const x1pSquared = x1p * x1p;
-        const y1pSquared = y1p * y1p;
-        const numerator = radiusXSquared * radiusYSquared - radiusXSquared * y1pSquared - radiusYSquared * x1pSquared;
-        const denominator = radiusXSquared * y1pSquared + radiusYSquared * x1pSquared;
-
-        if (denominator === 0) {
-            return {
-                center: new Point((startPoint.x + endPoint.x) / 2, (startPoint.y + endPoint.y) / 2),
-                radiusX: adjustedRadiusX,
-                radiusY: adjustedRadiusY,
-                xAxisUnit,
-                yAxisUnit,
-            };
-        }
-
-        const factor = Math.sqrt(Math.max(0, numerator / denominator));
-        const sign = largeArc === sweep ? -1 : 1;
-        const cxp = sign * factor * ((adjustedRadiusX * y1p) / adjustedRadiusY);
-        const cyp = sign * factor * ((-adjustedRadiusY * x1p) / adjustedRadiusX);
-        const center = new Point(
-            cosPhi * cxp - sinPhi * cyp + (startPoint.x + endPoint.x) / 2,
-            sinPhi * cxp + cosPhi * cyp + (startPoint.y + endPoint.y) / 2,
-        );
-
-        return {
-            center,
-            radiusX: adjustedRadiusX,
-            radiusY: adjustedRadiusY,
-            xAxisUnit,
-            yAxisUnit,
-        };
-    }
-
-    private static getArcAxisHandlePoint(geometry: ArcEditGeometry, axis: 'x' | 'y'): Point {
-        if (axis === 'x') {
-            return new Point(
-                geometry.center.x + geometry.xAxisUnit.x * geometry.radiusX,
-                geometry.center.y + geometry.xAxisUnit.y * geometry.radiusX,
-            );
-        }
-
-        return new Point(
-            geometry.center.x + geometry.yAxisUnit.x * geometry.radiusY,
-            geometry.center.y + geometry.yAxisUnit.y * geometry.radiusY,
-        );
-    }
-
-    private static resolveArcHandleRadius(center: Point, axisUnit: Point, value: Point): number {
-        const projection = (value.x - center.x) * axisUnit.x + (value.y - center.y) * axisUnit.y;
-        return Math.max(1, Math.abs(projection));
     }
 }

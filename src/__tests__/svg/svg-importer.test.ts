@@ -8,6 +8,7 @@ import { PolygonElement } from '../../elements/polygon-element';
 import { PolylineElement } from '../../elements/polyline-element';
 import { RectangleElement } from '../../elements/rectangle-element';
 import { TextElement } from '../../elements/text-element';
+import { TextPathElement } from '../../elements/text-path-element';
 import { BitmapResource } from '../../resource/bitmap-resource';
 import { Color } from '../../core/color';
 import { LinearGradientFill } from '../../fill/linear-gradient-fill';
@@ -314,6 +315,40 @@ test('SVGImporter.parseDocument imports text letter spacing decoration and style
         { text: 'Hello ', typeface: 'Arial', typesize: 16, typestyle: 'bold', letterSpacing: 1.5, decoration: 'underline' },
         { text: 'World', typeface: 'Arial', typesize: 16, typestyle: 'italic', letterSpacing: 1.5, decoration: 'line-through' },
     ]);
+});
+
+test('SVGImporter.parseDocument imports textPath elements as TextPathElement', () => {
+    const document = createFakeDocument(
+        createFakeElement('svg', { width: '200', height: '100' }, [
+            createFakeElement('defs', {}, [
+                createFakeElement('path', { id: 'curve-1', d: 'M 10 40 C 40 0 80 0 110 40' }),
+            ]),
+            createFakeElement('text', {
+                fill: '#112233',
+                'font-family': 'Arial',
+                'font-size': '16',
+                'text-anchor': 'middle',
+            }, [
+                createFakeElement('textPath', { href: '#curve-1', startOffset: '50%', side: 'right' }, [
+                    createFakeElement('tspan', { 'font-style': 'italic' }, [], 'Curved text'),
+                ]),
+            ]),
+        ]),
+    );
+
+    const model = SVGImporter.parseDocument(document);
+    const textPath = model.elements[0] as TextPathElement;
+
+    expect(textPath).toBeInstanceOf(TextPathElement);
+    expect(textPath.fill).toBe('#112233');
+    expect(textPath.typeface).toBe('Arial');
+    expect(textPath.typesize).toBe(16);
+    expect(textPath.alignment).toBe('center');
+    expect(textPath.startOffset).toBe(50);
+    expect(textPath.startOffsetPercent).toBe(true);
+    expect(textPath.side).toBe('right');
+    expect(textPath.getResolvedText()).toBe('Curved text');
+    expect(textPath.getPathCommands()).toEqual(['m10,40', 'c40,0,80,0,110,40']);
 });
 
 test('SVGImporter.parseDocument offsets imported geometry using viewBox origin', () => {

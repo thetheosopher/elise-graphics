@@ -15,6 +15,7 @@ import { RectangleElement } from './rectangle-element';
 import { RingElement } from './ring-element';
 import { SpriteElement } from './sprite-element';
 import { TextElement } from './text-element';
+import { TextPathElement } from './text-path-element';
 import { WedgeElement } from './wedge-element';
 
 /**
@@ -65,4 +66,5 @@ ElementFactory.registerCreator('wedge', WedgeElement);
 ElementFactory.registerCreator('ring', RingElement);
 ElementFactory.registerCreator('ellipse', EllipseElement);
 ElementFactory.registerCreator('text', TextElement);
+ElementFactory.registerCreator('textPath', TextPathElement);
 ElementFactory.registerCreator('model', ModelElement);

@@ -24,6 +24,42 @@ export class ArrowElement extends PathBackedElementBase {
 
     constructor() {
         super('arrow');
+        this.setHeadLengthScale = this.setHeadLengthScale.bind(this);
+        this.setHeadWidthScale = this.setHeadWidthScale.bind(this);
+        this.setShaftWidthScale = this.setShaftWidthScale.bind(this);
+    }
+
+    /**
+     * Sets arrow head length as a proportion of total width.
+     * @param headLengthScale - Head length scale (0.1 to 0.9)
+     * @returns This arrow element
+     */
+    public setHeadLengthScale(headLengthScale: number) {
+        this.headLengthScale = clampPrimitiveValue(headLengthScale, 0.1, 0.9);
+        this.bounds = undefined;
+        return this;
+    }
+
+    /**
+     * Sets arrow head width as a proportion of total height.
+     * @param headWidthScale - Head width scale (0.1 to 1)
+     * @returns This arrow element
+     */
+    public setHeadWidthScale(headWidthScale: number) {
+        this.headWidthScale = clampPrimitiveValue(headWidthScale, 0.1, 1);
+        this.bounds = undefined;
+        return this;
+    }
+
+    /**
+     * Sets arrow shaft width as a proportion of total height.
+     * @param shaftWidthScale - Shaft width scale (0.05 to 1)
+     * @returns This arrow element
+     */
+    public setShaftWidthScale(shaftWidthScale: number) {
+        this.shaftWidthScale = clampPrimitiveValue(shaftWidthScale, 0.05, 1);
+        this.bounds = undefined;
+        return this;
     }
 
     public parse(o: SerializedData): void {

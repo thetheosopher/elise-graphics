@@ -58,6 +58,25 @@ export class ViewRenderer {
         this.endRender(c);
     }
 
+    public applyRenderState(c: CanvasRenderingContext2D, scale?: number): void {
+        const model = this.controller.model;
+        if (!model) {
+            throw new Error(ErrorMessages.ModelUndefined);
+        }
+
+        if (arguments.length > 1 && scale !== undefined && scale !== 1) {
+            c.scale(scale, scale);
+        }
+
+        if (model.transform !== undefined) {
+            const location = model.getLocation();
+            if (location) {
+                model.setRenderTransform(c, model.transform, location);
+            }
+        }
+        model.applyRenderOpacity(c);
+    }
+
     public beginRender(c: CanvasRenderingContext2D, scale?: number) {
         const model = this.controller.model;
         if (!model) {
@@ -71,18 +90,7 @@ export class ViewRenderer {
         // Save context state
         c.save();
 
-        if (arguments.length > 1 && scale !== undefined && scale !== 1) {
-            c.scale(scale, scale);
-        }
-
-        // If transformed
-        if (model.transform !== undefined) {
-            const location = model.getLocation();
-            if (location) {
-                model.setRenderTransform(c, model.transform, location);
-            }
-        }
-        model.applyRenderOpacity(c);
+        this.applyRenderState(c, scale);
 
         // Fill
         if (FillFactory.setElementFill(c, model)) {
@@ -100,9 +108,15 @@ export class ViewRenderer {
     }
 
     public endRender(c: CanvasRenderingContext2D) {
+        this.renderModelStroke(c);
+
+        // Restore context state
+        c.restore();
+    }
+
+    public renderModelStroke(c: CanvasRenderingContext2D): void {
         const model = this.controller.model;
 
-        // Stroke
         if (model && model.setElementStroke(c, model)) {
             const size = model.getSize();
             if (size) {
@@ -111,9 +125,6 @@ export class ViewRenderer {
                 c.strokeRect(0, 0, w, h);
             }
         }
-
-        // Restore context state
-        c.restore();
     }
 
     /**

@@ -67,4 +67,11 @@ describe('index api surface', () => {
         expect(indexModule.default.ElementAnimator).toBe(indexModule.ElementAnimator);
         expect(indexModule.default.ElementTween).toBe(indexModule.ElementTween);
     });
+
+    test('WmfImporter is available from named and default api surfaces', () => {
+        const indexModule = loadIndexModule();
+
+        expect(typeof indexModule.WmfImporter.parse).toBe('function');
+        expect(indexModule.default.WmfImporter).toBe(indexModule.WmfImporter);
+    });
 });

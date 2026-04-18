@@ -1,4 +1,5 @@
 import { CommonEvent } from '../core/common-event';
+import type { SerializedData } from '../core/serialization';
 import { Surface } from './surface';
 import { SurfaceLayer } from './surface-layer';
 
@@ -148,6 +149,24 @@ export class SurfaceHiddenLayer extends SurfaceLayer {
     public addTo(surface: Surface) {
         surface.layers.push(this);
         return this;
+    }
+
+    /**
+     * Serializes persistent hidden layer properties to a new object
+     * @returns Serialized hidden layer data
+     */
+    public serialize(): SerializedData {
+        const o = super.serialize();
+        o.type = 'surfaceHidden';
+        return o;
+    }
+
+    /**
+     * Parses serialized data into hidden layer properties
+     * @param o - Serialized hidden layer data
+     */
+    public parse(o: SerializedData): void {
+        super.parse(o);
     }
 
     public onload() {}

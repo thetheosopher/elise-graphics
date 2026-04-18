@@ -66,6 +66,10 @@ function createHost() {
         replaceCurrentUndoSnapshot: jest.fn(),
         invalidate: jest.fn(),
         drawIfNeeded: jest.fn(),
+        resolvePointContextMenuActions: () => ({
+            canAddPoint: true,
+            addPoint: jest.fn(() => true),
+        }),
     };
 
     return { host, model, plain, component, componentDragEnter, componentDragLeave, componentSelect, componentDeselect };
@@ -111,6 +115,8 @@ describe('DesignCanvasInteractionService', () => {
         expect(contextMenuRequested).toHaveBeenCalledTimes(1);
         expect(contextMenuRequested.mock.calls[0][1]?.element).toBe(component);
         expect(contextMenuRequested.mock.calls[0][1]?.selectedElements).toEqual([component]);
+        expect(contextMenuRequested.mock.calls[0][1]?.canAddPoint).toBe(true);
+        expect(contextMenuRequested.mock.calls[0][1]?.canRemovePoint).toBe(false);
         expect(preventDefault).toHaveBeenCalled();
         expect(stopPropagation).toHaveBeenCalled();
     });

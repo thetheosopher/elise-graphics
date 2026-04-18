@@ -1,5 +1,6 @@
 import { CommonEvent } from '../core/common-event';
 import { ErrorMessages } from '../core/error-messages';
+import type { SerializedData } from '../core/serialization';
 import type { SurfaceLike } from './surface-element';
 import { SurfaceLayer } from './surface-layer';
 
@@ -232,5 +233,45 @@ export class SurfaceVideoLayer extends SurfaceLayer {
     public addTo(surface: SurfaceLike) {
         surface.layers.push(this);
         return this;
+    }
+
+    /**
+     * Serializes persistent video layer properties to a new object
+     * @returns Serialized video layer data
+     */
+    public serialize(): SerializedData {
+        const o = super.serialize();
+        o.type = 'surfaceVideo';
+        o.source = this.source;
+        if (this.loop) {
+            o.loop = this.loop;
+        }
+        if (this.autoPlay) {
+            o.autoPlay = this.autoPlay;
+        }
+        if (!this.nativeControls) {
+            o.nativeControls = this.nativeControls;
+        }
+        return o;
+    }
+
+    /**
+     * Parses serialized data into video layer properties
+     * @param o - Serialized video layer data
+     */
+    public parse(o: SerializedData): void {
+        super.parse(o);
+        if (o.source !== undefined) {
+            this.source = o.source as string;
+        }
+        if (o.loop !== undefined) {
+            this.loop = o.loop as boolean;
+        }
+        if (o.autoPlay !== undefined) {
+            this.autoPlay = o.autoPlay as boolean;
+        }
+        if (o.nativeControls !== undefined) {
+            this.nativeControls = o.nativeControls as boolean;
+        }
     }
 }

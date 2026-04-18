@@ -12,9 +12,12 @@ import { Region } from '../core/region';
 import { Size } from '../core/size';
 import { ElementBase } from '../elements/element-base';
 import { ElementSizeProps } from '../elements/element-size-props';
+import { PathElement } from '../elements/path-element';
 import { RectangleElement } from '../elements/rectangle-element';
 import { TextElement } from '../elements/text-element';
+import { TextPathElement } from '../elements/text-path-element';
 import { ComponentElement } from './component/component-element';
+import type { PathPointInsertionMode } from './design-point-edit-utils';
 import { type DesignMovableSelectionEntry, type DesignSmartAlignmentGuides } from './design-movement-service';
 import { Handle } from './handle';
 import { DesignTool } from './tools/design-tool';
@@ -49,6 +52,7 @@ export interface DesignMouseInteractionHost {
     selectionEnabled: boolean;
     snapToGrid: boolean;
     cancelAction: boolean;
+    activePointIndex?: number;
     movingPointIndex?: number;
     movingPointLocation?: Point;
     rubberBandActive: boolean;
@@ -122,6 +126,7 @@ export interface DesignMouseInteractionHost {
         left?: [number, number, number, number] | number[],
         right?: [number, number, number, number] | number[],
     ): boolean;
+    insertPointAtLocation(point: Point, mode?: PathPointInsertionMode): number | undefined;
 }
 
 export class DesignMouseInteractionService {
@@ -156,11 +161,30 @@ export class DesignMouseInteractionService {
             return;
         }
 
-        host.captureMouse();
         const context = host.canvas.getContext('2d');
         if (!context) {
             return;
         }
+
+        if (!host.activeTool) {
+            const selectedHandle = this.findSelectedHandle(host, context, point);
+            const insertionMode = this.resolvePathInsertionMode(host, e);
+            if (!selectedHandle && insertionMode) {
+                const insertedPointIndex = host.insertPointAtLocation(new Point(point.x, point.y), insertionMode);
+                if (insertedPointIndex !== undefined) {
+                    return;
+                }
+            }
+
+            if (!selectedHandle && this.getClickCount(e) >= 2) {
+                const insertedPointIndex = host.insertPointAtLocation(new Point(point.x, point.y));
+                if (insertedPointIndex !== undefined) {
+                    return;
+                }
+            }
+        }
+
+        host.captureMouse();
 
         host.currentX = point.x;
         host.currentY = point.y;
@@ -608,6 +632,7 @@ export class DesignMouseInteractionService {
             if (element.canMovePoint()) {
                 const pointIndex = selectedHandle.handleIndex;
                 if (pointIndex !== undefined) {
+                    host.activePointIndex = pointIndex;
                     host.sizeHandles.push(selectedHandle);
                     host.isMovingPoint = true;
                     host.movingPointLocation = element.getPointAt(pointIndex, PointDepth.Full);
@@ -654,6 +679,7 @@ export class DesignMouseInteractionService {
                 }
                 else if (elementsAtPoint.length === 1 && elementsAtPoint[0].canEditPoints() && elementsAtPoint[0].editPoints) {
                     elementsAtPoint[0].editPoints = false;
+                    host.activePointIndex = undefined;
                 }
                 return;
             }
@@ -677,6 +703,22 @@ export class DesignMouseInteractionService {
 
     private getClickCount(e: MouseEvent | IMouseEvent): number {
         return typeof (e as MouseEvent).detail === 'number' ? (e as MouseEvent).detail : 1;
+    }
+
+    private resolvePathInsertionMode(
+        host: DesignMouseInteractionHost,
+        e: MouseEvent | IMouseEvent,
+    ): PathPointInsertionMode | undefined {
+        if (!(e.ctrlKey || e.metaKey) || host.selectedElements.length !== 1) {
+            return undefined;
+        }
+
+        const selectedElement = host.selectedElements[0];
+        if (!selectedElement.editPoints || !(selectedElement instanceof PathElement || selectedElement instanceof TextPathElement)) {
+            return undefined;
+        }
+
+        return e.altKey ? 'bezier' : 'anchor';
     }
 
     private updateHandleInteraction(
@@ -1036,6 +1078,7 @@ export class DesignMouseInteractionService {
             host.selectedElements.forEach((element) => {
                 element.clearBounds();
             });
+            host.activePointIndex = undefined;
             host.sizeHandles = undefined;
             host.isMovingPoint = false;
             host.movingPointLocation = undefined;
@@ -1171,6 +1214,7 @@ export class DesignMouseInteractionService {
             selectedElement.clearBounds();
             host.clearElementMoveLocations();
             host.clearElementResizeSizes();
+            host.activePointIndex = host.movingPointIndex;
             host.sizeHandles = undefined;
             host.isMovingPoint = false;
             host.movingPointLocation = undefined;

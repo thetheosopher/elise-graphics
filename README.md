@@ -13,14 +13,14 @@ from simpler elements.
 
 ### Features
 
-* Rich set of 2D drawing primitives including line, rectangle, ellipse, polyline, polygon, path, image, text, and sprites.
+* Rich set of 2D drawing primitives including line, rectangle, ellipse, polyline, polygon, path, image, text, text-on-path, and sprites.
 * Shared resource library for indirect referenced to bitmap, model, and text resources with support for localization.
 * Support for element interactivity, property tweening, touch interaction, and animation.
 * Support for sprite and image transitions.
 * SVG import and export with hierarchy-preserving container support, `<symbol>`/`<use>` handling, and gradient/clip-path interop.
 * Event bubbling through nested model hierarchies for composable interactive content.
 * Runtime keyboard events on both canvas and SVG view controllers, with focus-path bubbling through nested model hierarchies.
-* Design surface and component library for interactive model creation and editing, including inline rich-text editing with formatting shortcuts.
+* Design surface and component library for interactive model creation and editing, including inline rich-text editing with formatting shortcuts and drag-based text-on-path authoring.
 * Higher level surface library for creation of graphical applications with integration of video and other HTML content.
 * Sketcher class to gradually draw and fill complex polygonal models for visual effect.
 
@@ -155,7 +155,7 @@ Supported tween targets include:
 * `centerX`, `centerY`, `radiusX`, `radiusY`
 * `x1`, `y1`, `x2`, `y2`
 * `fillScale`, `fillOffsetX`, `fillOffsetY`
-* `rotation`, `opacity`, `typesize`
+* `rotation`, `opacity`, `typesize`, `startOffset`
 * `fill`, `stroke`
 
 When a new tween starts on a property that is already animating on the same element, Elise cancels the older tween for that property and keeps the newer one. This makes replay and interruption predictable for interactive scenes.
@@ -193,6 +193,56 @@ var svgMarkup = model.toSVG();
 ```
 
 All major element types export to their SVG equivalents. Reusable model-resource-backed elements export as `<symbol>` + `<use>` pairs, and embedded source models export as nested `<g>` groups.
+
+Text-on-path content round-trips through SVG `<textPath>` markup, including guide-path references stored in `<defs>`, optional rendered guide paths, rich text `<tspan>` runs, `startOffset`, and `side="right"` placement.
+
+## Text on Path
+
+Elise exposes text-on-path as a dedicated `TextPathElement` rather than overloading `TextElement`. This keeps rectangular text layout and path-following text as separate element types with their own serialization, SVG, animation, and design-surface workflows.
+
+```javascript
+var banner = elise.TextPathElement.create('Curved label', 'M 20 80 C 80 10 160 10 220 80')
+    .setTypeface('Georgia')
+    .setTypesize(18)
+    .setAlignment('center')
+    .setStartOffset(50)
+    .setStartOffsetPercent(true)
+    .setFill('#16324f')
+    .setStroke('#4f6d8c,1.5');
+
+model.add(banner);
+```
+
+The same API is available through the fluent helper exported at `elise.textPath(...)`.
+
+### TextPathElement capabilities
+
+* Plain text, text-resource-backed content, or `richText` runs
+* Per-element typography via `typeface`, `typesize`, `typestyle`, `letterSpacing`, and `textDecoration`
+* Path-following layout via `pathCommands`, `alignment`, `startOffset`, `startOffsetPercent`, and `side`
+* Optional guide-path rendering through `showPath`
+* SVG import/export through `<textPath>`
+* Tween animation of `startOffset` and `typesize`
+
+## Design Surface Text-on-Path Tool
+
+The design surface now includes `TextPathTool` for drag-based creation of a text-on-path element. The tool creates a straight guide path from the mouse-down point to the mouse-up point, then leaves the resulting `TextPathElement` selectable and editable through the normal design-surface selection workflow.
+
+```javascript
+var editor = new elise.DesignController();
+editor.setModel(model);
+
+var tool = new elise.TextPathTool();
+tool.text = 'Route label';
+tool.typeface = 'Arial';
+tool.typesize = 16;
+tool.alignment = 'center';
+tool.showPath = true;
+
+editor.setActiveTool(tool);
+```
+
+When grid snapping is enabled on the design surface, `TextPathTool` receives snapped pointer coordinates through the standard tool pipeline, so guide-path endpoints align to the active grid automatically.
 
 ## Event Bubbling
 
@@ -306,6 +356,7 @@ Graphics primitives include:
 * **Path** - Stroked and filled shaped defined by line and curve segments
 * **Image** - Bitmap image
 * **Text** - Stroked and filled text
+* **TextPath** - Stroked and filled text rendered along a guide path
 * **Sprite** - Bitmap image segment
 * **Model** - Collection of composed elements
 

@@ -1,5 +1,6 @@
 import { CommonEvent } from '../core/common-event';
 import { Model } from '../core/model';
+import type { SerializedData } from '../core/serialization';
 import { RectangleElement } from '../elements/rectangle-element';
 import { TextElement } from '../elements/text-element';
 import { SurfaceElement, type SurfaceLike } from './surface-element';
@@ -167,6 +168,78 @@ export class SurfaceTextElement extends SurfaceElement {
         text.setInteractive(true);
         model.add(text);
         return text;
+    }
+
+    /**
+     * Serializes persistent text element properties to a new object
+     * @returns Serialized text element data
+     */
+    public serialize(): SerializedData {
+        const o = super.serialize();
+        o.type = 'surfaceText';
+        if (this.content) {
+            o.content = this.content;
+        }
+        if (this.color !== 'Black') {
+            o.color = this.color;
+        }
+        if (this.textAlignment !== 'left,top') {
+            o.textAlignment = this.textAlignment;
+        }
+        if (this.typeFace !== 'sans-serif') {
+            o.typeFace = this.typeFace;
+        }
+        if (this.typeSize !== 10) {
+            o.typeSize = this.typeSize;
+        }
+        if (this.typeStyle !== '') {
+            o.typeStyle = this.typeStyle;
+        }
+        if (this.background !== undefined) {
+            o.background = this.background;
+        }
+        if (this.border !== undefined) {
+            o.border = this.border;
+        }
+        if (this.padding !== 0) {
+            o.padding = this.padding;
+        }
+        return o;
+    }
+
+    /**
+     * Parses serialized data into text element properties
+     * @param o - Serialized text element data
+     */
+    public parse(o: SerializedData): void {
+        super.parse(o);
+        if (o.content !== undefined) {
+            this.content = o.content as string;
+        }
+        if (o.color !== undefined) {
+            this.color = o.color as string;
+        }
+        if (o.textAlignment !== undefined) {
+            this.textAlignment = o.textAlignment as string;
+        }
+        if (o.typeFace !== undefined) {
+            this.typeFace = o.typeFace as string;
+        }
+        if (o.typeSize !== undefined) {
+            this.typeSize = o.typeSize as number;
+        }
+        if (o.typeStyle !== undefined) {
+            this.typeStyle = o.typeStyle as string;
+        }
+        if (o.background !== undefined) {
+            this.background = o.background as string;
+        }
+        if (o.border !== undefined) {
+            this.border = o.border as string;
+        }
+        if (o.padding !== undefined) {
+            this.padding = o.padding as number;
+        }
     }
 
     /**

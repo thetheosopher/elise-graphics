@@ -1,3 +1,4 @@
+import type { SerializedData } from '../core/serialization';
 import { SurfaceElement, type SurfaceLike } from './surface-element';
 
 /**
@@ -108,5 +109,40 @@ export abstract class SurfaceLayer extends SurfaceElement {
     public setTranslateY(translateY: number) {
         this.translateY = translateY;
         return this;
+    }
+
+    /**
+     * Serializes persistent layer properties to a new object
+     * @returns Serialized layer data
+     */
+    public serialize(): SerializedData {
+        const o = super.serialize();
+        if (this.opacity !== 1) {
+            o.opacity = this.opacity;
+        }
+        if (this.translateX !== 0) {
+            o.translateX = this.translateX;
+        }
+        if (this.translateY !== 0) {
+            o.translateY = this.translateY;
+        }
+        return o;
+    }
+
+    /**
+     * Parses serialized data into layer properties
+     * @param o - Serialized layer data
+     */
+    public parse(o: SerializedData): void {
+        super.parse(o);
+        if (o.opacity !== undefined) {
+            this.opacity = o.opacity as number;
+        }
+        if (o.translateX !== undefined) {
+            this.translateX = o.translateX as number;
+        }
+        if (o.translateY !== undefined) {
+            this.translateY = o.translateY as number;
+        }
     }
 }

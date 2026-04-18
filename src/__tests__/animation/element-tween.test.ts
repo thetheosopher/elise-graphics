@@ -1,6 +1,7 @@
 import { AnimationEasing, animationEasingNames } from '../../animation/animation-easing';
 import { ElementAnimator } from '../../animation/element-tween';
 import { RectangleElement } from '../../elements/rectangle-element';
+import { TextPathElement } from '../../elements/text-path-element';
 
 type FrameQueue = Array<FrameRequestCallback | undefined>;
 
@@ -158,6 +159,30 @@ describe('element tweening', () => {
         expect(rect.getBounds()?.y).toBe(0);
 
         ElementAnimator.cancel(rect);
+        fakeAnimationFrame.restore();
+    });
+
+    test('animates text path startOffset and typesize', () => {
+        const fakeAnimationFrame = installFakeAnimationFrame();
+        jest.spyOn(performance, 'now').mockReturnValue(0);
+
+        const draw = jest.fn();
+        const textPath = TextPathElement.create('Curved', 'M 0 0 L 100 0').setTypesize(10);
+        textPath.model = { controller: { draw } } as unknown as any;
+
+        textPath.animate({ startOffset: 100, typesize: 20 }, { duration: 1000, easing: 'easeLinear' });
+
+        fakeAnimationFrame.step(500);
+
+        expect(textPath.startOffset).toBeCloseTo(50);
+        expect(textPath.typesize).toBeCloseTo(15);
+        expect(draw).toHaveBeenCalledTimes(1);
+
+        fakeAnimationFrame.step(1000);
+
+        expect(textPath.startOffset).toBeCloseTo(100);
+        expect(textPath.typesize).toBeCloseTo(20);
+
         fakeAnimationFrame.restore();
     });
 });

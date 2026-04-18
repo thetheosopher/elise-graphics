@@ -1,5 +1,7 @@
 import { Matrix2D } from '../core/matrix-2d';
 import { Point } from '../core/point';
+import { PointDepth } from '../core/point-depth';
+import { InvalidIndexException } from './invalid-index-exception';
 
 export type PathCommandIterationState = {
     current: Point;
@@ -800,4 +802,802 @@ export const parsePathCommandString = (commandString: string, legacyLowercaseAbs
     }
 
     return commands;
+};
+
+// ---------------------------------------------------------------------------
+// Arc edit geometry helpers (promoted from PathElement private statics)
+// ---------------------------------------------------------------------------
+
+export type ArcEditGeometry = {
+    center: Point;
+    radiusX: number;
+    radiusY: number;
+    xAxisUnit: Point;
+    yAxisUnit: Point;
+};
+
+export type PathCommandInsertionTarget = {
+    commandIndex: number;
+    ratio: number;
+    insertedPointIndex: number;
+};
+
+type PathPointRole = 'move' | 'end' | 'control1' | 'control2' | 'arcRadiusX' | 'arcRadiusY';
+
+type PathPointReference = {
+    commandIndex: number;
+    command: ResolvedPathCommand;
+    role: PathPointRole;
+};
+
+type SegmentProjection = {
+    distance: number;
+    ratio: number;
+    point: Point;
+};
+
+const lerpPoint = (start: Point, end: Point, t: number): Point => {
+    return new Point(start.x + (end.x - start.x) * t, start.y + (end.y - start.y) * t);
+};
+
+const clampRatio = (value: number): number => {
+    if (value <= 0) {
+        return 0;
+    }
+    if (value >= 1) {
+        return 1;
+    }
+    return value;
+};
+
+const clampInsertionRatio = (value: number): number => {
+    return Math.min(0.999, Math.max(0.001, value));
+};
+
+const distanceBetweenPoints = (start: Point, end: Point): number => {
+    return Math.hypot(end.x - start.x, end.y - start.y);
+};
+
+const projectPointToSegment = (point: Point, start: Point, end: Point): SegmentProjection => {
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    if (dx === 0 && dy === 0) {
+        return {
+            distance: distanceBetweenPoints(point, start),
+            ratio: 0,
+            point: start,
+        };
+    }
+
+    const ratio = clampRatio(((point.x - start.x) * dx + (point.y - start.y) * dy) / (dx * dx + dy * dy));
+    const projectedPoint = lerpPoint(start, end, ratio);
+    return {
+        distance: distanceBetweenPoints(point, projectedPoint),
+        ratio,
+        point: projectedPoint,
+    };
+};
+
+const quadraticPointAt = (start: Point, control: Point, end: Point, t: number): Point => {
+    const p01 = lerpPoint(start, control, t);
+    const p12 = lerpPoint(control, end, t);
+    return lerpPoint(p01, p12, t);
+};
+
+const cubicPointAt = (start: Point, cp1: Point, cp2: Point, end: Point, t: number): Point => {
+    const p01 = lerpPoint(start, cp1, t);
+    const p12 = lerpPoint(cp1, cp2, t);
+    const p23 = lerpPoint(cp2, end, t);
+    const p012 = lerpPoint(p01, p12, t);
+    const p123 = lerpPoint(p12, p23, t);
+    return lerpPoint(p012, p123, t);
+};
+
+const approximateCurveProjection = (
+    point: Point,
+    sample: (t: number) => Point,
+    sampleCount: number,
+): SegmentProjection => {
+    let bestProjection: SegmentProjection | undefined;
+    let previousPoint = sample(0);
+    let previousRatio = 0;
+    for (let step = 1; step <= sampleCount; step++) {
+        const currentRatio = step / sampleCount;
+        const currentPoint = sample(currentRatio);
+        const projection = projectPointToSegment(point, previousPoint, currentPoint);
+        const ratio = previousRatio + (currentRatio - previousRatio) * projection.ratio;
+        const candidate: SegmentProjection = {
+            distance: projection.distance,
+            ratio,
+            point: sample(ratio),
+        };
+        if (!bestProjection || candidate.distance < bestProjection.distance) {
+            bestProjection = candidate;
+        }
+        previousPoint = currentPoint;
+        previousRatio = currentRatio;
+    }
+
+    return bestProjection ?? {
+        distance: Number.POSITIVE_INFINITY,
+        ratio: 0,
+        point,
+    };
+};
+
+const buildResolvedPathCommands = (commands: string[]): Array<{ commandIndex: number; command: ResolvedPathCommand }> => {
+    const resolved: Array<{ commandIndex: number; command: ResolvedPathCommand }> = [];
+    let commandIndex = -1;
+    iteratePathCommands(commands, (command) => {
+        commandIndex++;
+        resolved.push({ commandIndex, command });
+    });
+    return resolved;
+};
+
+const countPathAnchorPoints = (commands: string[]): number => {
+    let count = 0;
+    iteratePathCommands(commands, (command) => {
+        if (command.type !== 'z') {
+            count++;
+        }
+    });
+    return count;
+};
+
+const findPathPointReference = (commands: string[], index: number, depth: PointDepth = PointDepth.Full): PathPointReference | undefined => {
+    let current = -1;
+    let foundReference: PathPointReference | undefined;
+    let commandIndex = -1;
+    iteratePathCommands(commands, (command) => {
+        if (foundReference) {
+            return;
+        }
+
+        commandIndex++;
+        if (command.type === 'm') {
+            current++;
+            if (current === index) {
+                foundReference = { commandIndex, command, role: 'move' };
+            }
+            return;
+        }
+
+        if (command.type === 'l' || command.type === 'H' || command.type === 'V' || command.type === 'T') {
+            current++;
+            if (current === index) {
+                foundReference = { commandIndex, command, role: 'end' };
+            }
+            return;
+        }
+
+        if (command.type === 'A') {
+            current++;
+            if (current === index) {
+                foundReference = { commandIndex, command, role: 'end' };
+                return;
+            }
+            if (depth === PointDepth.Full) {
+                current++;
+                if (current === index) {
+                    foundReference = { commandIndex, command, role: 'arcRadiusX' };
+                    return;
+                }
+                current++;
+                if (current === index) {
+                    foundReference = { commandIndex, command, role: 'arcRadiusY' };
+                }
+            }
+            return;
+        }
+
+        if (command.type === 'c') {
+            current++;
+            if (current === index) {
+                foundReference = { commandIndex, command, role: 'end' };
+                return;
+            }
+            if (depth === PointDepth.Full) {
+                current++;
+                if (current === index) {
+                    foundReference = { commandIndex, command, role: 'control1' };
+                    return;
+                }
+                current++;
+                if (current === index) {
+                    foundReference = { commandIndex, command, role: 'control2' };
+                }
+            }
+            return;
+        }
+
+        if (command.type === 'Q' || command.type === 'S') {
+            current++;
+            if (current === index) {
+                foundReference = { commandIndex, command, role: 'end' };
+                return;
+            }
+            if (depth === PointDepth.Full) {
+                current++;
+                if (current === index) {
+                    foundReference = { commandIndex, command, role: 'control1' };
+                }
+            }
+        }
+    });
+    return foundReference;
+};
+
+export const resolveArcEditGeometry = (
+    startPoint: Point,
+    radiusX: number,
+    radiusY: number,
+    xAxisRotation: number,
+    largeArc: boolean,
+    sweep: boolean,
+    endPoint: Point,
+): ArcEditGeometry => {
+    const absoluteRadiusX = Math.max(1, Math.abs(radiusX) || 1);
+    const absoluteRadiusY = Math.max(1, Math.abs(radiusY) || 1);
+    const phi = (xAxisRotation * Math.PI) / 180;
+    const cosPhi = Math.cos(phi);
+    const sinPhi = Math.sin(phi);
+    const xAxisUnit = new Point(cosPhi, sinPhi);
+    const yAxisUnit = new Point(-sinPhi, cosPhi);
+
+    if (startPoint.x === endPoint.x && startPoint.y === endPoint.y) {
+        return {
+            center: new Point(startPoint.x, startPoint.y),
+            radiusX: absoluteRadiusX,
+            radiusY: absoluteRadiusY,
+            xAxisUnit,
+            yAxisUnit,
+        };
+    }
+
+    let adjustedRadiusX = absoluteRadiusX;
+    let adjustedRadiusY = absoluteRadiusY;
+    const dx = (startPoint.x - endPoint.x) / 2;
+    const dy = (startPoint.y - endPoint.y) / 2;
+    const x1p = cosPhi * dx + sinPhi * dy;
+    const y1p = -sinPhi * dx + cosPhi * dy;
+    const lambda = (x1p * x1p) / (adjustedRadiusX * adjustedRadiusX) + (y1p * y1p) / (adjustedRadiusY * adjustedRadiusY);
+
+    if (lambda > 1) {
+        const scale = Math.sqrt(lambda);
+        adjustedRadiusX *= scale;
+        adjustedRadiusY *= scale;
+    }
+
+    const radiusXSquared = adjustedRadiusX * adjustedRadiusX;
+    const radiusYSquared = adjustedRadiusY * adjustedRadiusY;
+    const x1pSquared = x1p * x1p;
+    const y1pSquared = y1p * y1p;
+    const numerator = radiusXSquared * radiusYSquared - radiusXSquared * y1pSquared - radiusYSquared * x1pSquared;
+    const denominator = radiusXSquared * y1pSquared + radiusYSquared * x1pSquared;
+
+    if (denominator === 0) {
+        return {
+            center: new Point((startPoint.x + endPoint.x) / 2, (startPoint.y + endPoint.y) / 2),
+            radiusX: adjustedRadiusX,
+            radiusY: adjustedRadiusY,
+            xAxisUnit,
+            yAxisUnit,
+        };
+    }
+
+    const factor = Math.sqrt(Math.max(0, numerator / denominator));
+    const sign = largeArc === sweep ? -1 : 1;
+    const cxp = sign * factor * ((adjustedRadiusX * y1p) / adjustedRadiusY);
+    const cyp = sign * factor * ((-adjustedRadiusY * x1p) / adjustedRadiusX);
+    const center = new Point(
+        cosPhi * cxp - sinPhi * cyp + (startPoint.x + endPoint.x) / 2,
+        sinPhi * cxp + cosPhi * cyp + (startPoint.y + endPoint.y) / 2,
+    );
+
+    return {
+        center,
+        radiusX: adjustedRadiusX,
+        radiusY: adjustedRadiusY,
+        xAxisUnit,
+        yAxisUnit,
+    };
+};
+
+export const getArcAxisHandlePoint = (geometry: ArcEditGeometry, axis: 'x' | 'y'): Point => {
+    if (axis === 'x') {
+        return new Point(
+            geometry.center.x + geometry.xAxisUnit.x * geometry.radiusX,
+            geometry.center.y + geometry.xAxisUnit.y * geometry.radiusX,
+        );
+    }
+
+    return new Point(
+        geometry.center.x + geometry.yAxisUnit.x * geometry.radiusY,
+        geometry.center.y + geometry.yAxisUnit.y * geometry.radiusY,
+    );
+};
+
+export const resolveArcHandleRadius = (center: Point, axisUnit: Point, value: Point): number => {
+    const projection = (value.x - center.x) * axisUnit.x + (value.y - center.y) * axisUnit.y;
+    return Math.max(1, Math.abs(projection));
+};
+
+// ---------------------------------------------------------------------------
+// Shared path-command point utilities
+// ---------------------------------------------------------------------------
+
+export const getPathCommandPointCount = (commands: string[]): number => {
+    let count = 0;
+    iteratePathCommands(commands, (command) => {
+        if (command.type === 'm' || command.type === 'l' || command.type === 'H' || command.type === 'V' || command.type === 'T' || command.type === 'A') {
+            count++;
+        }
+        else if (command.type === 'c' || command.type === 'Q' || command.type === 'S') {
+            count += 2;
+            if (command.type === 'c') {
+                count++;
+            }
+        }
+    });
+    return count;
+};
+
+export const getPathCommandPointAt = (commands: string[], index: number, depth?: PointDepth): Point => {
+    let current = -1;
+    let foundPoint: Point | undefined;
+    iteratePathCommands(commands, (command) => {
+        if (foundPoint) {
+            return;
+        }
+        if (command.type === 'm' || command.type === 'l' || command.type === 'H' || command.type === 'V' || command.type === 'T' || command.type === 'A') {
+            current++;
+            if (current === index) {
+                foundPoint = command.end;
+            }
+            if (command.type === 'A' && depth === PointDepth.Full) {
+                const geometry = resolveArcEditGeometry(
+                    command.start,
+                    command.radiusX,
+                    command.radiusY,
+                    command.xAxisRotation,
+                    command.largeArc,
+                    command.sweep,
+                    command.end,
+                );
+                current++;
+                if (current === index) {
+                    foundPoint = getArcAxisHandlePoint(geometry, 'x');
+                }
+                current++;
+                if (current === index) {
+                    foundPoint = getArcAxisHandlePoint(geometry, 'y');
+                }
+            }
+            return;
+        }
+        if (command.type === 'c') {
+            current++;
+            if (current === index) {
+                foundPoint = command.end;
+            }
+            if (depth === PointDepth.Full) {
+                current++;
+                if (current === index) {
+                    foundPoint = command.cp1;
+                }
+                current++;
+                if (current === index) {
+                    foundPoint = command.cp2;
+                }
+            }
+            return;
+        }
+        if (command.type === 'Q' || command.type === 'S') {
+            current++;
+            if (current === index) {
+                foundPoint = command.end;
+            }
+            if (depth === PointDepth.Full) {
+                current++;
+                if (current === index) {
+                    foundPoint = command.type === 'Q' ? command.controlPoint : command.cp2;
+                }
+            }
+        }
+    });
+    if (foundPoint) {
+        return foundPoint;
+    }
+    throw new InvalidIndexException(index);
+};
+
+export const setPathCommandPointAt = (commands: string[], index: number, value: Point, depth: PointDepth): void => {
+    let current = -1;
+    let currentPoint = Point.Origin;
+    const cl = commands.length;
+    for (let i = 0; i < cl; i++) {
+        const command = commands[i];
+        if (command.charAt(0) === 'm') {
+            current++;
+            if (current === index) {
+                commands[i] = 'm' + value.toString();
+                return;
+            }
+            currentPoint = Point.parse(command.substring(1, command.length));
+        }
+        else if (command.charAt(0) === 'l') {
+            current++;
+            if (current === index) {
+                commands[i] = 'l' + value.toString();
+                return;
+            }
+            currentPoint = Point.parse(command.substring(1, command.length));
+        }
+        else if (command.charAt(0) === 'H') {
+            current++;
+            if (current === index) {
+                commands[i] = value.y === currentPoint.y ? 'H' + value.x : 'l' + value.toString();
+                return;
+            }
+            currentPoint = new Point(parseFloat(command.substring(1, command.length)), currentPoint.y);
+        }
+        else if (command.charAt(0) === 'V') {
+            current++;
+            if (current === index) {
+                commands[i] = value.x === currentPoint.x ? 'V' + value.y : 'l' + value.toString();
+                return;
+            }
+            currentPoint = new Point(currentPoint.x, parseFloat(command.substring(1, command.length)));
+        }
+        else if (command.charAt(0) === 'c') {
+            const parts = command.substring(1, command.length).split(',');
+            let cp1 = new Point(parseFloat(parts[0]), parseFloat(parts[1]));
+            let cp2 = new Point(parseFloat(parts[2]), parseFloat(parts[3]));
+            let endPoint = new Point(parseFloat(parts[4]), parseFloat(parts[5]));
+            current++;
+            if (current === index) {
+                endPoint = value;
+                commands[i] = 'c' + cp1.toString() + ',' + cp2.toString() + ',' + endPoint.toString();
+                return;
+            }
+            if (depth === PointDepth.Full) {
+                current++;
+                if (current === index) {
+                    cp1 = value;
+                    commands[i] = 'c' + cp1.toString() + ',' + cp2.toString() + ',' + endPoint.toString();
+                    return;
+                }
+                current++;
+                if (current === index) {
+                    cp2 = value;
+                    commands[i] = 'c' + cp1.toString() + ',' + cp2.toString() + ',' + endPoint.toString();
+                    return;
+                }
+            }
+            currentPoint = endPoint;
+        }
+        else if (command.charAt(0) === 'S') {
+            const parts = command.substring(1, command.length).split(',');
+            let cp2 = new Point(parseFloat(parts[0]), parseFloat(parts[1]));
+            let endPoint = new Point(parseFloat(parts[2]), parseFloat(parts[3]));
+            current++;
+            if (current === index) {
+                endPoint = value;
+                commands[i] = 'S' + cp2.toString() + ',' + endPoint.toString();
+                return;
+            }
+            if (depth === PointDepth.Full) {
+                current++;
+                if (current === index) {
+                    cp2 = value;
+                    commands[i] = 'S' + cp2.toString() + ',' + endPoint.toString();
+                    return;
+                }
+            }
+            currentPoint = endPoint;
+        }
+        else if (command.charAt(0) === 'q' || command.charAt(0) === 'Q') {
+            const parts = command.substring(1, command.length).split(',');
+            let controlPoint = new Point(parseFloat(parts[0]), parseFloat(parts[1]));
+            let endPoint = new Point(parseFloat(parts[2]), parseFloat(parts[3]));
+            current++;
+            if (current === index) {
+                endPoint = value;
+                commands[i] = 'Q' + controlPoint.toString() + ',' + endPoint.toString();
+                return;
+            }
+            if (depth === PointDepth.Full) {
+                current++;
+                if (current === index) {
+                    controlPoint = value;
+                    commands[i] = 'Q' + controlPoint.toString() + ',' + endPoint.toString();
+                    return;
+                }
+            }
+            currentPoint = endPoint;
+        }
+        else if (command.charAt(0) === 'T') {
+            const endPoint = Point.parse(command.substring(1, command.length));
+            current++;
+            if (current === index) {
+                commands[i] = 'T' + value.toString();
+                return;
+            }
+            currentPoint = endPoint;
+        }
+        else if (command.charAt(0) === 'A') {
+            const parts = command.substring(1, command.length).split(',');
+            let radiusX = parseFloat(parts[0]);
+            let radiusY = parseFloat(parts[1]);
+            const rotation = parseFloat(parts[2]);
+            const largeArc = parts[3] !== '0';
+            const sweep = parts[4] !== '0';
+            let endPoint = new Point(parseFloat(parts[5]), parseFloat(parts[6]));
+            current++;
+            if (current === index) {
+                commands[i] = 'A' + [radiusX, radiusY, rotation, largeArc ? 1 : 0, sweep ? 1 : 0, value.x, value.y].join(',');
+                return;
+            }
+            if (depth === PointDepth.Full) {
+                const geometry = resolveArcEditGeometry(currentPoint, radiusX, radiusY, rotation, largeArc, sweep, endPoint);
+                current++;
+                if (current === index) {
+                    radiusX = resolveArcHandleRadius(geometry.center, geometry.xAxisUnit, value);
+                    commands[i] = 'A' + [radiusX, radiusY, rotation, largeArc ? 1 : 0, sweep ? 1 : 0, endPoint.x, endPoint.y].join(',');
+                    return;
+                }
+                current++;
+                if (current === index) {
+                    radiusY = resolveArcHandleRadius(geometry.center, geometry.yAxisUnit, value);
+                    commands[i] = 'A' + [radiusX, radiusY, rotation, largeArc ? 1 : 0, sweep ? 1 : 0, endPoint.x, endPoint.y].join(',');
+                    return;
+                }
+            }
+            currentPoint = endPoint;
+        }
+        else if (command.charAt(0) === 'z') {
+            const normalized = normalizePathCommands(commands.slice(0, i + 1));
+            const lastMove = normalized
+                .slice()
+                .reverse()
+                .find((entry) => entry.charAt(0) === 'm');
+            if (lastMove) {
+                currentPoint = Point.parse(lastMove.substring(1));
+            }
+        }
+    }
+    throw new InvalidIndexException(index);
+};
+
+export const findPathCommandInsertionTarget = (
+    commands: string[],
+    point: Point,
+    tolerance: number,
+): PathCommandInsertionTarget | undefined => {
+    let bestTarget: (PathCommandInsertionTarget & { distance: number }) | undefined;
+    let handleIndex = -1;
+    let commandIndex = -1;
+
+    const considerTarget = (projection: SegmentProjection | undefined, insertedPointIndex: number): void => {
+        if (!projection || projection.distance > tolerance) {
+            return;
+        }
+
+        if (!bestTarget || projection.distance < bestTarget.distance) {
+            bestTarget = {
+                commandIndex,
+                ratio: projection.ratio,
+                insertedPointIndex,
+                distance: projection.distance,
+            };
+        }
+    };
+
+    iteratePathCommands(commands, (command) => {
+        commandIndex++;
+        switch (command.type) {
+            case 'm':
+                handleIndex++;
+                break;
+
+            case 'l':
+            case 'H':
+            case 'V':
+            case 'T': {
+                handleIndex++;
+                considerTarget(projectPointToSegment(point, command.start, command.end), handleIndex);
+                break;
+            }
+
+            case 'Q': {
+                handleIndex++;
+                considerTarget(
+                    approximateCurveProjection(point, (t) => quadraticPointAt(command.start, command.controlPoint, command.end, t), 24),
+                    handleIndex,
+                );
+                handleIndex++;
+                break;
+            }
+
+            case 'S': {
+                handleIndex++;
+                considerTarget(
+                    approximateCurveProjection(point, (t) => cubicPointAt(command.start, command.cp1, command.cp2, command.end, t), 32),
+                    handleIndex,
+                );
+                handleIndex++;
+                break;
+            }
+
+            case 'c': {
+                handleIndex++;
+                considerTarget(
+                    approximateCurveProjection(point, (t) => cubicPointAt(command.start, command.cp1, command.cp2, command.end, t), 32),
+                    handleIndex,
+                );
+                handleIndex += 2;
+                break;
+            }
+
+            case 'A':
+                handleIndex += 3;
+                break;
+
+            case 'z':
+                considerTarget(projectPointToSegment(point, command.start, command.end), handleIndex + 1);
+                break;
+        }
+    });
+
+    if (!bestTarget) {
+        return undefined;
+    }
+
+    return {
+        commandIndex: bestTarget.commandIndex,
+        ratio: bestTarget.ratio,
+        insertedPointIndex: bestTarget.insertedPointIndex,
+    };
+};
+
+export const insertPathCommandPoint = (commands: string[], commandIndex: number, ratio: number): Point => {
+    const resolvedCommands = buildResolvedPathCommands(commands);
+    const resolvedEntry = resolvedCommands.find((entry) => entry.commandIndex === commandIndex);
+    if (!resolvedEntry) {
+        throw new InvalidIndexException(commandIndex);
+    }
+
+    const command = resolvedEntry.command;
+    const t = clampInsertionRatio(ratio);
+
+    if (command.type === 'l' || command.type === 'H' || command.type === 'V') {
+        const insertedPoint = lerpPoint(command.start, command.end, t);
+        commands.splice(commandIndex, 1, 'l' + insertedPoint.toString(), 'l' + command.end.toString());
+        return insertedPoint;
+    }
+
+    if (command.type === 'z') {
+        const insertedPoint = lerpPoint(command.start, command.end, t);
+        commands.splice(commandIndex, 1, 'l' + insertedPoint.toString(), 'z');
+        return insertedPoint;
+    }
+
+    if (command.type === 'Q' || command.type === 'T') {
+        const p01 = lerpPoint(command.start, command.controlPoint, t);
+        const p12 = lerpPoint(command.controlPoint, command.end, t);
+        const insertedPoint = lerpPoint(p01, p12, t);
+        commands.splice(
+            commandIndex,
+            1,
+            'Q' + p01.toString() + ',' + insertedPoint.toString(),
+            'Q' + p12.toString() + ',' + command.end.toString(),
+        );
+        return insertedPoint;
+    }
+
+    if (command.type === 'c' || command.type === 'S') {
+        const p01 = lerpPoint(command.start, command.cp1, t);
+        const p12 = lerpPoint(command.cp1, command.cp2, t);
+        const p23 = lerpPoint(command.cp2, command.end, t);
+        const p012 = lerpPoint(p01, p12, t);
+        const p123 = lerpPoint(p12, p23, t);
+        const insertedPoint = lerpPoint(p012, p123, t);
+        commands.splice(
+            commandIndex,
+            1,
+            'c' + p01.toString() + ',' + p012.toString() + ',' + insertedPoint.toString(),
+            'c' + p123.toString() + ',' + p23.toString() + ',' + command.end.toString(),
+        );
+        return insertedPoint;
+    }
+
+    throw new Error('Path segment does not support point insertion.');
+};
+
+export const insertPathCommandBezierPoint = (commands: string[], commandIndex: number, ratio: number): Point => {
+    const resolvedCommands = buildResolvedPathCommands(commands);
+    const resolvedEntry = resolvedCommands.find((entry) => entry.commandIndex === commandIndex);
+    if (!resolvedEntry) {
+        throw new InvalidIndexException(commandIndex);
+    }
+
+    const command = resolvedEntry.command;
+    const t = clampInsertionRatio(ratio);
+
+    if (command.type === 'l' || command.type === 'H' || command.type === 'V' || command.type === 'z') {
+        const insertedPoint = lerpPoint(command.start, command.end, t);
+        const firstControl1 = lerpPoint(command.start, insertedPoint, 1 / 3);
+        const firstControl2 = lerpPoint(command.start, insertedPoint, 2 / 3);
+        const secondControl1 = lerpPoint(insertedPoint, command.end, 1 / 3);
+        const secondControl2 = lerpPoint(insertedPoint, command.end, 2 / 3);
+        const replacement = [
+            'c' + firstControl1.toString() + ',' + firstControl2.toString() + ',' + insertedPoint.toString(),
+            'c' + secondControl1.toString() + ',' + secondControl2.toString() + ',' + command.end.toString(),
+        ];
+
+        if (command.type === 'z') {
+            replacement.push('z');
+        }
+
+        commands.splice(commandIndex, 1, ...replacement);
+        return insertedPoint;
+    }
+
+    return insertPathCommandPoint(commands, commandIndex, t);
+};
+
+export const canRemovePathCommandPoint = (
+    commands: string[],
+    index: number,
+    depth: PointDepth = PointDepth.Full,
+): boolean => {
+    if (countPathAnchorPoints(commands) <= 2) {
+        return false;
+    }
+
+    const reference = findPathPointReference(commands, index, depth);
+    if (!reference) {
+        return false;
+    }
+
+    if (reference.role === 'control1' || reference.role === 'control2' || reference.role === 'arcRadiusX' || reference.role === 'arcRadiusY') {
+        return false;
+    }
+
+    if (reference.role === 'move') {
+        const resolvedCommands = buildResolvedPathCommands(commands);
+        const nextCommand = resolvedCommands[reference.commandIndex + 1]?.command;
+        return !!nextCommand && nextCommand.type !== 'm' && nextCommand.type !== 'z';
+    }
+
+    return true;
+};
+
+export const removePathCommandPoint = (
+    commands: string[],
+    index: number,
+    depth: PointDepth = PointDepth.Full,
+): void => {
+    if (!canRemovePathCommandPoint(commands, index, depth)) {
+        throw new InvalidIndexException(index);
+    }
+
+    const reference = findPathPointReference(commands, index, depth);
+    if (!reference) {
+        throw new InvalidIndexException(index);
+    }
+
+    if (reference.role === 'move') {
+        const resolvedCommands = buildResolvedPathCommands(commands);
+        const nextCommand = resolvedCommands[reference.commandIndex + 1]?.command;
+        if (!nextCommand || nextCommand.type === 'm' || nextCommand.type === 'z') {
+            throw new InvalidIndexException(index);
+        }
+        commands[reference.commandIndex] = 'm' + nextCommand.end.toString();
+        commands.splice(reference.commandIndex + 1, 1);
+        return;
+    }
+
+    commands.splice(reference.commandIndex, 1);
 };

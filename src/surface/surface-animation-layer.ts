@@ -4,6 +4,7 @@ import { IController } from '../controller/controller';
 import { CommonEvent } from '../core/common-event';
 import { ErrorMessages } from '../core/error-messages';
 import { Model } from '../core/model';
+import type { SerializedData } from '../core/serialization';
 import { ElementBase } from '../elements/element-base';
 import { SpriteElement } from '../elements/sprite-element';
 import { SpriteFrame } from '../elements/sprite-frame';
@@ -515,5 +516,54 @@ export class SurfaceAnimationLayer extends SurfaceLayer {
     public addTo(surface: SurfaceLike) {
         surface.layers.push(this);
         return this;
+    }
+
+    /**
+     * Serializes persistent animation layer properties to a new object
+     * @returns Serialized animation layer data
+     */
+    public serialize(): SerializedData {
+        const o = super.serialize();
+        o.type = 'surfaceAnimation';
+        if (this.loop) {
+            o.loop = this.loop;
+        }
+        if (this.initialIndex !== 0) {
+            o.initialIndex = this.initialIndex;
+        }
+        if (this.rememberFrame) {
+            o.rememberFrame = this.rememberFrame;
+        }
+        if (this.frames.length > 0) {
+            o.frames = this.frames.map(f => f.serialize());
+        }
+        return o;
+    }
+
+    /**
+     * Parses serialized data into animation layer properties
+     * @param o - Serialized animation layer data
+     */
+    public parse(o: SerializedData): void {
+        super.parse(o);
+        if (o.loop !== undefined) {
+            this.loop = o.loop as boolean;
+        }
+        if (o.initialIndex !== undefined) {
+            this.initialIndex = o.initialIndex as number;
+        }
+        if (o.rememberFrame !== undefined) {
+            this.rememberFrame = o.rememberFrame as boolean;
+        }
+        if (o.frames !== undefined) {
+            this.frames = [];
+            for (const frameData of o.frames as SerializedData[]) {
+                const frame = new SurfaceAnimationFrame(
+                    '', 0, 0, 0, 0, '', 1, '', 0, false
+                );
+                frame.parse(frameData);
+                this.frames.push(frame);
+            }
+        }
     }
 }

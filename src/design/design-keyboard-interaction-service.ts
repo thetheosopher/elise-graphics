@@ -17,6 +17,7 @@ export interface DesignKeyboardInteractionHost {
     nudgeSize(offsetX: number, offsetY: number): void;
     nudgeLocation(offsetX: number, offsetY: number): void;
     selectAll(): void;
+    deleteActivePoint(): boolean;
     deleteSelection(e: KeyboardEvent): void;
     cancelActiveTool(): void;
     finalizeToolHistorySession(): void;
@@ -155,6 +156,9 @@ export class DesignKeyboardInteractionService {
             case 46:
             case 8:
                 e.preventDefault();
+                if (host.deleteActivePoint()) {
+                    return true;
+                }
                 host.deleteSelection(e);
                 return true;
 

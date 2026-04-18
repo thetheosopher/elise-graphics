@@ -4,6 +4,7 @@ import { IController } from '../controller/controller';
 import { CommonEvent } from '../core/common-event';
 import { ErrorMessages } from '../core/error-messages';
 import { Model } from '../core/model';
+import type { SerializedData } from '../core/serialization';
 import { PointEventParameters } from '../core/point-event-parameters';
 import { ElementBase } from '../elements/element-base';
 import { SpriteElement } from '../elements/sprite-element';
@@ -1274,5 +1275,128 @@ export class SurfaceRadioStrip extends SurfaceLayer {
     public addTo(surface: Surface) {
         surface.layers.push(this);
         return this;
+    }
+
+    /**
+     * Serializes persistent radio strip properties to a new object
+     * @returns Serialized radio strip data
+     */
+    public serialize(): SerializedData {
+        const o = super.serialize();
+        o.type = 'surfaceRadioStrip';
+        if (this.orientation !== RadioStripOrientation.Horizontal) {
+            o.orientation = 'vertical';
+        }
+        if (this.buttonLeft !== 0) {
+            o.buttonLeft = this.buttonLeft;
+        }
+        if (this.buttonTop !== 0) {
+            o.buttonTop = this.buttonTop;
+        }
+        o.buttonWidth = this.buttonWidth;
+        o.buttonHeight = this.buttonHeight;
+        if (this.normalIndex !== 0) {
+            o.normalIndex = this.normalIndex;
+        }
+        if (this.selectedIndex !== 0) {
+            o.selectedIndex = this.selectedIndex;
+        }
+        if (this.highlightedIndex !== 0) {
+            o.highlightedIndex = this.highlightedIndex;
+        }
+        if (this.normalColor !== 'Black') {
+            o.normalColor = this.normalColor;
+        }
+        if (this.highlightedColor !== 'Black') {
+            o.highlightedColor = this.highlightedColor;
+        }
+        if (this.selectedColor !== 'Black') {
+            o.selectedColor = this.selectedColor;
+        }
+        if (this.textAlignment !== 'center,middle') {
+            o.textAlignment = this.textAlignment;
+        }
+        if (this.typeFace !== 'sans-serif') {
+            o.typeFace = this.typeFace;
+        }
+        if (this.typeSize !== 12) {
+            o.typeSize = this.typeSize;
+        }
+        if (this.typeStyle !== '') {
+            o.typeStyle = this.typeStyle;
+        }
+        if (this.padding !== 0) {
+            o.padding = this.padding;
+        }
+        if (this.items.length > 0) {
+            o.items = this.items.map(item => item.serialize());
+        }
+        return o;
+    }
+
+    /**
+     * Parses serialized data into radio strip properties
+     * @param o - Serialized radio strip data
+     */
+    public parse(o: SerializedData): void {
+        super.parse(o);
+        if (o.orientation !== undefined) {
+            this.orientation = (o.orientation as string) === 'vertical'
+                ? RadioStripOrientation.Vertical
+                : RadioStripOrientation.Horizontal;
+        }
+        if (o.buttonLeft !== undefined) {
+            this.buttonLeft = o.buttonLeft as number;
+        }
+        if (o.buttonTop !== undefined) {
+            this.buttonTop = o.buttonTop as number;
+        }
+        if (o.buttonWidth !== undefined) {
+            this.buttonWidth = o.buttonWidth as number;
+        }
+        if (o.buttonHeight !== undefined) {
+            this.buttonHeight = o.buttonHeight as number;
+        }
+        if (o.normalIndex !== undefined) {
+            this.normalIndex = o.normalIndex as number;
+        }
+        if (o.selectedIndex !== undefined) {
+            this.selectedIndex = o.selectedIndex as number;
+        }
+        if (o.highlightedIndex !== undefined) {
+            this.highlightedIndex = o.highlightedIndex as number;
+        }
+        if (o.normalColor !== undefined) {
+            this.normalColor = o.normalColor as string;
+        }
+        if (o.highlightedColor !== undefined) {
+            this.highlightedColor = o.highlightedColor as string;
+        }
+        if (o.selectedColor !== undefined) {
+            this.selectedColor = o.selectedColor as string;
+        }
+        if (o.textAlignment !== undefined) {
+            this.textAlignment = o.textAlignment as string;
+        }
+        if (o.typeFace !== undefined) {
+            this.typeFace = o.typeFace as string;
+        }
+        if (o.typeSize !== undefined) {
+            this.typeSize = o.typeSize as number;
+        }
+        if (o.typeStyle !== undefined) {
+            this.typeStyle = o.typeStyle as string;
+        }
+        if (o.padding !== undefined) {
+            this.padding = o.padding as number;
+        }
+        if (o.items !== undefined) {
+            this.items = [];
+            for (const itemData of o.items as SerializedData[]) {
+                const item = new SurfaceRadioStripItem('', '');
+                item.parse(itemData);
+                this.items.push(item);
+            }
+        }
     }
 }

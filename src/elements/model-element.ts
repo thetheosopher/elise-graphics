@@ -68,6 +68,16 @@ export class ModelElement extends ElementBase {
     }
 
     /**
+     * Sets model resource key.
+     * @param source - Model resource key
+     * @returns This model element
+     */
+    public setSource(source: string | undefined) {
+        this.source = source;
+        return this;
+    }
+
+    /**
      * Copies properties of another object to this instance
      * @param o - Source object
      */

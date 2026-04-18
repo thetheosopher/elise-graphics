@@ -10,6 +10,7 @@ import { ElementAnimator, ElementTween } from './animation/element-tween';
 import { Color } from './core/color';
 import { CommonEvent } from './core/common-event';
 import { ErrorMessages } from './core/error-messages';
+import { getPathLength, getPointAtLength } from './elements/path-geometry';
 import { KeyboardEventArgs } from './core/keyboard-event-args';
 import { LocationArgs } from './core/location-args';
 import { Logging } from './core/logging';
@@ -20,12 +21,14 @@ import { MouseEventArgs } from './core/mouse-event-args';
 import { MouseLocationArgs } from './core/mouse-location-args';
 import { MousePositionInfo } from './core/mouse-position-info';
 import { NamedColor } from './core/named-color';
+import { TextPathElement } from './elements/text-path-element';
 import { Point } from './core/point';
 import { PointDepth } from './core/point-depth';
 import { PointEventParameters } from './core/point-event-parameters';
 import { Region } from './core/region';
 import { ScalingInfo } from './core/scaling-info';
 import { Size } from './core/size';
+export { getPathLength, getPointAtLength } from './elements/path-geometry';
 import { SizeArgs } from './core/size-args';
 import { StrokeInfo } from './core/stroke-info';
 import { TimerParameters } from './core/timer-parameters';
@@ -36,6 +39,7 @@ import { WindingMode } from './core/winding-mode';
 import { Component } from './design/component/component';
 import { ComponentElement } from './design/component/component-element';
 import { ComponentEvent } from './design/component/component-event';
+export { TextPathElement } from './elements/text-path-element';
 import { ComponentProps } from './design/component/component-props';
 import { ComponentRegistry } from './design/component/component-registry';
 import { GenericComponentProps } from './design/component/generic-component-props';
@@ -59,6 +63,7 @@ import { PolylineTool } from './design/tools/polyline-tool';
 import { RegularPolygonTool } from './design/tools/regular-polygon-tool';
 import { RectangleTool } from './design/tools/rectangle-tool';
 import { RingTool } from './design/tools/ring-tool';
+import { TextPathTool } from './design/tools/text-path-tool';
 import { TextTool } from './design/tools/text-tool';
 import { WedgeTool } from './design/tools/wedge-tool';
 
@@ -125,6 +130,7 @@ import { Sketcher } from './sketcher/sketcher';
 
 import { SVGExporter } from './svg/svg-exporter';
 import { SVGImporter } from './svg/svg-importer';
+import { WmfImporter } from './wmf/wmf-importer';
 
 import { PaneTransition } from './surface/pane-transitions/pane-transition';
 import { PaneTransitionDirection } from './surface/pane-transitions/pane-transition-direction';
@@ -226,6 +232,7 @@ export { PolylineTool } from './design/tools/polyline-tool';
 export { RegularPolygonTool } from './design/tools/regular-polygon-tool';
 export { RectangleTool } from './design/tools/rectangle-tool';
 export { RingTool } from './design/tools/ring-tool';
+export { TextPathTool } from './design/tools/text-path-tool';
 export { TextTool } from './design/tools/text-tool';
 export { WedgeTool } from './design/tools/wedge-tool';
 
@@ -288,6 +295,7 @@ export { ResourceLoaderState } from './resource/resource-loader-state';
 export { ResourceManager } from './resource/resource-manager';
 export { ResourceManagerEvent } from './resource/resource-manager-event';
 export { ResourceState } from './resource/resource-state';
+export { SurfaceResource } from './resource/surface-resource';
 export { TextResource } from './resource/text-resource';
 export { UrlProxy } from './resource/url-proxy';
 
@@ -295,6 +303,7 @@ export { Sketcher } from './sketcher/sketcher';
 
 export { SVGExporter } from './svg/svg-exporter';
 export { SVGImporter } from './svg/svg-importer';
+export { WmfImporter } from './wmf/wmf-importer';
 
 export { PaneTransition } from './surface/pane-transitions/pane-transition';
 export { PaneTransitionDirection } from './surface/pane-transitions/pane-transition-direction';
@@ -309,8 +318,10 @@ export { Surface } from './surface/surface';
 export { SurfaceAnimationFrame } from './surface/surface-animation-frame';
 export { SurfaceAnimationLayer } from './surface/surface-animation-layer';
 export { SurfaceAnimationViewController } from './surface/surface-animation-view-controller';
+export { SurfaceApplication } from './surface/surface-application';
 export { SurfaceButtonElement } from './surface/surface-button-element';
 export { SurfaceElement } from './surface/surface-element';
+export { SurfaceElementFactory, SurfaceElementCreatorRegistration } from './surface/surface-element-factory';
 export { SurfaceElementStates } from './surface/surface-element-states';
 export { SurfaceHiddenLayer } from './surface/surface-hidden-layer';
 export { SurfaceHtmlLayer } from './surface/surface-html-layer';
@@ -326,6 +337,7 @@ export { SurfaceRadioStripViewController } from './surface/surface-radio-strip-v
 export { SurfaceTextElement } from './surface/surface-text-element';
 export { SurfaceVideoLayer } from './surface/surface-video-layer';
 export { SurfaceViewController } from './surface/surface-view-controller';
+export { NavigationAction } from './surface/navigation-action';
 
 export { TransitionRenderer } from './transitions/transitions';
 
@@ -427,6 +439,12 @@ export { spriteFrame };
 const text = TextElement.create;
 export { text };
 
+/**
+ * Fluent factory alias for creating a TextPathElement.
+ */
+const textPath = TextPathElement.create;
+export { textPath };
+
 const wedge = WedgeElement.create;
 export { wedge };
 
@@ -526,6 +544,7 @@ export default {
     PaneTransitionWipe: PaneTransitionWipe,
     PathElement: PathElement,
     PathBackedElementBase: PathBackedElementBase,
+    TextPathElement: TextPathElement,
     PenTool: PenTool,
     Point: Point,
     PointDepth: PointDepth,
@@ -557,6 +576,7 @@ export default {
     Sketcher: Sketcher,
     SVGExporter: SVGExporter,
     SVGImporter: SVGImporter,
+    WmfImporter: WmfImporter,
     SpriteElement: SpriteElement,
     SpriteFrame: SpriteFrame,
     SpriteState: SpriteState,
@@ -584,6 +604,9 @@ export default {
     SurfaceViewController: SurfaceViewController,
     SVGViewController: SVGViewController,
     TextElement: TextElement,
+    TextPathTool: TextPathTool,
+    getPathLength: getPathLength,
+    getPointAtLength: getPointAtLength,
     TextResource: TextResource,
     TextTool: TextTool,
     TimerParameters: TimerParameters,
@@ -633,6 +656,7 @@ export default {
     sprite: sprite,
     spriteFrame: spriteFrame,
     text: text,
+    textPath: textPath,
     uriTextResource: uriTextResource,
     wedge: wedge,
     view: view

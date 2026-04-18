@@ -1,4 +1,5 @@
 import { ErrorMessages } from '../core/error-messages';
+import type { SerializedData } from '../core/serialization';
 import { Utility } from '../core/utility';
 import type { PaneContainerLike, PaneTransition } from './pane-transitions/pane-transition';
 import { PaneTransitionDirection } from './pane-transitions/pane-transition-direction';
@@ -35,6 +36,26 @@ export class SurfacePane extends SurfaceLayer {
      * Hosted pane surface
      */
     public childSurface: Surface;
+
+    /**
+     * Default pane transition
+     */
+    public transition?: string;
+
+    /**
+     * Default pane transition duration in seconds
+     */
+    public transitionDuration?: number;
+
+    /**
+     * Navigation history stack of surface IDs
+     */
+    public navigationHistory: string[] = [];
+
+    /**
+     * Referenced child surface ID (for deferred resolution)
+     */
+    public childSurfaceId?: string;
 
     /**
      * Host HTML div element
@@ -747,6 +768,56 @@ export class SurfacePane extends SurfaceLayer {
     public addTo(surface: Surface) {
         surface.layers.push(this);
         return this;
+    }
+
+    /**
+     * Serializes persistent pane properties to a new object
+     * @returns Serialized pane data
+     */
+    public serialize(): SerializedData {
+        const o = super.serialize();
+        o.type = 'surfacePane';
+        if (this.childSurfaceId) {
+            o.childSurfaceId = this.childSurfaceId;
+        } else if (this.childSurface) {
+            o.childSurface = this.childSurface.serialize();
+        }
+        if (this.transition) {
+            o.transition = this.transition;
+        }
+        if (this.transitionDuration !== undefined) {
+            o.transitionDuration = this.transitionDuration;
+        }
+        return o;
+    }
+
+    /**
+     * Parses serialized data into pane properties
+     * @param o - Serialized pane data
+     */
+    public parse(o: SerializedData): void {
+        super.parse(o);
+        if (o.childSurfaceId !== undefined) {
+            this.childSurfaceId = o.childSurfaceId as string;
+        }
+        if (o.childSurface !== undefined) {
+            const surfData = o.childSurface as SerializedData;
+            const childSurface = new Surface(
+                surfData.width as number,
+                surfData.height as number,
+                surfData.id as string | undefined,
+                surfData.scale as number | undefined
+            );
+            childSurface.parseData(surfData);
+            this.childSurface = childSurface;
+            this.childSurface.isChild = true;
+        }
+        if (o.transition !== undefined) {
+            this.transition = o.transition as string;
+        }
+        if (o.transitionDuration !== undefined) {
+            this.transitionDuration = o.transitionDuration as number;
+        }
     }
 }
 

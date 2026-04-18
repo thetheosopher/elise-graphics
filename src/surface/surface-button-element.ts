@@ -1,6 +1,7 @@
 import { CommonEvent } from '../core/common-event';
 import { ErrorMessages } from '../core/error-messages';
 import { Model } from '../core/model';
+import type { SerializedData } from '../core/serialization';
 import { SpriteElement } from '../elements/sprite-element';
 import { SpriteFrame } from '../elements/sprite-frame';
 import { SurfaceElement, type SurfaceLike } from './surface-element';
@@ -285,6 +286,72 @@ export class SurfaceButtonElement extends SurfaceElement {
         model.add(sprite);
 
         return sprite;
+    }
+
+    /**
+     * Serializes persistent button properties to a new object
+     * @returns Serialized button data
+     */
+    public serialize(): SerializedData {
+        const o = super.serialize();
+        o.type = 'surfaceButton';
+        if (this.normalIndex !== 0) {
+            o.normalIndex = this.normalIndex;
+        }
+        if (this.selectedIndex !== 0) {
+            o.selectedIndex = this.selectedIndex;
+        }
+        if (this.highlightedIndex !== 0) {
+            o.highlightedIndex = this.highlightedIndex;
+        }
+        if (this.disabledIndex !== 0) {
+            o.disabledIndex = this.disabledIndex;
+        }
+        if (!this.isEnabled) {
+            o.isEnabled = this.isEnabled;
+        }
+        if (this.isSelected) {
+            o.isSelected = this.isSelected;
+        }
+        if (this.isToggle) {
+            o.isToggle = this.isToggle;
+        }
+        if (this.groupId !== undefined) {
+            o.groupId = this.groupId;
+        }
+        return o;
+    }
+
+    /**
+     * Parses serialized data into button properties
+     * @param o - Serialized button data
+     */
+    public parse(o: SerializedData): void {
+        super.parse(o);
+        if (o.normalIndex !== undefined) {
+            this.normalIndex = o.normalIndex as number;
+        }
+        if (o.selectedIndex !== undefined) {
+            this.selectedIndex = o.selectedIndex as number;
+        }
+        if (o.highlightedIndex !== undefined) {
+            this.highlightedIndex = o.highlightedIndex as number;
+        }
+        if (o.disabledIndex !== undefined) {
+            this.disabledIndex = o.disabledIndex as number;
+        }
+        if (o.isEnabled !== undefined) {
+            this.isEnabled = o.isEnabled as boolean;
+        }
+        if (o.isSelected !== undefined) {
+            this.isSelected = o.isSelected as boolean;
+        }
+        if (o.isToggle !== undefined) {
+            this.isToggle = o.isToggle as boolean;
+        }
+        if (o.groupId !== undefined) {
+            this.groupId = o.groupId as string;
+        }
     }
 
     /**

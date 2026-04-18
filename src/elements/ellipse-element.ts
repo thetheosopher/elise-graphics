@@ -52,6 +52,8 @@ export class EllipseElement extends ElementBase {
         super('ellipse');
         this.getCenter = this.getCenter.bind(this);
         this.setCenter = this.setCenter.bind(this);
+        this.setRadiusX = this.setRadiusX.bind(this);
+        this.setRadiusY = this.setRadiusY.bind(this);
     }
 
     /**
@@ -90,6 +92,7 @@ export class EllipseElement extends ElementBase {
     /**
      * Center point set accessor as string or Point
      * @param pointSource - Center point as string or Point
+     * @returns This ellipse element
      */
     public setCenter(pointSource: string | Point | undefined) {
         if (pointSource) {
@@ -98,6 +101,27 @@ export class EllipseElement extends ElementBase {
         else {
             this._center = undefined;
         }
+        return this;
+    }
+
+    /**
+     * Sets horizontal radius.
+     * @param radiusX - Horizontal radius
+     * @returns This ellipse element
+     */
+    public setRadiusX(radiusX: number) {
+        this.radiusX = radiusX;
+        return this;
+    }
+
+    /**
+     * Sets vertical radius.
+     * @param radiusY - Vertical radius
+     * @returns This ellipse element
+     */
+    public setRadiusY(radiusY: number) {
+        this.radiusY = radiusY;
+        return this;
     }
 
     /**

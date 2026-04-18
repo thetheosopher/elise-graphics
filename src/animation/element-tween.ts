@@ -29,6 +29,7 @@ export interface TweenTargetValues {
     rotation?: number;
     opacity?: number;
     typesize?: number;
+    startOffset?: number;
     fill?: TweenColorValue;
     stroke?: TweenColorValue;
 }
@@ -81,6 +82,11 @@ interface LineLike {
 
 interface TypesizeLike {
     typesize?: number;
+}
+
+interface StartOffsetLike {
+    startOffset?: number;
+    setStartOffset?: (value: number) => unknown;
 }
 
 interface OpacityLike {
@@ -460,6 +466,26 @@ function resolveNumericProperty(element: ElementBase, key: Exclude<TweenProperty
                 to: target,
                 apply: (value: number) => {
                     textLike.typesize = value;
+                }
+            };
+        }
+        case 'startOffset': {
+            const startOffsetLike = element as unknown as StartOffsetLike;
+            if (startOffsetLike.startOffset === undefined) {
+                throw new Error(`Cannot animate ${key} on element type ${element.type}.`);
+            }
+            return {
+                kind: 'number',
+                key,
+                from: startOffsetLike.startOffset,
+                to: target,
+                apply: (value: number) => {
+                    if (typeof startOffsetLike.setStartOffset === 'function') {
+                        startOffsetLike.setStartOffset(value);
+                    }
+                    else {
+                        startOffsetLike.startOffset = value;
+                    }
                 }
             };
         }

@@ -1,4 +1,5 @@
 import { Model } from '../core/model';
+import type { SerializedData } from '../core/serialization';
 import { Utility } from '../core/utility';
 import { ElementBase } from '../elements/element-base';
 
@@ -84,5 +85,47 @@ export class SurfaceElement {
     public addToModel(model: Model): ElementBase | undefined {
         void model;
         return undefined;
+    }
+
+    /**
+     * Serializes persistent element properties to a new object
+     * @returns Serialized element data
+     */
+    public serialize(): SerializedData {
+        const o: SerializedData = { type: 'surfaceElement' };
+        if (this.id) {
+            o.id = this.id;
+        }
+        if (this.left !== 0) {
+            o.left = this.left;
+        }
+        if (this.top !== 0) {
+            o.top = this.top;
+        }
+        o.width = this.width;
+        o.height = this.height;
+        return o;
+    }
+
+    /**
+     * Parses serialized data into element properties
+     * @param o - Serialized element data
+     */
+    public parse(o: SerializedData): void {
+        if (o.id !== undefined) {
+            this.id = o.id as string;
+        }
+        if (o.left !== undefined) {
+            this.left = o.left as number;
+        }
+        if (o.top !== undefined) {
+            this.top = o.top as number;
+        }
+        if (o.width !== undefined) {
+            this.width = o.width as number;
+        }
+        if (o.height !== undefined) {
+            this.height = o.height as number;
+        }
     }
 }

@@ -48,6 +48,7 @@ export class ViewController implements IController {
         controller.setModel(model);
         const canvas = controller.getCanvas();
         hostDiv.appendChild(canvas);
+        controller.canvasHost = hostDiv;
         hostDiv.style.width = size.width * viewScale + 'px';
         hostDiv.style.height = size.height * viewScale + 'px';
         controller.draw();
@@ -169,6 +170,11 @@ export class ViewController implements IController {
      * Canvas rendering target
      */
     public canvas?: HTMLCanvasElement;
+
+    /**
+     * Explicit host element that owns canvas layout sizing.
+     */
+    private canvasHost?: HTMLDivElement;
 
     /**
      * Current mouse x position
@@ -647,6 +653,7 @@ export class ViewController implements IController {
             this.timer.clear();
         }
         this.canvas = undefined;
+        this.canvasHost = undefined;
     }
 
     /**
@@ -1213,18 +1220,7 @@ export class ViewController implements IController {
         if (!size) {
             throw new Error(ErrorMessages.SizeUndefined);
         }
-        if (this.canvas) {
-            this.canvas.width = size.width * scale;
-            this.canvas.height = size.height * scale;
-        }
-        else {
-            this.createCanvas();
-        }
-        const hostDiv = this.canvas.parentElement;
-        if (hostDiv) {
-            hostDiv.style.width = size.width * scale + 'px';
-            hostDiv.style.height = size.height * scale + 'px';
-        }
+        this.refreshPixelRatio(true);
         this.draw();
     }
 
@@ -1250,29 +1246,7 @@ export class ViewController implements IController {
         if (!this.model) {
             return;
         }
-
-        this.refreshPixelRatio();
-
-        const context = this.canvas.getContext('2d');
-        if (!context) {
-            throw new Error(ErrorMessages.CanvasContextIsNull);
-        }
-        this.model.context = context;
-        const size = this.model.getSize();
-        if (!size) {
-            throw new Error(ErrorMessages.SizeUndefined);
-        }
-        const w = size.width;
-        const h = size.height;
-
-        if (typeof context.setTransform === 'function') {
-            context.setTransform(1, 0, 0, 1, 0, 0);
-        }
-        context.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-        context.save();
-        context.scale(this.pixelRatio, this.pixelRatio);
-        context.translate(-this.offsetX * this.scale, -this.offsetY * this.scale);
+        const context = this.beginRenderContext();
 
         if (!this.renderer) {
             throw new Error(ErrorMessages.RendererIsUndefined);
@@ -1294,9 +1268,44 @@ export class ViewController implements IController {
     }
 
     /**
+     * Prepares a direct-rendering context with current backing-store sizing and viewport transform.
+     */
+    public applyRenderViewport(context: CanvasRenderingContext2D, clear: boolean = false): void {
+        if (!this.canvas) {
+            throw new Error(ErrorMessages.CanvasIsUndefined);
+        }
+
+        this.refreshPixelRatio();
+
+        if (typeof context.setTransform === 'function') {
+            context.setTransform(1, 0, 0, 1, 0, 0);
+        }
+        else if (typeof context.resetTransform === 'function') {
+            context.resetTransform();
+        }
+
+        if (clear) {
+            context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        }
+
+        context.scale(this.pixelRatio, this.pixelRatio);
+        context.translate(-this.offsetX * this.scale, -this.offsetY * this.scale);
+    }
+
+    /**
      * Begins direct rendering
      */
     public beginDraw(): CanvasRenderingContext2D {
+        const context = this.beginRenderContext();
+        if (!this.renderer) {
+            throw new Error(ErrorMessages.RendererIsUndefined);
+        }
+        this.renderer.renderToContext(context, this.scale);
+
+        return context;
+    }
+
+    private beginRenderContext(): CanvasRenderingContext2D {
         if (!this.canvas) {
             throw new Error(ErrorMessages.CanvasIsUndefined);
         }
@@ -1313,27 +1322,8 @@ export class ViewController implements IController {
             throw new Error(ErrorMessages.CanvasContextIsNull);
         }
         this.model.context = context;
-
-        const w = size.width;
-        const h = size.height;
-
-        // Clear context
-        if (this.scale !== 1.0) {
-            context.clearRect(0, 0, w * this.scale, h * this.scale);
-        }
-        else {
-            context.clearRect(0, 0, w, h);
-        }
-
-        // Offset for scroll
         context.save();
-        context.translate(-this.offsetX * this.scale, -this.offsetY * this.scale);
-
-        // Render model
-        if (!this.renderer) {
-            throw new Error(ErrorMessages.RendererIsUndefined);
-        }
-        this.renderer.renderToContext(context, this.scale);
+        this.applyRenderViewport(context, true);
 
         return context;
     }
@@ -1504,6 +1494,7 @@ export class ViewController implements IController {
         hostDiv.innerHTML = '';
         const canvas = this.getCanvas();
         hostDiv.appendChild(canvas);
+        this.canvasHost = hostDiv;
         hostDiv.style.width = size.width * this.scale + 'px';
         hostDiv.style.height = size.height * this.scale + 'px';
         this.draw();
@@ -1571,7 +1562,7 @@ export class ViewController implements IController {
         const cssWidth = size.width * this.scale;
         const cssHeight = size.height * this.scale;
         const changed = applyCanvasDisplaySize(this.canvas, cssWidth, cssHeight, this.pixelRatio);
-        const element = this.canvas.parentElement;
+        const element = this.canvasHost;
         if (element) {
             element.style.width = cssWidth + 'px';
             element.style.height = cssHeight + 'px';

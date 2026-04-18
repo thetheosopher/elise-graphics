@@ -123,7 +123,7 @@ e.size = this.size.toString();  // this.size already returns string
 
 Then refactored the five event classes to extend these shared bases while preserving their existing public class names and behavior.
 
-### 2.7 — Fluent API Incompleteness — PARTIALLY RESOLVED 2026-03-18
+### 2.7 — Fluent API Incompleteness — PARTIALLY RESOLVED 2026-04-04
 
 Most mutation methods on ElementBase return `this` for chaining (`setFill()`, `setStroke()`, `setLocation()`, `setSize()`, `nudgeSize()`, `translate()`, `scale()`), but `parse()` and `cloneTo()` return `void`. While reasonable, the inconsistency means you can chain `el.setFill('red').setStroke('black')` but not end a chain with `.parse(data)`.
 
@@ -131,6 +131,15 @@ Most mutation methods on ElementBase return `this` for chaining (`setFill()`, `s
 
 - `parseFluent(o): this`
 - `cloneToFluent(e): e`
+
+**Expanded coverage (2026-04-04):** Added fluent setters for element metadata and recent primitive-specific properties, including:
+
+- base element metadata and event handlers such as `setId`, `setLocked`, `setAspectLocked`, `setMouseDown`, `setMouseUp`, `setMouseEnter`, `setMouseLeave`, `setClick`, and `setTimer`
+- ellipse geometry helpers `setCenter`, `setRadiusX`, and `setRadiusY`
+- image/model source setters `setSource`
+- sprite setters `setFrames`, `setLoop`, and `setFrameIndex`
+- polyline smoothing via `setSmoothPoints`
+- primitive shape setters such as `setStartAngle`, `setEndAngle`, `setHeadLengthScale`, `setHeadWidthScale`, `setShaftWidthScale`, `setInnerRadiusScale`, `setSides`, and `setShapeRotation`
 
 Legacy `parse()` / `cloneTo()` signatures are preserved for compatibility.
 

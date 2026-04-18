@@ -229,6 +229,9 @@ All primitives inherit shared behavior from `ElementBase`. This section covers t
 
 The most commonly used inherited methods are:
 
+- `setId(value)`
+- `setLocked(value)`
+- `setAspectLocked(value)`
 - `setLocation(point)`
 - `setSize(size)`
 - `setFill(fill)`
@@ -245,8 +248,15 @@ The most commonly used inherited methods are:
 - `setShadow(value)`
 - `setBlendMode(value)`
 - `setFilter(value)`
+- `setClipPath(value)`
 - `setTransform(value)`
 - `setVisible(value)`
+- `setMouseDown(handler)`
+- `setMouseUp(handler)`
+- `setMouseEnter(handler)`
+- `setMouseLeave(handler)`
+- `setClick(handler)`
+- `setTimer(handler)`
 - `setRotation(degrees, cx?, cy?)`
 - `animate(targets, options?)`
 - `cancelAnimations(propertyNames?)`
@@ -322,6 +332,9 @@ Type-specific options:
 
 - factory uses center/radius form: `create(cx, cy, rx, ry)`
 - omitting `ry` effectively gives a circle-style shape
+- `setCenter(point)`
+- `setRadiusX(value)`
+- `setRadiusY(value)`
 
 ```javascript
 var orb = elise.ellipse(180, 120, 64, 48)
@@ -409,14 +422,16 @@ Type-specific options:
 
 - `startAngle`
 - `endAngle`
+- `setStartAngle(value)`
+- `setEndAngle(value)`
 - not fillable by default
 - point editing exposes start, end, and radius-size handles
 
 ```javascript
 var gaugeArc = elise.arc(40, 40, 180, 180)
-    .setStroke('#22c55e,10');
-gaugeArc.startAngle = 210;
-gaugeArc.endAngle = 40;
+  .setStroke('#22c55e,10')
+  .setStartAngle(210)
+  .setEndAngle(40);
 ```
 
 ```json
@@ -439,14 +454,17 @@ Type-specific options:
 - `headLengthScale`
 - `headWidthScale`
 - `shaftWidthScale`
+- `setHeadLengthScale(value)`
+- `setHeadWidthScale(value)`
+- `setShaftWidthScale(value)`
 
 ```javascript
 var arrow = elise.arrow(40, 120, 220, 50)
-    .setFill('#f97316')
-    .setStroke('#7c2d12,2');
-arrow.headLengthScale = 0.4;
-arrow.headWidthScale = 0.8;
-arrow.shaftWidthScale = 0.28;
+  .setFill('#f97316')
+  .setStroke('#7c2d12,2')
+  .setHeadLengthScale(0.4)
+  .setHeadWidthScale(0.8)
+  .setShaftWidthScale(0.28);
 ```
 
 ```json
@@ -471,13 +489,16 @@ Type-specific options:
 - `sides`
 - `innerRadiusScale`
 - `rotation`
+- `setSides(value)`
+- `setInnerRadiusScale(value)`
+- `setShapeRotation(value)`
 
 ```javascript
 var badge = elise.regularPolygon(80, 80, 140, 140)
-    .setFill('#a78bfa')
-    .setStroke('#4c1d95,2');
-badge.sides = 6;
-badge.rotation = -30;
+  .setFill('#a78bfa')
+  .setStroke('#4c1d95,2')
+  .setSides(6)
+  .setShapeRotation(-30);
 ```
 
 ```json
@@ -500,12 +521,13 @@ Use ring for donut charts, radar markers, target graphics, and circular framing.
 Type-specific options:
 
 - `innerRadiusScale`
+- `setInnerRadiusScale(value)`
 
 ```javascript
 var ring = elise.ring(60, 60, 180, 180)
-    .setFill('#0ea5e9')
-    .setStroke('#082f49,2');
-ring.innerRadiusScale = 0.62;
+  .setFill('#0ea5e9')
+  .setStroke('#082f49,2')
+  .setInnerRadiusScale(0.62);
 ```
 
 ```json
@@ -527,13 +549,15 @@ Type-specific options:
 
 - `startAngle`
 - `endAngle`
+- `setStartAngle(value)`
+- `setEndAngle(value)`
 
 ```javascript
 var wedge = elise.wedge(120, 80, 180, 180)
-    .setFill('#fb7185')
-    .setStroke('#881337,2');
-wedge.startAngle = 300;
-wedge.endAngle = 40;
+  .setFill('#fb7185')
+  .setStroke('#881337,2')
+  .setStartAngle(300)
+  .setEndAngle(40);
 ```
 
 ```json
@@ -586,6 +610,7 @@ Type-specific options:
 
 - editable `Point[]` list
 - `smoothPoints` for Catmull-Rom interpolation
+- `setSmoothPoints(true)` enables Catmull-Rom interpolation
 - no fill by default
 
 ```javascript
@@ -594,8 +619,8 @@ var route = elise.polyline()
     .addPoint(elise.point(80, 60))
     .addPoint(elise.point(150, 140))
     .addPoint(elise.point(240, 70))
-    .setStroke('#2563eb,4');
-route.smoothPoints = true;
+    .setStroke('#2563eb,4')
+    .setSmoothPoints(true);
 ```
 
 ```json
@@ -665,6 +690,7 @@ Use image for photo placement, icons, posters, card art, and imported raster con
 Type-specific options:
 
 - `source` references a `BitmapResource`
+- `setSource(value)` swaps the referenced bitmap resource fluently
 - size controls scaling of the source image
 - `canStroke()` is true, so images can have borders
 
@@ -698,6 +724,9 @@ Type-specific options:
 - `frameIndex`
 - `loop`
 - `onAdvance` command tag
+- `setFrames(frames)` replaces the full frame list fluently
+- `setFrameIndex(value)` selects the active frame fluently
+- `setLoop(value)` toggles looping fluently
 - transition support between frames
 - timeline helpers such as `getStateForTime(...)` and `getTimeForFrame(...)`
 
@@ -705,11 +734,11 @@ Type-specific options:
 var sheet = elise.bitmapResource('sheet', '/images/spritesheet.png');
 sheet.addTo(model);
 
-var sprite = elise.sprite(40, 40, 96, 96);
-sprite.addFrame(elise.spriteFrame('sheet', 0, 0, 96, 96, 0.15, 'fade', 0.1, 1));
-sprite.addFrame(elise.spriteFrame('sheet', 96, 0, 96, 96, 0.15, 'fade', 0.1, 1));
-sprite.addFrame(elise.spriteFrame('sheet', 192, 0, 96, 96, 0.15, 'fade', 0.1, 1));
-sprite.loop = true;
+var sprite = elise.sprite(40, 40, 96, 96)
+  .addFrame(elise.spriteFrame('sheet', 0, 0, 96, 96, 0.15, 'fade', 0.1, 1))
+  .addFrame(elise.spriteFrame('sheet', 96, 0, 96, 96, 0.15, 'fade', 0.1, 1))
+  .addFrame(elise.spriteFrame('sheet', 192, 0, 96, 96, 0.15, 'fade', 0.1, 1))
+  .setLoop(true);
 model.add(sprite);
 ```
 
@@ -733,6 +762,7 @@ Use model element for reusable symbols, nested scenes, prefabs, and composition 
 Type-specific options:
 
 - `source` references a `ModelResource`
+- `setSource(value)` re-targets the referenced model resource fluently
 - `sourceModel` may embed a model directly
 - scales the inner model into the outer bounds
 

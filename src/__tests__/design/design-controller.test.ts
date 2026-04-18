@@ -5,6 +5,7 @@ import { ArrowElement } from '../../elements/arrow-element';
 import { EllipseElement } from '../../elements/ellipse-element';
 import { Model } from '../../core/model';
 import { PathElement } from '../../elements/path-element';
+import { PolylineElement } from '../../elements/polyline-element';
 import { RectangleElement } from '../../elements/rectangle-element';
 import { RegularPolygonElement } from '../../elements/regular-polygon-element';
 import { RingElement } from '../../elements/ring-element';
@@ -18,7 +19,9 @@ import { HandleMovedArgs } from '../../design/handle-moved-args';
 import { GridType } from '../../design/grid-type';
 import { LineTool } from '../../design/tools/line-tool';
 import { RectangleTool } from '../../design/tools/rectangle-tool';
+import { TextPathTool } from '../../design/tools/text-path-tool';
 import { BitmapResource } from '../../resource/bitmap-resource';
+import { TextPathElement } from '../../elements/text-path-element';
 
 function setWindowDevicePixelRatio(value: number) {
     const globals = globalThis as typeof globalThis & { window?: Window & typeof globalThis };
@@ -689,6 +692,32 @@ describe('design controller undo and redo', () => {
         fakeWindowScope.restore();
     });
 
+    test('text path tool-created elements become undoable when creation commits', () => {
+        const controller = new DesignController();
+        const model = Model.create(120, 80);
+        installCanvasOnly(controller);
+        controller.setModel(model);
+        const fakeWindowScope = installFakeWindow();
+
+        const tool = new TextPathTool();
+        tool.text = 'Curved';
+        controller.setActiveTool(tool);
+        controller.onCanvasMouseDown({ button: 0, clientX: 10, clientY: 20 });
+        controller.onCanvasMouseMove({ button: 0, clientX: 70, clientY: 30 });
+        controller.onCanvasMouseUp({ button: 0, clientX: 70, clientY: 30 });
+
+        expect(model.elements).toHaveLength(1);
+        expect(model.elements[0].type).toBe('textPath');
+        expect((model.elements[0] as TextPathElement).getResolvedText()).toBe('Curved');
+        expect(controller.canUndo).toBe(true);
+
+        controller.undo();
+
+        expect(model.elements).toHaveLength(0);
+
+        fakeWindowScope.restore();
+    });
+
     test('shift-click on a selected primitive enters edit mode', () => {
         const controller = new DesignController();
         const model = Model.create(100, 100);
@@ -819,6 +848,239 @@ describe('design controller undo and redo', () => {
         expect(controller.movingPointIndex).toBe(startHandle!.handleIndex);
 
         fakeWindowScope.restore();
+    });
+
+    test('shift-click on a selected path element enters point edit mode', () => {
+        const controller = new DesignController();
+        const model = Model.create(200, 200);
+        const path = PathElement.fromSVGPath('M 10 10 L 80 80 L 150 10').setInteractive(true);
+        const fakeWindowScope = installFakeWindow();
+        model.add(path);
+        installInteractiveCanvas(controller);
+        controller.setModel(model);
+        controller.selectElement(path);
+
+        model.elementsAt = jest.fn(() => [path]);
+        jest.spyOn(controller, 'getElementHandles').mockReturnValue([]);
+
+        controller.onCanvasMouseDown({
+            button: 0,
+            clientX: 80,
+            clientY: 80,
+            shiftKey: true,
+            ctrlKey: false,
+            metaKey: false,
+        });
+
+        expect(path.editPoints).toBe(true);
+        expect(path.canMovePoint()).toBe(true);
+        expect(path.canResize()).toBe(false);
+
+        fakeWindowScope.restore();
+    });
+
+    test('shift-click on a selected text path element enters point edit mode', () => {
+        const controller = new DesignController();
+        const model = Model.create(200, 200);
+        const textPath = TextPathElement.create('Hello', 'M 10 10 L 190 10').setInteractive(true);
+        const fakeWindowScope = installFakeWindow();
+        model.add(textPath);
+        installInteractiveCanvas(controller);
+        controller.setModel(model);
+        controller.selectElement(textPath);
+
+        model.elementsAt = jest.fn(() => [textPath]);
+        jest.spyOn(controller, 'getElementHandles').mockReturnValue([]);
+
+        controller.onCanvasMouseDown({
+            button: 0,
+            clientX: 100,
+            clientY: 10,
+            shiftKey: true,
+            ctrlKey: false,
+            metaKey: false,
+        });
+
+        expect(textPath.editPoints).toBe(true);
+        expect(textPath.canMovePoint()).toBe(true);
+        expect(textPath.canResize()).toBe(false);
+
+        fakeWindowScope.restore();
+    });
+
+    test('handle factory returns path shape handles for text path in edit mode', () => {
+        const controller = new DesignController();
+        const model = Model.create(200, 200);
+        const textPath = TextPathElement.create('World', 'M 0 0 L 100 0 L 200 0').setInteractive(true);
+        model.add(textPath);
+        installInteractiveCanvas(controller);
+        controller.setModel(model);
+        controller.selectElement(textPath);
+        textPath.editPoints = true;
+
+        const handles = controller.getElementHandles(textPath);
+        expect(handles.length).toBe(3);
+    });
+
+    test('double-click on a path segment inserts a point in point edit mode', () => {
+        const controller = new DesignController();
+        const model = Model.create(200, 200);
+        const path = PathElement.fromSVGPath('M 0 0 L 100 0').setInteractive(true);
+
+        model.add(path);
+        installInteractiveCanvas(controller);
+        controller.setModel(model);
+        controller.selectElement(path);
+        path.editPoints = true;
+
+        controller.onCanvasMouseDown({
+            button: 0,
+            clientX: 48,
+            clientY: 2,
+            detail: 2,
+            shiftKey: false,
+            ctrlKey: false,
+            metaKey: false,
+        });
+
+        expect(path.getCommands()).toEqual(['m0,0', 'l48,0', 'l100,0']);
+        expect(controller.activePointIndex).toBe(1);
+        expect(controller.isMouseDown).toBe(false);
+    });
+
+    test('Delete removes the active point handle instead of deleting the element', () => {
+        const controller = new DesignController();
+        const model = Model.create(200, 200);
+        const polyline = PolylineElement.create()
+            .setPoints([new Point(0, 0), new Point(50, 50), new Point(100, 0)])
+            .setInteractive(true);
+        const fakeWindowScope = installFakeWindow();
+
+        model.add(polyline);
+        installInteractiveCanvas(controller);
+        controller.setModel(model);
+        controller.selectElement(polyline);
+        polyline.editPoints = true;
+
+        const middleHandle = controller.getElementHandles(polyline)[1];
+        controller.onCanvasMouseDown({ button: 0, clientX: middleHandle.x, clientY: middleHandle.y, shiftKey: false, ctrlKey: false, metaKey: false });
+        controller.onCanvasMouseUp({ button: 0, clientX: middleHandle.x, clientY: middleHandle.y, shiftKey: false, ctrlKey: false, metaKey: false });
+
+        expect(controller.activePointIndex).toBe(1);
+
+        const deleteEvent = {
+            keyCode: 46,
+            preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+        } as unknown as KeyboardEvent;
+
+        expect(controller.onCanvasKeyDown(deleteEvent)).toBe(true);
+        const remainingPoints = polyline.getPoints();
+        expect(remainingPoints).toHaveLength(2);
+        expect(remainingPoints?.[0].x).toBe(0);
+        expect(remainingPoints?.[0].y).toBe(0);
+        expect(remainingPoints?.[1].x).toBe(100);
+        expect(remainingPoints?.[1].y).toBe(0);
+        expect(model.elements).toHaveLength(1);
+
+        fakeWindowScope.restore();
+    });
+
+    test('ctrl-click inserts a point on a selected path while point editing is enabled', () => {
+        const controller = new DesignController();
+        const model = Model.create(200, 200);
+        const path = PathElement.fromSVGPath('M 0 0 L 100 0').setInteractive(true);
+
+        model.add(path);
+        installInteractiveCanvas(controller);
+        controller.setModel(model);
+        controller.selectElement(path);
+        path.editPoints = true;
+
+        controller.onCanvasMouseDown({
+            button: 0,
+            clientX: 48,
+            clientY: 2,
+            detail: 1,
+            shiftKey: false,
+            ctrlKey: true,
+            metaKey: false,
+            altKey: false,
+        });
+
+        expect(path.getCommands()).toEqual(['m0,0', 'l48,0', 'l100,0']);
+        expect(controller.activePointIndex).toBe(1);
+        expect(controller.isMouseDown).toBe(false);
+    });
+
+    test('ctrl-alt-click inserts a bezier point on a selected text path while point editing is enabled', () => {
+        const controller = new DesignController();
+        const model = Model.create(200, 200);
+        const textPath = TextPathElement.create('Hello', 'M 0 0 L 90 0').setInteractive(true);
+
+        model.add(textPath);
+        installInteractiveCanvas(controller);
+        controller.setModel(model);
+        controller.selectElement(textPath);
+        textPath.editPoints = true;
+
+        controller.onCanvasMouseDown({
+            button: 0,
+            clientX: 45,
+            clientY: 1,
+            detail: 1,
+            shiftKey: false,
+            ctrlKey: true,
+            metaKey: false,
+            altKey: true,
+        });
+
+        expect(textPath.getCommands()).toEqual(['m0,0', 'c15,0,30,0,45,0', 'c60,0,75,0,90,0']);
+        expect(controller.activePointIndex).toBe(1);
+        expect(controller.isMouseDown).toBe(false);
+    });
+
+    test('context menu exposes add and remove point actions for path edit mode', () => {
+        const controller = new DesignController();
+        const model = Model.create(200, 200);
+        const path = PathElement.fromSVGPath('M 0 0 L 100 0').setInteractive(true);
+        const contextMenuRequested = jest.fn();
+
+        model.add(path);
+        installInteractiveCanvas(controller);
+        controller.setModel(model);
+        controller.selectElement(path);
+        path.editPoints = true;
+        jest.spyOn(model, 'firstActiveElementAt').mockReturnValue(path);
+        controller.contextMenuRequested.add(contextMenuRequested);
+
+        controller.onCanvasContextMenu({
+            clientX: 50,
+            clientY: 0,
+            preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+        } as unknown as MouseEvent);
+
+        const addArgs = contextMenuRequested.mock.calls[0][1];
+        expect(addArgs.canAddPoint).toBe(true);
+        expect(addArgs.canRemovePoint).toBe(false);
+        expect(addArgs.addPoint()).toBe(true);
+        expect(path.getCommands()).toEqual(['m0,0', 'l50,0', 'l100,0']);
+
+        contextMenuRequested.mockClear();
+
+        controller.onCanvasContextMenu({
+            clientX: 50,
+            clientY: 0,
+            preventDefault: jest.fn(),
+            stopPropagation: jest.fn(),
+        } as unknown as MouseEvent);
+
+        const removeArgs = contextMenuRequested.mock.calls[0][1];
+        expect(removeArgs.canAddPoint).toBe(false);
+        expect(removeArgs.canRemovePoint).toBe(true);
+        expect(removeArgs.removePoint()).toBe(true);
+        expect(path.getCommands()).toEqual(['m0,0', 'l100,0']);
     });
 
     test('moving path-backed primitives preserves their semantic size', () => {
@@ -1868,6 +2130,44 @@ describe('design controller interaction indicators', () => {
         expect(model.elements[0].getPointAt(1)).toMatchObject({ x: 30, y: 30 });
 
         fakeWindowScope.restore();
+    });
+
+    test('tool-created text paths snap guide endpoints to the grid', () => {
+        const controller = new DesignController();
+        const model = Model.create(100, 100);
+        installCanvasOnly(controller);
+        controller.setModel(model);
+        controller.snapToGrid = true;
+        controller.gridSpacing = 10;
+        const fakeWindowScope = installFakeWindow();
+
+        const tool = new TextPathTool();
+        tool.text = 'Snap';
+        controller.setActiveTool(tool);
+        controller.onCanvasMouseDown({ button: 0, clientX: 13, clientY: 17 });
+        controller.onCanvasMouseMove({ button: 0, clientX: 29, clientY: 34 });
+        controller.onCanvasMouseUp({ button: 0, clientX: 29, clientY: 34 });
+
+        expect(model.elements).toHaveLength(1);
+        expect(model.elements[0].type).toBe('textPath');
+        expect((model.elements[0] as TextPathElement).getPathCommands()).toEqual(['m10,20', 'l30,30']);
+
+        fakeWindowScope.restore();
+    });
+
+    test('selected text path elements expose selection handles for design-time editing', () => {
+        const controller = new DesignController();
+        const model = Model.create(200, 100);
+        const textPath = TextPathElement.create('Move', 'M 10 20 L 90 20').setInteractive(true);
+
+        model.add(textPath);
+        installInteractiveCanvas(controller);
+        controller.setModel(model);
+        controller.selectElement(textPath);
+
+        const handles = controller.getElementHandles(textPath);
+
+        expect(handles.length).toBeGreaterThan(0);
     });
 
     test('draw shows point drag indicator with point coordinates', () => {

@@ -194,6 +194,127 @@ test('view controller draw scales backing store for device pixel ratio', () => {
     restoreDevicePixelRatio();
 });
 
+test('view controller beginDraw uses pixel ratio aware direct rendering', () => {
+    const controller = new ViewController();
+    const context = {
+        clearRect: jest.fn(),
+        save: jest.fn(),
+        restore: jest.fn(),
+        scale: jest.fn(),
+        translate: jest.fn(),
+        setTransform: jest.fn(),
+    } as unknown as CanvasRenderingContext2D;
+
+    controller.autoPixelRatio = false;
+    controller.pixelRatio = 2;
+    controller.model = {
+        getSize: () => ({ width: 100, height: 50 }),
+    } as unknown as any;
+    controller.canvas = {
+        width: 100,
+        height: 50,
+        style: { width: '', height: '' },
+        parentElement: { style: {} } as unknown as HTMLDivElement,
+        getContext: () => context,
+    } as unknown as HTMLCanvasElement;
+    const renderer = {
+        renderToContext: jest.fn(),
+    } as unknown as any;
+    controller.renderer = renderer;
+
+    const result = controller.beginDraw();
+
+    expect(result).toBe(context);
+    expect(controller.canvas.width).toBe(200);
+    expect(controller.canvas.height).toBe(100);
+    expect(context.clearRect).toHaveBeenCalledWith(0, 0, 200, 100);
+    expect(context.scale).toHaveBeenNthCalledWith(1, 2, 2);
+    expect(renderer.renderToContext).toHaveBeenCalledWith(context, 1);
+
+    controller.endDraw(context);
+
+    expect(context.restore).toHaveBeenCalledTimes(1);
+});
+
+test('view controller setScale preserves backing store pixel ratio', () => {
+    const controller = new ViewController();
+    const context = {
+        clearRect: jest.fn(),
+        save: jest.fn(),
+        restore: jest.fn(),
+        scale: jest.fn(),
+        translate: jest.fn(),
+        setTransform: jest.fn(),
+        fillText: jest.fn(),
+    } as unknown as CanvasRenderingContext2D;
+    const hostStyle = {} as CSSStyleDeclaration;
+
+    controller.autoPixelRatio = false;
+    controller.pixelRatio = 2;
+    controller.model = {
+        getSize: () => ({ width: 100, height: 50 }),
+        displayFPS: false,
+    } as unknown as any;
+    controller.canvas = {
+        width: 100,
+        height: 50,
+        style: { width: '', height: '' },
+        parentElement: { style: hostStyle } as unknown as HTMLDivElement,
+        getContext: () => context,
+    } as unknown as HTMLCanvasElement;
+    const renderer = {
+        renderToContext: jest.fn(),
+    } as unknown as any;
+    controller.renderer = renderer;
+    (controller as unknown as { canvasHost?: HTMLDivElement }).canvasHost = controller.canvas?.parentElement as HTMLDivElement;
+
+    controller.setScale(3);
+
+    expect(controller.canvas.width).toBe(600);
+    expect(controller.canvas.height).toBe(300);
+    expect((controller.canvas.style as CSSStyleDeclaration).width).toBe('300px');
+    expect((controller.canvas.style as CSSStyleDeclaration).height).toBe('150px');
+    expect(hostStyle.width).toBe('300px');
+    expect(hostStyle.height).toBe('150px');
+    expect(renderer.renderToContext).toHaveBeenCalledWith(context, 3);
+});
+
+test('view controller draw does not resize arbitrary canvas parent when unbound', () => {
+    const controller = new ViewController();
+    const context = {
+        clearRect: jest.fn(),
+        save: jest.fn(),
+        restore: jest.fn(),
+        scale: jest.fn(),
+        translate: jest.fn(),
+        setTransform: jest.fn(),
+        fillText: jest.fn(),
+    } as unknown as CanvasRenderingContext2D;
+    const parentStyle = { width: '640px', height: '480px' } as CSSStyleDeclaration;
+
+    controller.autoPixelRatio = false;
+    controller.pixelRatio = 2;
+    controller.model = {
+        getSize: () => ({ width: 100, height: 50 }),
+        displayFPS: false,
+    } as unknown as any;
+    controller.canvas = {
+        width: 100,
+        height: 50,
+        style: { width: '', height: '' },
+        parentElement: { style: parentStyle } as unknown as HTMLDivElement,
+        getContext: () => context,
+    } as unknown as HTMLCanvasElement;
+    controller.renderer = {
+        renderToContext: jest.fn(),
+    } as unknown as any;
+
+    controller.draw();
+
+    expect(parentStyle.width).toBe('640px');
+    expect(parentStyle.height).toBe('480px');
+});
+
 test('view controller detach clears timers listeners and canvas', () => {
     const controller = new ViewController();
     const fakeWindowScope = installFakeWindow();

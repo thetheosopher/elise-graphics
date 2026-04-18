@@ -3,6 +3,7 @@ import { Point } from '../../core/point';
 import { Size } from '../../core/size';
 import { PolylineElement } from '../../elements/polyline-element';
 import { RectangleElement } from '../../elements/rectangle-element';
+import { TextPathElement } from '../../elements/text-path-element';
 import { FillFactory } from '../../fill/fill-factory';
 import type { IDesignController } from '../../design/design-controller-interface';
 
@@ -91,6 +92,7 @@ describe('design renderer', () => {
         const ellipseSpy = jest.spyOn(renderer, 'renderEllipseElement').mockImplementation(() => undefined);
         const modelSpy = jest.spyOn(renderer, 'renderModelElement').mockImplementation(() => undefined);
         const textSpy = jest.spyOn(renderer, 'renderTextElement').mockImplementation(() => undefined);
+        const textPathSpy = jest.spyOn(renderer, 'renderTextPathElement').mockImplementation(() => undefined);
 
         renderer.renderElement(c, { type: 'image' } as never);
         renderer.renderElement(c, { type: 'sprite' } as never);
@@ -107,6 +109,7 @@ describe('design renderer', () => {
         renderer.renderElement(c, { type: 'ellipse' } as never);
         renderer.renderElement(c, { type: 'model' } as never);
         renderer.renderElement(c, { type: 'text' } as never);
+        renderer.renderElement(c, { type: 'textPath' } as never);
 
         expect(imageSpy).toHaveBeenCalledTimes(1);
         expect(spriteSpy).toHaveBeenCalledTimes(1);
@@ -123,6 +126,59 @@ describe('design renderer', () => {
         expect(ellipseSpy).toHaveBeenCalledTimes(1);
         expect(modelSpy).toHaveBeenCalledTimes(1);
         expect(textSpy).toHaveBeenCalledTimes(1);
+        expect(textPathSpy).toHaveBeenCalledTimes(1);
+    });
+
+    test('renderTextPathElement draws the live element when no preview state is active', () => {
+        const controller = createController();
+        const renderer = new DesignRenderer(controller);
+        const c = createContext();
+        const textPath = TextPathElement.create('Curved', 'M 0 0 L 100 0');
+        textPath.model = {
+            resourceManager: { get: jest.fn() },
+            setElementStroke: jest.fn(() => false),
+            setRenderTransform: jest.fn(),
+        } as never;
+        const drawSpy = jest.spyOn(textPath, 'draw').mockImplementation(() => undefined);
+
+        renderer.renderTextPathElement(c, textPath);
+
+        expect(drawSpy).toHaveBeenCalledWith(c);
+    });
+
+    test('renderTextPathElement renders a preview clone during move and resize operations', () => {
+        const controller = createController();
+        controller.isMoving = true;
+        controller.isResizing = true;
+        (controller.isSelected as jest.Mock).mockReturnValue(true);
+        (controller.getElementMoveLocation as jest.Mock).mockReturnValue(new Point(40, 50));
+        (controller.getElementResizeSize as jest.Mock).mockReturnValue(new Size(120, 30));
+
+        const renderer = new DesignRenderer(controller);
+        const c = createContext();
+        const textPath = TextPathElement.create('Preview', 'M 10 20 L 90 20');
+        textPath.model = {
+            resourceManager: { get: jest.fn() },
+            setElementStroke: jest.fn(() => false),
+            setRenderTransform: jest.fn(),
+        } as never;
+
+        const preview = {
+            model: textPath.model,
+            setLocation: jest.fn().mockReturnThis(),
+            setSize: jest.fn().mockReturnThis(),
+            draw: jest.fn(),
+        };
+        const cloneSpy = jest.spyOn(textPath, 'clone').mockReturnValue(preview as never);
+        const drawSpy = jest.spyOn(textPath, 'draw').mockImplementation(() => undefined);
+
+        renderer.renderTextPathElement(c, textPath);
+
+        expect(cloneSpy).toHaveBeenCalledTimes(1);
+        expect(preview.setLocation).toHaveBeenCalledWith(expect.objectContaining({ x: 40, y: 50 }));
+        expect(preview.setSize).toHaveBeenCalledWith(expect.objectContaining({ width: 120, height: 30 }));
+        expect(preview.draw).toHaveBeenCalledWith(c);
+        expect(drawSpy).not.toHaveBeenCalled();
     });
 
     test('renderRectangleElement applies fill offsets and stroke', () => {

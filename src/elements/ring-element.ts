@@ -27,6 +27,18 @@ export class RingElement extends PathBackedElementBase {
 
     constructor() {
         super('ring');
+        this.setInnerRadiusScale = this.setInnerRadiusScale.bind(this);
+    }
+
+    /**
+     * Sets inner radius as a proportion of outer radius.
+     * @param innerRadiusScale - Inner radius scale (0.05 to 0.95)
+     * @returns This ring element
+     */
+    public setInnerRadiusScale(innerRadiusScale: number) {
+        this.innerRadiusScale = clampPrimitiveValue(innerRadiusScale, 0.05, 0.95);
+        this.bounds = undefined;
+        return this;
     }
 
     public parse(o: SerializedData): void {

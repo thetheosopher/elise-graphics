@@ -24,6 +24,7 @@ export interface DesignUndoStateHost {
     rotationCenter?: Point;
     originalPivotCenter?: Point;
     originalTransform?: string;
+    activePointIndex?: number;
     movingPointIndex?: number;
     movingPointLocation?: Point;
     sizeHandles?: Handle[];
@@ -232,6 +233,7 @@ export class DesignUndoStateService {
         host.rotationCenter = undefined;
         host.originalPivotCenter = undefined;
         host.originalTransform = undefined;
+        host.activePointIndex = undefined;
         host.movingPointIndex = undefined;
         host.movingPointLocation = undefined;
         host.sizeHandles = undefined;
