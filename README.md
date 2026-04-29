@@ -1,111 +1,101 @@
-# Elise Graphics Library
+# Elise Graphics
 
-## Introduction
+A retained-mode 2D graphics library for the web for building interactive scenes, visual tooling, and canvas or SVG experiences from one model.
 
-Elise provides a [retained mode graphics API](https://docs.microsoft.com/en-us/windows/win32/learnwin32/retained-mode-versus-immediate-mode)
-based on the [HTML5 canvas element](https://en.wikipedia.org/wiki/Canvas_element).
+[![npm version](https://img.shields.io/npm/v/elise-graphics.svg)](https://www.npmjs.com/package/elise-graphics)
+[![License: MIT](https://img.shields.io/badge/License-MIT-1f6feb.svg)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-online-0a7ea4.svg)](https://elise.schematrix.com/#/docs)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=000000)](https://buymeacoffee.com/theosopher)
 
-Elise provides a set of graphics primitives for representing 2D graphical content.  Elements are grouped into model objects that serve as
-their container and provide a repository for additional resources required for their display. Some elements are stroked and must have a
-stroke color and optionally width specified to be visible when rendered. Some elements are fillable and may be filled with solid colors,
-color gradients, images, or other models.  Models may be added as elements to other models to allow composition of highly complex models
-from simpler elements.
+[Website](https://elise.schematrix.com) • [Docs](https://elise.schematrix.com/#/docs) • [npm](https://www.npmjs.com/package/elise-graphics) • [Buy Me a Coffee](https://buymeacoffee.com/theosopher)
 
-### Features
+Elise combines a retained scene graph, a browser-based design surface, dual canvas and SVG renderers, animation APIs, shared resources, and SVG interoperability in a single library. It is designed for everything from low-level vector composition to full interactive surfaces for kiosks, signage, and presentation-style applications.
 
-* Rich set of 2D drawing primitives including line, rectangle, ellipse, polyline, polygon, path, image, text, text-on-path, and sprites.
-* Shared resource library for indirect referenced to bitmap, model, and text resources with support for localization.
-* Support for element interactivity, property tweening, touch interaction, and animation.
-* Support for sprite and image transitions.
-* SVG import and export with hierarchy-preserving container support, `<symbol>`/`<use>` handling, and gradient/clip-path interop.
-* Event bubbling through nested model hierarchies for composable interactive content.
-* Runtime keyboard events on both canvas and SVG view controllers, with focus-path bubbling through nested model hierarchies.
-* Design surface and component library for interactive model creation and editing, including inline rich-text editing with formatting shortcuts and drag-based text-on-path authoring.
-* Higher level surface library for creation of graphical applications with integration of video and other HTML content.
-* Sketcher class to gradually draw and fill complex polygonal models for visual effect.
+## Why Elise
+
+* Retained scene graph architecture instead of manual immediate-mode redraw code.
+* One model can render to canvas for runtime performance or SVG for inspection and export.
+* Built-in design tooling for selection, transforms, snapping, clipboard, undo/redo, and inline text editing.
+* Nested models and reusable resources for scalable composition.
+* Application surface APIs for layered HTML, image, video, and animated experiences.
+
+## Feature Overview
+
+| Area | Highlights |
+| --- | --- |
+| Drawing | Lines, rectangles, ellipses, polygons, paths, images, text, text-on-path, sprites, and nested models |
+| Styling | Solid colors, gradients, image/model fills, transforms, opacity, and reusable resources |
+| Runtime | Canvas and SVG view controllers, event bubbling, keyboard focus routing, and touch interaction |
+| Authoring | Design surface editing, grid snapping, alignment aids, clipboard, undo/redo, and rich-text editing |
+| Animation | Property tweens, easing functions, sprite and image transitions, and progressive drawing with Sketcher |
+| Interop | SVG import/export with preserved hierarchy, `<symbol>` / `<use>` support, gradients, and clip-path handling |
+| App surfaces | Layered panes, transitions, and mixed media workflows for interactive presentations and signage |
 
 ## Installation
 
-Elise is provided as a CommonJS structured JavaScript library with TypeScript type definitions and as a packed UMD module
-with a global name of **elise**.
+Install the package from npm:
 
-### Install using NPM
-
->
-> `
-> npm i elise-graphics
-> `
-
-## CommonJS Use (e.g. Browserify, Webpack, RequireJS)
-
-If utilizing one of the popular JavaScript packaging tools available that support CommonJS, the Elise can be imported with a
-require statement after installation.
-
-```javascript
-    var elise = require('elise-graphics');
+```bash
+npm install elise-graphics
 ```
 
-## Browser Use (UMD bundle)
+Elise ships as:
 
-Alternatively, one of the bundled UMB scripts can be included in an HTML script tag to import Elise into the global JavaScript
-namespace using the name **elise**.  If the script is included immediately prior to the closing body tag, then the preceeding
-DOM elements will be available for scripting.
+* a CommonJS package with TypeScript definitions
+* an ES module build exposed through the package `exports`
+* bundled UMD scripts in `_bundles/` for direct browser use
 
-The packed UMD modules are located in the node_modules/elise-graphics/_bundles folder after installing using NPM.
+## Getting Started
 
-* **elise-graphics.js** - Expanded with code documentation
-* **elise-graphics-min.js** - Minimized without documentation
-
-The appropriate script may be copied to an application folder used for third part scripts or referenced directly
-from its location in the node_modules folder.
-
-If using Express, an alias to the node_modules folder can be created:
+### ES modules
 
 ```javascript
-    // Allow front-end access to node_modules/elise-graphics folder
-    app.use('/elise', express.static(`${__dirname}/node_modules/elise-graphics`));
+import * as elise from 'elise-graphics';
 ```
 
-The snippet below assumes the 'elise/' path is mapped to the node_modules/elise-graphics folder using this method.
+### CommonJS
+
+```javascript
+const elise = require('elise-graphics');
+```
+
+### Browser bundle
+
+The bundled UMD files are available after installation:
+
+* `elise-graphics.js` - expanded bundle with documentation comments
+* `elise-graphics.min.js` - minified bundle
+
+If you expose `node_modules/elise-graphics` through a static route, you can load Elise directly in the browser:
+
+```javascript
+app.use('/elise', express.static(`${__dirname}/node_modules/elise-graphics`));
+```
 
 ```html
-    <!DOCTYPE html>
-    <body>
-        <!-- Elise Host Element -->
-        <div id="elise-host"></div>
-
-        <!-- JS Library Dependencies -->
-        <script src="elise/_bundles/elise-graphics.js"></script>
-    </body>
-
-    </html>
+<div id="elise-host"></div>
+<script src="elise/_bundles/elise-graphics.js"></script>
 ```
 
-## Simple Example
+## Quick Start
 
-Given a host div with an id of 'elise-host' as shown in the HTML example above, an Elise model can be created,
-populated with elements and bound to the designated element.
+Given a host element with an id of `elise-host`, create a model, add elements, and render it:
 
 ```javascript
-    var hostDiv = document.getElementById('elise-host');
-    var model = elise.Model.create(100, 100).setFill('Blue');
-    var rect = elise.EllipseElement.create(50, 50, 40, 40).setFill('Red');
-    model.add(rect);
-    elise.view(hostDiv, model);
+const host = document.getElementById('elise-host');
+const model = elise.model(240, 160).setFill('#0f172a');
+
+const ellipse = elise.EllipseElement.create(120, 80, 84, 52)
+    .setFill('#ef4444')
+    .setStroke('#ffffff,2');
+
+model.add(ellipse);
+elise.view(host, model);
 ```
 
-The example above does the following:
+To render the same retained model as SVG, swap `elise.view(...)` for `elise.svgView(...)`.
 
-* Creates a model with a width and height of 100 units.
-* Sets the fill (background) color of the model to blue.
-* Create an ellipse element with a center point of 50,50 and with horizontal and vertical radii of 40 units.
-* Sets the fill color of the ellipse element to red.
-* Adds the ellipse element to the model.
-* Binds the model to the host div element to be rendered in the browser.
-
-## Result
-
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;![Blue model with red ellipse](images/blue_model_red_ellipse.png)
+![Blue model with red ellipse](images/blue_model_red_ellipse.png)
 
 ## Property Tween Animation
 
@@ -339,10 +329,17 @@ Available editor clipboard methods:
 * `exportSelectionClipboardText()` returns the serialized clipboard JSON string.
 * `pasteClipboardData(data, offsetX?, offsetY?)` pastes a structured payload or serialized payload directly.
 
-## Example Projects
+## Examples and Resources
 
-* [Simple Example Project](https://github.com/thetheosopher/elise-simple-demo)
-* [Browserify Example Project](https://github.com/thetheosopher/elise-browserify-demo)
+* [Product website](https://elise.schematrix.com) for live showcases, demos, and toolchain entry points.
+* [Online docs](https://elise.schematrix.com/#/docs) for API and feature reference.
+* [Animation system showcase](examples/animation-system-showcase.html) for property tweens and easing curves.
+* [Metaballs](examples/metaballs.html) for fluid motion and blended forms.
+* [Aurora Borealis](examples/aurora-borealis.html) for layered runtime animation.
+* [DNA Helix](examples/dna-helix.html) for transforms and grouped composition.
+* [Lorenz Attractor](examples/lorenz-attractor.html) for real-time mathematical visualization.
+* [Simple example project](https://github.com/thetheosopher/elise-simple-demo)
+* [Browserify example project](https://github.com/thetheosopher/elise-browserify-demo)
 
 ## Core Elements and Concepts
 
@@ -424,3 +421,15 @@ The `prepare` lifecycle script runs the full build automatically before `npm pac
 npm version patch   # bump version, lint, format, commit, and tag
 npm publish         # build, lint, and publish to npm
 ```
+
+## Support the Project
+
+If Elise helps you build something useful, you can support ongoing work here:
+
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=000000)](https://buymeacoffee.com/theosopher)
+
+## License
+
+Elise Graphics is released under the MIT License. See [LICENSE](LICENSE) for the full text.
+
+Copyright (c) 2019 Michael A. McCloskey
