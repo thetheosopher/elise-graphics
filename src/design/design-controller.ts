@@ -51,7 +51,7 @@ import {
     type PointEditableDesignElement,
 } from './design-point-edit-utils';
 import { DesignRenderer } from './design-renderer';
-import { DesignSelectionService, type DesignSelectionHost } from './design-selection-service';
+import { DesignSelectionService, type DesignSelectionHost, type DesignSelectionSummary } from './design-selection-service';
 import { DesignTextEditingService, type DesignTextEditingHost } from './design-text-editing-service';
 import { DesignTouchInteractionService, type DesignTouchInteractionHost } from './design-touch-interaction-service';
 import { DesignTransformService, type DesignTransformHost } from './design-transform-service';
@@ -63,6 +63,7 @@ import { HandleFactory } from './handle-factory';
 import { DesignTool } from './tools/design-tool';
 
 export type { DesignClipboardData } from './design-clipboard-service';
+export type { DesignLayerSummary, DesignSelectionSummary } from './design-selection-service';
 
 const log = Logging.log;
 
@@ -839,6 +840,7 @@ export class DesignController implements IController {
         this.toggleSelected = this.toggleSelected.bind(this);
         this.selectAll = this.selectAll.bind(this);
         this.selectElements = this.selectElements.bind(this);
+        this.getSelectionSummary = this.getSelectionSummary.bind(this);
         this.onElementsReordered = this.onElementsReordered.bind(this);
         this.moveElementToBottom = this.moveElementToBottom.bind(this);
         this.moveElementToTop = this.moveElementToTop.bind(this);
@@ -2182,6 +2184,10 @@ export class DesignController implements IController {
      */
     public selectElements(elements: ElementBase[]): void {
         this.selectionService.selectElements(this.createSelectionHost(), elements);
+    }
+
+    public getSelectionSummary(): DesignSelectionSummary {
+        return this.selectionService.getSelectionSummary(this.createSelectionHost());
     }
 
     /**

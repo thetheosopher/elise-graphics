@@ -85,4 +85,35 @@ describe('DesignSelectionService', () => {
         expect(host.selectedElements).toEqual([editable, plain]);
         expect(host.onSelectionChanged).toHaveBeenCalledTimes(1);
     });
+
+    test('getSelectionSummary reports layer order, selection state, and capabilities', () => {
+        const service = new DesignSelectionService();
+        const { host, editable, plain } = createHost();
+        editable.id = 'editable-rect';
+        host.selectedElements = [plain, editable];
+
+        const summary = service.getSelectionSummary(host);
+
+        expect(summary.totalElements).toBe(3);
+        expect(summary.selectedCount).toBe(2);
+        expect(summary.lowestSelectedIndex).toBe(0);
+        expect(summary.highestSelectedIndex).toBe(1);
+        expect(summary.movableSelectedCount).toBe(2);
+        expect(summary.resizeableSelectedCount).toBe(2);
+        expect(summary.layers.map((layer) => layer.element)).toEqual(host.model!.elements);
+        expect(summary.layers[0].element).toBe(editable);
+        expect(summary.layers[0].index).toBe(0);
+        expect(summary.layers[0].layerNumber).toBe(3);
+        expect(summary.layers[0].type).toBe('rectangle');
+        expect(summary.layers[0].id).toBe('editable-rect');
+        expect(summary.layers[0].selected).toBe(true);
+        expect(summary.layers[0].interactive).toBe(true);
+        expect(summary.layers[0].canMove).toBe(true);
+        expect(summary.layers[0].canResize).toBe(true);
+        expect(summary.layers[0].bounds?.x).toBe(5);
+        expect(summary.layers[0].bounds?.y).toBe(5);
+        expect(summary.layers[2].selected).toBe(false);
+        expect(summary.layers[2].interactive).toBe(false);
+        expect(summary.selectedLayers.map((layer) => layer.element)).toEqual([editable, plain]);
+    });
 });

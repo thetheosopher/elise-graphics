@@ -1,4 +1,32 @@
+import type { Region } from '../core/region';
 import { ElementBase } from '../elements/element-base';
+
+export interface DesignLayerSummary {
+    element: ElementBase;
+    index: number;
+    layerNumber: number;
+    type: string;
+    id?: string;
+    description: string;
+    selected: boolean;
+    interactive: boolean;
+    canMove: boolean;
+    canResize: boolean;
+    canFill: boolean;
+    canStroke: boolean;
+    bounds?: Region;
+}
+
+export interface DesignSelectionSummary {
+    totalElements: number;
+    selectedCount: number;
+    selectedLayers: DesignLayerSummary[];
+    layers: DesignLayerSummary[];
+    movableSelectedCount: number;
+    resizeableSelectedCount: number;
+    lowestSelectedIndex?: number;
+    highestSelectedIndex?: number;
+}
 
 export interface DesignSelectionHost {
     model?: {
@@ -91,5 +119,46 @@ export class DesignSelectionService {
         for (const element of elements) {
             this.selectElement(host, element);
         }
+    }
+
+    public getSelectionSummary(host: DesignSelectionHost): DesignSelectionSummary {
+        const elements = host.model?.elements ?? [];
+        const layers = elements.map((element, index) => this.createLayerSummary(host, element, index, elements.length));
+        const selectedLayers = layers.filter((layer) => layer.selected);
+        const selectedIndexes = selectedLayers.map((layer) => layer.index);
+
+        return {
+            totalElements: elements.length,
+            selectedCount: selectedLayers.length,
+            selectedLayers,
+            layers,
+            movableSelectedCount: selectedLayers.filter((layer) => layer.canMove).length,
+            resizeableSelectedCount: selectedLayers.filter((layer) => layer.canResize).length,
+            lowestSelectedIndex: selectedIndexes.length > 0 ? Math.min(...selectedIndexes) : undefined,
+            highestSelectedIndex: selectedIndexes.length > 0 ? Math.max(...selectedIndexes) : undefined,
+        };
+    }
+
+    private createLayerSummary(
+        host: DesignSelectionHost,
+        element: ElementBase,
+        index: number,
+        totalElements: number,
+    ): DesignLayerSummary {
+        return {
+            element,
+            index,
+            layerNumber: totalElements - index,
+            type: element.type,
+            id: element.id,
+            description: element.describe(),
+            selected: this.isSelected(host, element),
+            interactive: element.interactive !== false,
+            canMove: element.canMove(),
+            canResize: element.canResize(),
+            canFill: element.canFill(),
+            canStroke: element.canStroke(),
+            bounds: element.getBounds(),
+        };
     }
 }

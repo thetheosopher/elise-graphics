@@ -237,7 +237,7 @@ export { TextTool } from './design/tools/text-tool';
 export { WedgeTool } from './design/tools/wedge-tool';
 
 export { DesignController } from './design/design-controller';
-export type { DesignClipboardData } from './design/design-controller';
+export type { DesignClipboardData, DesignLayerSummary, DesignSelectionSummary } from './design/design-controller';
 export { DesignContextMenuEventArgs } from './design/design-context-menu-event-args';
 export { DesignRenderer } from './design/design-renderer';
 export { GridType } from './design/grid-type';
