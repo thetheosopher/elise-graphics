@@ -21,6 +21,8 @@ import { LineTool } from '../../design/tools/line-tool';
 import { RectangleTool } from '../../design/tools/rectangle-tool';
 import { TextPathTool } from '../../design/tools/text-path-tool';
 import { BitmapResource } from '../../resource/bitmap-resource';
+import { ModelElement } from '../../elements/model-element';
+import { ModelResource } from '../../resource/model-resource';
 import { TextPathElement } from '../../elements/text-path-element';
 
 function setWindowDevicePixelRatio(value: number) {
@@ -512,6 +514,56 @@ describe('design controller undo and redo', () => {
         expect(controller.selectedElements).toHaveLength(2);
         expect(controller.selectedElements[0]).toBe(model.elements[2]);
         expect(controller.selectedElements[1]).toBe(model.elements[3]);
+    });
+
+    test('groupSelectedElements creates a model element and supports undo', () => {
+        const { controller, model } = createControllerWithRectangles(
+            RectangleElement.create(10, 10, 20, 15),
+            RectangleElement.create(40, 30, 25, 20)
+        );
+
+        controller.selectedElements = model.elements.slice();
+
+        expect(controller.canGroupSelectedElements()).toBe(true);
+
+        const groupedElement = controller.groupSelectedElements();
+
+        expect(groupedElement).toBeInstanceOf(ModelElement);
+        expect(model.elements).toEqual([groupedElement]);
+        expect(controller.selectedElements).toEqual([groupedElement]);
+        expect(groupedElement?.getBounds()).toMatchObject({ x: 10, y: 10, width: 55, height: 40 });
+        expect(model.resourceManager.get(groupedElement!.source!) as ModelResource).toBeDefined();
+        expect(controller.canUngroupSelectedElements()).toBe(true);
+
+        controller.undo();
+
+        expect(model.elements).toHaveLength(2);
+        expect(model.elements[0].getBounds()).toMatchObject({ x: 10, y: 10, width: 20, height: 15 });
+        expect(model.elements[1].getBounds()).toMatchObject({ x: 40, y: 30, width: 25, height: 20 });
+    });
+
+    test('ungroupSelectedElements decomposes model elements and supports undo', () => {
+        const { controller, model } = createControllerWithRectangles(
+            RectangleElement.create(10, 10, 20, 15),
+            RectangleElement.create(40, 30, 25, 20)
+        );
+
+        controller.selectedElements = model.elements.slice();
+        const groupedElement = controller.groupSelectedElements()!;
+
+        const ungroupedElements = controller.ungroupSelectedElements();
+
+        expect(ungroupedElements).toHaveLength(2);
+        expect(model.elements).toEqual(ungroupedElements);
+        expect(controller.selectedElements).toEqual(ungroupedElements);
+        expect(model.elements[0].getBounds()).toMatchObject({ x: 10, y: 10, width: 20, height: 15 });
+        expect(model.elements[1].getBounds()).toMatchObject({ x: 40, y: 30, width: 25, height: 20 });
+
+        controller.undo();
+
+        expect(model.elements).toHaveLength(1);
+        expect(model.elements[0]).toBeInstanceOf(ModelElement);
+        expect(model.elements[0].getBounds()).toMatchObject({ x: 10, y: 10, width: 55, height: 40 });
     });
 
     test('copySelectedToClipboard and pasteFromClipboard preserve ordering and apply a paste offset', async () => {

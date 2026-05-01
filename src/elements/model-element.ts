@@ -113,6 +113,10 @@ export class ModelElement extends ElementBase {
         if (this.source) {
             e.source = this.source;
         }
+        if (this.sourceModel) {
+            const sourceModel = this.sourceModel as EmbeddedModel & { clone?: () => EmbeddedModel };
+            e.sourceModel = sourceModel.clone ? sourceModel.clone() : sourceModel;
+        }
         return e;
     }
 

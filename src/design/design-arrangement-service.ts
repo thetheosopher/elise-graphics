@@ -1,8 +1,13 @@
 import { ErrorMessages } from '../core/error-messages';
+import { Matrix2D } from '../core/matrix-2d';
+import { Model } from '../core/model';
 import { Point } from '../core/point';
 import { Region } from '../core/region';
 import { Size } from '../core/size';
+import { Utility } from '../core/utility';
 import { ElementBase } from '../elements/element-base';
+import { ModelElement } from '../elements/model-element';
+import { ModelResource } from '../resource/model-resource';
 
 interface MovableSelectionEntry {
     element: ElementBase;
@@ -11,15 +16,12 @@ interface MovableSelectionEntry {
 }
 
 export interface DesignArrangementHost {
-    model?: {
-        elements: ElementBase[];
-        add(element: ElementBase): void;
-        resourceManager: { pruneUnusedResources(): unknown[] };
-    };
+    model?: Model;
     selectedElements: ElementBase[];
     constrainToBounds: boolean;
     minElementSize: Size;
     onElementAdded(element: ElementBase): void;
+    onElementRemoved(element: ElementBase): void;
     onElementMoved(element: ElementBase, location: Point): void;
     onElementSized(element: ElementBase, size: Size): void;
     onSelectionChanged(): void;
@@ -32,8 +34,94 @@ export interface DesignArrangementHost {
 }
 
 const EPSILON = 2e-23;
+const GROUP_RESOURCE_KEY_PREFIX = 'elise-group-';
 
 export class DesignArrangementService {
+    public canGroupSelected(host: DesignArrangementHost): boolean {
+        return this.getOrderedSelectedEntries(host).length > 1;
+    }
+
+    public groupSelected(host: DesignArrangementHost): ModelElement | undefined {
+        if (!host.model) {
+            return undefined;
+        }
+
+        const selectedEntries = this.getOrderedSelectedEntries(host);
+        if (selectedEntries.length < 2) {
+            return undefined;
+        }
+
+        const bounds = this.getBoundsForElements(selectedEntries.map((entry) => entry.element));
+        if (!bounds) {
+            return undefined;
+        }
+
+        const groupSize = this.createGroupSize(bounds, host.minElementSize);
+        const groupModel = Model.create(groupSize.width, groupSize.height);
+        const groupedElements = selectedEntries.map((entry) => this.createGroupedElementClone(entry.element, bounds));
+        groupedElements.forEach((element) => groupModel.add(element));
+        this.copyReferencedResources(host.model, groupModel, groupedElements);
+
+        const resourceKey = this.createGroupResourceKey(host.model);
+        host.model.resourceManager.add(ModelResource.create(resourceKey, groupModel));
+
+        const groupedElement = ModelElement.create(resourceKey, bounds.x, bounds.y, groupSize.width, groupSize.height);
+        groupedElement.setInteractive(true);
+        this.replaceElementsWithElement(host, selectedEntries, groupedElement);
+
+        host.onModelUpdated();
+        host.commitUndoSnapshot();
+        host.selectedElements = [groupedElement];
+        host.onSelectionChanged();
+        host.drawIfNeeded();
+        return groupedElement;
+    }
+
+    public canUngroupSelected(host: DesignArrangementHost): boolean {
+        return this.getUngroupableSelectedEntries(host).length > 0;
+    }
+
+    public ungroupSelected(host: DesignArrangementHost): ElementBase[] {
+        if (!host.model) {
+            return [];
+        }
+
+        const ungroupEntries = this.getUngroupableSelectedEntries(host);
+        if (ungroupEntries.length === 0) {
+            return [];
+        }
+
+        const replacements = ungroupEntries.map((entry) => {
+            const elements = this.createUngroupedElementClones(entry.element, entry.sourceModel);
+            this.copyReferencedResources(entry.sourceModel, host.model!, elements);
+            return {
+                index: entry.index,
+                element: entry.element,
+                elements,
+            };
+        });
+
+        for (let index = replacements.length - 1; index >= 0; index--) {
+            const replacement = replacements[index];
+            const removedIndex = host.model.remove(replacement.element);
+            if (removedIndex === -1) {
+                continue;
+            }
+
+            host.onElementRemoved(replacement.element);
+            this.insertElementsAt(host.model, replacement.index, replacement.elements);
+            replacement.elements.forEach((element) => host.onElementAdded(element));
+        }
+
+        const ungroupedElements = replacements.flatMap((replacement) => replacement.elements);
+        host.onModelUpdated();
+        host.commitUndoSnapshot();
+        host.selectedElements = ungroupedElements;
+        host.onSelectionChanged();
+        host.drawIfNeeded();
+        return ungroupedElements;
+    }
+
     public duplicateSelected(host: DesignArrangementHost): void {
         const newSelected: ElementBase[] = [];
         if (host.selectedElements.length > 0) {
@@ -323,6 +411,296 @@ export class DesignArrangementService {
 
         host.model.elements = reordered;
         host.onElementsReordered();
+    }
+
+    private getOrderedSelectedEntries(host: DesignArrangementHost): Array<{ element: ElementBase; index: number }> {
+        if (!host.model || host.selectedElements.length === 0) {
+            return [];
+        }
+
+        const selectedElementSet = new Set(host.selectedElements);
+        const entries: Array<{ element: ElementBase; index: number }> = [];
+        host.model.elements.forEach((element, index) => {
+            if (selectedElementSet.has(element)) {
+                entries.push({ element, index });
+            }
+        });
+        return entries;
+    }
+
+    private getUngroupableSelectedEntries(host: DesignArrangementHost): Array<{ element: ModelElement; index: number; sourceModel: Model }> {
+        if (!host.model) {
+            return [];
+        }
+
+        const entries: Array<{ element: ModelElement; index: number; sourceModel: Model }> = [];
+        for (const entry of this.getOrderedSelectedEntries(host)) {
+            if (!(entry.element instanceof ModelElement)) {
+                continue;
+            }
+
+            const sourceModel = this.resolveModelElementModel(host.model, entry.element);
+            if (sourceModel) {
+                entries.push({ element: entry.element, index: entry.index, sourceModel });
+            }
+        }
+        return entries;
+    }
+
+    private getBoundsForElements(elements: ElementBase[]): Region | undefined {
+        let bounds: Region | undefined;
+        for (const element of elements) {
+            const elementBounds = this.getVisualBounds(element);
+            if (!elementBounds) {
+                continue;
+            }
+
+            if (!bounds) {
+                bounds = elementBounds;
+                continue;
+            }
+
+            const minX = Math.min(bounds.x, elementBounds.x);
+            const minY = Math.min(bounds.y, elementBounds.y);
+            const maxX = Math.max(bounds.x + bounds.width, elementBounds.x + elementBounds.width);
+            const maxY = Math.max(bounds.y + bounds.height, elementBounds.y + elementBounds.height);
+            bounds = new Region(minX, minY, maxX - minX, maxY - minY);
+        }
+        return bounds;
+    }
+
+    private getVisualBounds(element: ElementBase): Region | undefined {
+        const bounds = element.getBounds();
+        if (!bounds || !element.transform) {
+            return bounds;
+        }
+
+        const location = element.getLocation() || bounds.location;
+        const size = element.getSize() || bounds.size;
+        return this.getTransformedAABB(location, size, element.transform);
+    }
+
+    private getTransformedAABB(location: Point, size: Size, transform: string): Region {
+        const matrix = Matrix2D.fromTransformString(transform, location);
+        const corners = [
+            matrix.transformPoint(new Point(location.x, location.y)),
+            matrix.transformPoint(new Point(location.x + size.width, location.y)),
+            matrix.transformPoint(new Point(location.x + size.width, location.y + size.height)),
+            matrix.transformPoint(new Point(location.x, location.y + size.height)),
+        ];
+
+        let minX = corners[0].x;
+        let minY = corners[0].y;
+        let maxX = corners[0].x;
+        let maxY = corners[0].y;
+        for (let index = 1; index < corners.length; index++) {
+            minX = Math.min(minX, corners[index].x);
+            minY = Math.min(minY, corners[index].y);
+            maxX = Math.max(maxX, corners[index].x);
+            maxY = Math.max(maxY, corners[index].y);
+        }
+
+        return new Region(minX, minY, maxX - minX, maxY - minY);
+    }
+
+    private createGroupSize(bounds: Region, minElementSize: Size): Size {
+        return new Size(
+            Math.max(bounds.width, minElementSize.width, EPSILON),
+            Math.max(bounds.height, minElementSize.height, EPSILON),
+        );
+    }
+
+    private createGroupedElementClone(element: ElementBase, groupBounds: Region): ElementBase {
+        const clone = this.cloneElement(element);
+        clone.translate(-groupBounds.x, -groupBounds.y);
+        clone.editPoints = false;
+        clone.setInteractive(false);
+        return clone;
+    }
+
+    private cloneElement(element: ElementBase): ElementBase {
+        const clone = element.clone();
+        if (element instanceof ModelElement && clone instanceof ModelElement && element.sourceModel) {
+            const sourceModel = element.sourceModel as Model;
+            clone.sourceModel = typeof sourceModel.clone === 'function' ? sourceModel.clone() : sourceModel;
+        }
+        return clone;
+    }
+
+    private copyReferencedResources(sourceModel: Model, targetModel: Model, elements: ElementBase[]): void {
+        const referencedKeys = new Set<string>();
+        elements.forEach((element) => {
+            element.getResourceKeys().forEach((key) => referencedKeys.add(key));
+        });
+
+        sourceModel.resources.forEach((resource) => {
+            if (resource.key && referencedKeys.has(resource.key)) {
+                targetModel.resourceManager.merge(resource.clone());
+            }
+        });
+    }
+
+    private createGroupResourceKey(model: Model): string {
+        let key = GROUP_RESOURCE_KEY_PREFIX + Utility.guid();
+        while (model.resources.some((resource) => resource.key === key)) {
+            key = GROUP_RESOURCE_KEY_PREFIX + Utility.guid();
+        }
+        return key;
+    }
+
+    private replaceElementsWithElement(
+        host: DesignArrangementHost,
+        entries: Array<{ element: ElementBase; index: number }>,
+        replacement: ElementBase,
+    ): void {
+        if (!host.model || entries.length === 0) {
+            return;
+        }
+
+        const insertionIndex = entries[0].index;
+        for (let index = entries.length - 1; index >= 0; index--) {
+            const removedIndex = host.model.remove(entries[index].element);
+            if (removedIndex !== -1) {
+                host.onElementRemoved(entries[index].element);
+            }
+        }
+
+        this.insertElementAt(host.model, insertionIndex, replacement);
+        host.onElementAdded(replacement);
+    }
+
+    private insertElementAt(model: Model, index: number, element: ElementBase): void {
+        element.model = model;
+        element.parent = model;
+        model.elements.splice(index, 0, element);
+    }
+
+    private insertElementsAt(model: Model, index: number, elements: ElementBase[]): void {
+        elements.forEach((element, offset) => this.insertElementAt(model, index + offset, element));
+    }
+
+    private resolveModelElementModel(model: Model, element: ModelElement): Model | undefined {
+        if (element.sourceModel) {
+            const sourceModel = element.sourceModel as Model;
+            return Array.isArray(sourceModel.elements) ? sourceModel : undefined;
+        }
+
+        if (!element.source) {
+            return undefined;
+        }
+
+        const resource = model.resourceManager.get(element.source) as ModelResource | undefined;
+        return resource && resource.model ? resource.model : undefined;
+    }
+
+    private createUngroupedElementClones(element: ModelElement, sourceModel: Model): ElementBase[] {
+        const location = element.getLocation();
+        if (!location) {
+            return [];
+        }
+
+        const sourceSize = sourceModel.getSize();
+        const requestedSize = element.getSize();
+        let scaleX = 1;
+        let scaleY = 1;
+        if (sourceSize && requestedSize && sourceSize.width > 0 && sourceSize.height > 0) {
+            scaleX = requestedSize.width / sourceSize.width;
+            scaleY = requestedSize.height / sourceSize.height;
+        }
+
+        const useTransformMatrix = !!element.transform || !!sourceModel.transform;
+        const transformMatrix = useTransformMatrix
+            ? this.createModelElementRenderMatrix(element, sourceModel, location, scaleX, scaleY)
+            : undefined;
+
+        return sourceModel.elements.map((sourceElement) => {
+            const clone = this.cloneElement(sourceElement);
+            clone.editPoints = false;
+            clone.setInteractive(true);
+
+            if (transformMatrix) {
+                this.applyRenderMatrixToElement(clone, transformMatrix);
+            }
+            else {
+                if (scaleX !== 1 || scaleY !== 1) {
+                    clone.scale(scaleX, scaleY);
+                }
+                clone.translate(location.x, location.y);
+            }
+            return clone;
+        });
+    }
+
+    private createModelElementRenderMatrix(
+        element: ModelElement,
+        sourceModel: Model,
+        location: Point,
+        scaleX: number,
+        scaleY: number,
+    ): Matrix2D {
+        const matrix = element.transform
+            ? this.cloneMatrix(Matrix2D.fromTransformString(element.transform, location))
+            : this.identityMatrix();
+
+        matrix.translate(location.x, location.y);
+        if (scaleX !== 1 || scaleY !== 1) {
+            matrix.scale(scaleX, scaleY);
+        }
+
+        if (sourceModel.transform) {
+            const sourceLocation = sourceModel.getLocation() || Point.Origin;
+            return this.combineMatrices(matrix, Matrix2D.fromTransformString(sourceModel.transform, sourceLocation));
+        }
+
+        return matrix;
+    }
+
+    private applyRenderMatrixToElement(element: ElementBase, renderMatrix: Matrix2D): void {
+        const bounds = element.getBounds();
+        const origin = element.getLocation() || bounds?.location || Point.Origin;
+        const existingTransform = element.transform
+            ? Matrix2D.fromTransformString(element.transform, origin)
+            : this.identityMatrix();
+        const combinedRenderMatrix = this.combineMatrices(renderMatrix, existingTransform);
+        const relativeMatrix = this.combineMatrices(
+            this.combineMatrices(this.translationMatrix(-origin.x, -origin.y), combinedRenderMatrix),
+            this.translationMatrix(origin.x, origin.y),
+        );
+        element.transform = this.formatMatrixTransform(relativeMatrix);
+    }
+
+    private identityMatrix(): Matrix2D {
+        return new Matrix2D(1, 0, 0, 1, 0, 0);
+    }
+
+    private translationMatrix(x: number, y: number): Matrix2D {
+        return new Matrix2D(1, 0, 0, 1, x, y);
+    }
+
+    private cloneMatrix(matrix: Matrix2D): Matrix2D {
+        return new Matrix2D(matrix.m11, matrix.m12, matrix.m21, matrix.m22, matrix.offsetX, matrix.offsetY);
+    }
+
+    private combineMatrices(left: Matrix2D, right: Matrix2D): Matrix2D {
+        return Matrix2D.multiply(right, left);
+    }
+
+    private formatMatrixTransform(matrix: Matrix2D): string {
+        return 'matrix(' + [
+            matrix.m11,
+            matrix.m12,
+            matrix.m21,
+            matrix.m22,
+            matrix.offsetX,
+            matrix.offsetY,
+        ].map((value) => this.formatMatrixNumber(value)).join(',') + ')';
+    }
+
+    private formatMatrixNumber(value: number): string {
+        if (Math.abs(value) <= EPSILON) {
+            return '0';
+        }
+        return Number(value.toFixed(12)).toString();
     }
 
     private getSelectedMovableEntries(selectedElements: ElementBase[]): MovableSelectionEntry[] {

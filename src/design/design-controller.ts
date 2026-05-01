@@ -25,6 +25,7 @@ import { ElementLocationArgs } from '../elements/element-location-args';
 import { ElementRotationArgs } from '../elements/element-rotation-args';
 import { ElementSizeArgs } from '../elements/element-size-args';
 import { MoveLocation } from '../elements/move-location';
+import { ModelElement } from '../elements/model-element';
 import { RectangleElement } from '../elements/rectangle-element';
 import { ResizeSize } from '../elements/resize-size';
 import { TextElement, type TextRunStyle } from '../elements/text-element';
@@ -857,6 +858,14 @@ export class DesignController implements IController {
         this.resizeSelectedToSameWidth = this.resizeSelectedToSameWidth.bind(this);
         this.resizeSelectedToSameHeight = this.resizeSelectedToSameHeight.bind(this);
         this.resizeSelectedToSameSize = this.resizeSelectedToSameSize.bind(this);
+        this.canGroupSelection = this.canGroupSelection.bind(this);
+        this.canGroupSelectedElements = this.canGroupSelectedElements.bind(this);
+        this.groupSelected = this.groupSelected.bind(this);
+        this.groupSelectedElements = this.groupSelectedElements.bind(this);
+        this.canUngroupSelection = this.canUngroupSelection.bind(this);
+        this.canUngroupSelectedElements = this.canUngroupSelectedElements.bind(this);
+        this.ungroupSelected = this.ungroupSelected.bind(this);
+        this.ungroupSelectedElements = this.ungroupSelectedElements.bind(this);
         this.duplicateSelectedElements = this.duplicateSelectedElements.bind(this);
         this.removeUnusedResourcesFromResourceManager = this.removeUnusedResourcesFromResourceManager.bind(this);
         this.movableSelectedElementCount = this.movableSelectedElementCount.bind(this);
@@ -2401,6 +2410,66 @@ export class DesignController implements IController {
     }
 
     /**
+     * Returns true when the current selection can be grouped.
+     */
+    public canGroupSelection(): boolean {
+        return this.arrangementService.canGroupSelected(this.createArrangementHost());
+    }
+
+    /**
+     * Returns true when the current selection can be grouped.
+     */
+    public canGroupSelectedElements(): boolean {
+        return this.canGroupSelection();
+    }
+
+    /**
+     * Groups the current selection into a reusable model element.
+     * @returns Created model element, or undefined when grouping is unavailable
+     */
+    public groupSelected(): ModelElement | undefined {
+        return this.arrangementService.groupSelected(this.createArrangementHost());
+    }
+
+    /**
+     * Groups the current selection into a reusable model element.
+     * @returns Created model element, or undefined when grouping is unavailable
+     */
+    public groupSelectedElements(): ModelElement | undefined {
+        return this.groupSelected();
+    }
+
+    /**
+     * Returns true when the current selection contains model elements that can be ungrouped.
+     */
+    public canUngroupSelection(): boolean {
+        return this.arrangementService.canUngroupSelected(this.createArrangementHost());
+    }
+
+    /**
+     * Returns true when the current selection contains model elements that can be ungrouped.
+     */
+    public canUngroupSelectedElements(): boolean {
+        return this.canUngroupSelection();
+    }
+
+    /**
+     * Ungroups selected model elements into their contained elements.
+     * @returns Decomposed elements inserted into the host model
+     */
+    public ungroupSelected(): ElementBase[] {
+        return this.arrangementService.ungroupSelected(this.createArrangementHost());
+    }
+
+    /**
+     * Ungroups selected model elements into their contained elements.
+     * @returns Decomposed elements inserted into the host model
+     */
+    public ungroupSelectedElements(): ElementBase[] {
+        return this.ungroupSelected();
+    }
+
+    /**
      * Removes resources that are no longer referenced by the current model.
      * @returns Number of removed resources
      */
@@ -2428,6 +2497,7 @@ export class DesignController implements IController {
                 return self.minElementSize;
             },
             onElementAdded: (element) => self.onElementAdded(element),
+            onElementRemoved: (element) => self.onElementRemoved(element),
             onElementMoved: (element, location) => self.onElementMoved(element, location),
             onElementSized: (element, size) => self.onElementSized(element, size),
             onSelectionChanged: () => self.onSelectionChanged(),

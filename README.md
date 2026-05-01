@@ -298,6 +298,27 @@ The design surface supports inline text editing with rich formatting. Double-cli
 * **Ctrl+B** for bold, **Ctrl+I** for italic, **Ctrl+U** for underline
 * Escape to exit text edit mode
 
+## Design Surface Grouping API
+
+`DesignController` exposes programmatic grouping helpers for editor toolbars and menus. Grouping is available when multiple host-model elements are selected; it replaces them with a single `ModelElement` backed by an embedded model resource sized to the selected bounds. Ungrouping is available for selected model elements and replaces each model element with clones of its contained elements in host-model coordinates.
+
+```javascript
+const editor = elise.design(hostDiv, model);
+
+groupButton.disabled = !editor.canGroupSelectedElements();
+ungroupButton.disabled = !editor.canUngroupSelectedElements();
+
+groupButton.onclick = () => editor.groupSelectedElements();
+ungroupButton.onclick = () => editor.ungroupSelectedElements();
+```
+
+Available editor grouping methods:
+
+* `canGroupSelectedElements()` returns true when the current selection can be grouped.
+* `groupSelectedElements()` groups the current selection and selects the created model element.
+* `canUngroupSelectedElements()` returns true when selected model elements can be decomposed.
+* `ungroupSelectedElements()` ungroups selected model elements and selects the decomposed elements.
+
 ## Design Surface Clipboard API
 
 The design surface now exposes programmatic clipboard helpers directly on `DesignController`, so toolbar and menu commands do not need to synthesize keyboard events.
